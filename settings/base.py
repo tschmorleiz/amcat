@@ -178,7 +178,8 @@ INSTALLED_APPS = [
     'api',
     'amcat',
     'django_extensions',
-    'compressor'
+    'compressor',
+    'djcelery',
 ]
                     
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
@@ -323,3 +324,9 @@ else:
     }
 
 
+
+import djcelery
+djcelery.setup_loader()
+
+CELERY_RESULT_BACKEND = 'amqp'
+CELERY_TASK_RESULT_EXPIRES = 18000  # 5 hours.

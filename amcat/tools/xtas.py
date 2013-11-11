@@ -127,5 +127,5 @@ class TestXtas(amcattest.PolicyTestCase):
         # expected_hash = md5(task_name).hexdigest
         expected_hash = '38a3789f1156030f70d222a5d86c5f4c' # from xtas log, but corresponds to line above
         
-        self.assertEqual(_hashid(TASK_PROCESS, *_get_args(16514, method)), expected_hash)
+        self.assertEqual(_hashid(TASK_PROCESS_NAME, *_get_args(16514, method)), expected_hash)
         

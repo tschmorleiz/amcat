@@ -19,3 +19,6 @@
 
 import djcelery
 djcelery.setup_loader()
+
+CELERY_RESULT_BACKEND = 'amqp'
+CELERY_TASK_RESULT_EXPIRES = 18000  # 5 hours.

@@ -42,7 +42,7 @@ log = logging.getLogger(__name__)
 KEY = u"paul" # dit kan niet goed zijn :)
 TASK_PROCESS_NAME = "process_document"
 TASK_PROCESS_FULL = "processing.tasks." + TASK_PROCESS_NAME
-
+TASK_CLEAR = "processing.tasks.clear_cache"
 STATE_SENT = 'SENT'
 
 class TaskPending(Exception):
@@ -63,18 +63,25 @@ def _get_args(article, *methods):
     aid = article if isinstance(article, int) else article.id
     return [KEY, unicode(aid), document, language, methodlist, dOptions] 
 
-def process_document_sync(article, *methods):
+def process_document_sync(article, *methods, **options):
     """
     Ask xtas to process the article, see process_document
     Will halt (wait) until the document is done
     """
     while True:
         try:
-            return process_document(article, *methods)
+            return process_document(article, *methods, **options)
         except TaskPending:
+            options.pop('force_resend', None)
             time.sleep(1)
-    
-def process_document(article, *methods):
+
+def clear_cache(*articles):
+    article_ids = [str(a) if isinstance(a, int) else str(a.id)
+                   for a in articles]
+    t = send_task(TASK_CLEAR, args=(KEY, article_ids))
+    t.get()
+            
+def process_document(article, *methods, **options):
     """
     Ask xtas to process the article with the methodlist.
     The method will raise TaskPending if the task is waiting for completion
@@ -84,13 +91,19 @@ def process_document(article, *methods):
     @param methods: one or more (method, args) pairs
     @return: The result if the task is done
     """
+    force_resend = options.pop('force_resend', False)
+    if options: raise ValueError("Unknwown options: {options}".format(**locals()))
+    
     args = _get_args(article, *methods)
     tid = _hashid(TASK_PROCESS_NAME, *args)
-    # check if task already exists
-    t = Task.AsyncResult(tid)
-    state = t.state
+    if force_resend:
+        state = celery.states.PENDING
+    else:
+        # check if task already exists
+        t = Task.AsyncResult(tid)
+        state = t.state
     log.info("Task {tid}: {state}".format(**locals()))
-    
+        
     if state == celery.states.SUCCESS:
         return t.get()
     elif state == celery.states.FAILURE:

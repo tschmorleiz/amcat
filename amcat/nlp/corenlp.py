@@ -249,6 +249,19 @@ class StanfordCoreNLP(object):
         return results
 
 
+    @classmethod
+    def get_command(cls, classname, argstr="",memory=None, **classpath_args):
+        classpath = get_classpath(**classpath_args)
+        memory = "" if memory is None else "-Xmx{memory}".format(**locals())
+        if isinstance(argstr, list):
+            argstr = " ".join(map(str, argstr))
+        return "java {memory} -cp {classpath} {classname} {argstr}".format(**locals())
+
+    @classmethod
+    def parse_text(cls, text, **kargs):
+        nlp = StanfordCoreNLP(**kargs)
+        return nlp.parse(text)
+
 
 def get_classpath(corenlp_path=None, corenlp_version=None, models_version=None):
     if corenlp_path is None: corenlp_path = os.environ["CORENLP_HOME"]
@@ -266,19 +279,6 @@ def get_classpath(corenlp_path=None, corenlp_version=None, models_version=None):
             raise Exception("Error! Cannot locate {jar}".format(**locals()))
             
     return ":".join(jars)
-
-    @classmethod
-    def get_command(cls, classname, argstr="",memory=None, **classpath_args):
-        classpath = get_classpath(**classpath_args)
-        memory = "" if memory is None else "-Xmx{memory}".format(**locals())
-        if isinstance(argstr, list):
-            argstr = " ".join(map(str, argstr))
-        return "java {memory} -cp {classpath} {classname} {argstr}".format(**locals())
-
-    @classmethod
-    def parse_text(cls, text, **kargs):
-        nlp = StanfordCoreNLP(**kargs)
-        return nlp.parse(text)
 
 if __name__ == '__main__':
     import json

@@ -38,9 +38,17 @@ class NAF_Object(object):
             for k in list(kargs):
                 if k not in self._fields:
                     kargs["extra"][k] = kargs.pop(k)
+            if len(args) == len(self._fields):
+                kargs["extra"].update(args[-1])
+                args = args[:-1]
+            
+        if len(args) + len(kargs) != len(self._fields):
+            raise ValueError("Wrong number of arguments, expected {self._fields}, got {args} + {kargs}".format(**locals())) 
         return super(NAF_Object, self).__new__(self, *args, **kargs)
         
     def __getattr__(self, attr):
+        if attr == "extra":
+            raise AttributeError(attr)
         try:
             return self.extra[attr]
         except KeyError:

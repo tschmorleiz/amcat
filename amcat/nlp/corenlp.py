@@ -28,7 +28,7 @@ import re
 import logging
 import pexpect
 from cStringIO import StringIO
-
+from .naf import NAF_Article, Coreference_target
 log = logging.getLogger(__name__)
 
 def parse_results(lines):
@@ -37,21 +37,23 @@ def parse_results(lines):
     and then returns a Python list of dictionaries, one for each parsed
     sentence.
     """
+    
     lines = iter(lines)
     lines.next() # skip first line (echo of sentence)
-    sentences = list(parse_sentences(lines))
 
-    coref = list(parse_coreferences(lines))
-    return {"sentences": sentences, "coref": coref}
+    article = NAF_Article()
+    parse_sentences(article, lines)
+    parse_coreferences(article, lines)
+    return article
 
-def parse_sentences(lines):
+def parse_sentences(article, lines):
     while True:
         try:
-            yield parse_sentence(lines)
+            parse_sentence(article, lines)
         except StopIteration:
             break
 
-def parse_sentence(lines):
+def parse_sentence(article, lines):
     """
     Parse a sentence from the lines iterator, consuming lines in the process
     Raises StopIteration if the end of the sentences is reached (explicitly or from lines.next())
@@ -59,11 +61,17 @@ def parse_sentence(lines):
     nr = get_sentence_no(lines)
     text = lines.next()
     log.debug("Parsing sentence {nr}: {text!r}".format(**locals()))
+    sentence = article.create_sentence()
     # split words line into minimal bracketed chunks and parse those
-    words = [dict(parse_word(s)) for s in re.findall('\[([^\]]+)\]', lines.next())]
+    for s in re.findall('\[([^\]]+)\]', lines.next()):
+        wd = dict(parse_word(s))
+        entity = wd.get("NamedEntityTag", None)
+        sentence.add_word(wd["CharacterOffsetBegin"], wd["Text"], wd["Lemma"], wd["PartOfSpeech"],
+                          entity_type=(None if entity == "O" else entity))
     parsetree = " ".join(p.strip() for p in parse_tree(lines))
-    tuples = list(parse_tuples(lines))
-    return dict(nr=nr, text=text, words=words, tuples=tuples, parsetree=parsetree)
+    tuples = parse_tuples(sentence, lines)
+    return sentence
+
 
 def get_sentence_no(lines):
     """Return the sentence number, or raise StopIteration if EOF or Coreference Set is reached"""
@@ -81,20 +89,24 @@ def parse_tree(lines):
             break
         yield line
 
-def parse_tuples(lines):
+def parse_tuples(sentence, lines):
     for line in lines:
         if not line.strip():
             return
         m = re.match(r"(\w+)\(.+-([0-9']+), .+-([0-9']+)\)", line)
         if not m:
             raise Exception("Cannot interpret 'tuples' line: {line!r}".format(**locals()))
-        yield m.groups()
+        rfunc, from_index, to_index = m.groups()
+        from_term = sentence.terms[int(from_index)].term_id
+        to_term = sentence.terms[int(to_index)].term_id
+        sentence.add_dependency(from_term, to_term, rfunc)
 
 def parse_word(s):
   '''Parse word features [abc=... def = ...]
   Also manages to parse out features that have XML within them
   @return: an iterator of key, value pairs
   '''
+  result = {}
   # Substitute XML tags, to replace them later
   temp = {}
   for i, tag in enumerate(re.findall(r"(<[^<>]+>.*<\/[^<>]+>)", s)):
@@ -111,12 +123,20 @@ def parse_coref_group(s):
     s = s.replace(")", "")
     return map(int, s.split(","))
 
-def parse_coreferences(lines):
+def parse_coreferences(article, lines):
     while True:
-        coref = list(parse_coreference(lines))
-        if not coref:
+        #TODO: what do multiple coref lines in one set mean?
+        corefs = list(parse_coreference(lines))
+        if not corefs:
             break
-        yield coref
+        for coref in corefs:
+            co = article.create_coreference()
+            for sent_index, head_index, from_index, to_index in coref:
+                s = article.sentences[sent_index - 1]
+                head = s.terms[head_index - 1]
+                terms = s.terms[from_index - 1 : to_index - 1]
+                co.spans.append([Coreference_target(term.term_id, term == head)
+                                 for term in terms])
 
 def parse_coreference(lines):
     for line in lines:
@@ -129,31 +149,7 @@ def parse_coreference(lines):
             raise Exception("Coref sets not found in line {line!r}".format(**locals()))
         yield map(parse_coref_group, m.groups())
 
-def get_classpath(corenlp_path=None, corenlp_version=None, models_version=None):
-    if corenlp_path is None: corenlp_path = os.environ["CORENLP_HOME"]
-    if corenlp_version is None: corenlp_version = os.environ.get("CORENLP_VERSION", "3.2.0")
-    if models_version is None: models_version = corenlp_version
 
-    jars = ["stanford-corenlp-{corenlp_version}.jar".format(**locals()),
-            "stanford-corenlp-{models_version}-models.jar".format(**locals()),
-            "joda-time.jar", "xom.jar", "jollyday.jar"]
-    jars = [os.path.join(corenlp_path, jar) for jar in jars]
-    
-    # check whether jars exist
-    for jar in jars:
-        if not os.path.exists(jar):
-            raise Exception("Error! Cannot locate {jar}".format(**locals()))
-            
-    return ":".join(jars)
-
-def get_command(classname, argstr="",memory=None, **classpath_args):
-    classpath = get_classpath(**classpath_args)
-    memory = "" if memory is None else "-Xmx{memory}".format(**locals())
-    if isinstance(argstr, list):
-        argstr = " ".join(map(str, argstr))
-    return "java {memory} -cp {classpath} {classname} {argstr}".format(**locals())
-    
-        
 class StanfordCoreNLP(object):
     """ 
     Command-line interaction with Stanford's CoreNLP java utilities.
@@ -172,8 +168,8 @@ class StanfordCoreNLP(object):
         """
 
         self.timeout = timeout
-
-        cmd = get_command(classname = "edu.stanford.nlp.pipeline.StanfordCoreNLP", **classpath_args)
+        cmd = self.get_command(classname = "edu.stanford.nlp.pipeline.StanfordCoreNLP",
+                               **classpath_args)
 
         log.info("Starting the Stanford Core NLP parser.")
         log.debug("Command: {cmd}".format(**locals()))
@@ -252,19 +248,37 @@ class StanfordCoreNLP(object):
         log.info("Result: {results}".format(**locals()))
         return results
 
-def parse_text(text, **kargs):
-    nlp = StanfordCoreNLP(**kargs)
-    return nlp.parse(text)
 
-from collections import namedtuple
 
-class WordForm(namedtuple("WordForm_base", ["sentence_id", "word_id", "offset", "word", "extra"])):
+def get_classpath(corenlp_path=None, corenlp_version=None, models_version=None):
+    if corenlp_path is None: corenlp_path = os.environ["CORENLP_HOME"]
+    if corenlp_version is None: corenlp_version = os.environ.get("CORENLP_VERSION", "3.2.0")
+    if models_version is None: models_version = corenlp_version
+
+    jars = ["stanford-corenlp-{corenlp_version}.jar".format(**locals()),
+            "stanford-corenlp-{models_version}-models.jar".format(**locals()),
+            "joda-time.jar", "xom.jar", "jollyday.jar"]
+    jars = [os.path.join(corenlp_path, jar) for jar in jars]
     
+    # check whether jars exist
+    for jar in jars:
+        if not os.path.exists(jar):
+            raise Exception("Error! Cannot locate {jar}".format(**locals()))
+            
+    return ":".join(jars)
 
-WordForm = 
-Term = namedtuple("WordForm", ["sentence_id", "word_id", "offset", "word", "extra"])
+    @classmethod
+    def get_command(cls, classname, argstr="",memory=None, **classpath_args):
+        classpath = get_classpath(**classpath_args)
+        memory = "" if memory is None else "-Xmx{memory}".format(**locals())
+        if isinstance(argstr, list):
+            argstr = " ".join(map(str, argstr))
+        return "java {memory} -cp {classpath} {classname} {argstr}".format(**locals())
 
-
+    @classmethod
+    def parse_text(cls, text, **kargs):
+        nlp = StanfordCoreNLP(**kargs)
+        return nlp.parse(text)
 
 if __name__ == '__main__':
     import json
@@ -281,11 +295,12 @@ from amcat.tools import amcattest
 
 class TestCoreNLP(amcattest.PolicyTestCase):
     def test_interpret(self):
+        #TODO Test instead of print :-)
         import amcat
         fn = os.path.join(os.path.dirname(amcat.__file__), "tests", "testfile_corenlp.txt")
         raw_result = open(fn).read()
         lines = [line.strip() for line in raw_result.split("\n")]
         r = parse_results(lines)
-
-        print(r)
-        
+        from lxml import etree
+        xml = r.generate_xml()
+        print etree.tostring(xml, pretty_print=True)

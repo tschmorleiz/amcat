@@ -23,25 +23,137 @@ Classes that represent NAF primitives as a named tuple with a final 'extra' argu
 
 from collections import namedtuple
 import json
-
+from lxml import etree
 
 class NAF_Object(object):
+    tag = None
+    text_attr = None
+    ignore_attrs = None
+    attr_map = None
+    
     def __new__(self, *args, **kargs):
-        if "extra" not in kargs:
-            kargs["extra"] = {}
-        for k in list(kargs):
-            if k not in self._fields:
-                kargs["extra"][k] = kargs.pop(k)
+        if "extra" in self._fields:
+            if "extra" not in kargs:
+                kargs["extra"] = {}
+            for k in list(kargs):
+                if k not in self._fields:
+                    kargs["extra"][k] = kargs.pop(k)
         return super(NAF_Object, self).__new__(self, *args, **kargs)
+        
     def __getattr__(self, attr):
         try:
             return self.extra[attr]
         except KeyError:
             raise AttributeError(attr)
 
-class WordForm(NAF_Object, namedtuple("WordForm_base", ["word_id", "sentence_id", "offset", "word", "extra"])):
+    def generate_xml(self, parent=None):
+        tag = self.tag or self.__class__.__name__
+        fields = self.get_xml_fields()
+        map = self.attr_map if self.attr_map is not None else {}
+        kargs = {map.get(k,k): unicode(getattr(self, k)) for k in fields}
+        e = etree.Element(tag, **kargs)
+        if self.text_attr:
+            e.text = getattr(self, self.text_attr)
+        if parent is not None:
+            parent.append(e)
+        return e
+
+    def get_xml_fields(self):
+        for f in self._fields:
+            if f in ("extra", self.text_attr): continue
+            if self.ignore_attrs and f in self.ignore_attrs: continue
+            yield f
+
+        if "extra" in self._fields:
+            for f in self.extra.keys():
+                yield f
+
+class WordForm(NAF_Object, namedtuple("WordForm",
+                                      ["word_id", "sentence_id", "offset", "word", "extra"])):
+    tag = "wf"
+    text_attr = "word"
+
+class Term(NAF_Object, namedtuple("Term", ["term_id", "word_ids", "lemma", "pos", "extra"])):
+    tag = "term"
+    ignore_attrs = ["word_ids"]
+    
+    def generate_xml(self, parent=None):
+        e = super(Term, self).generate_xml(parent)
+        span = etree.Element("span")
+        for word_id in self.word_ids:
+            target = etree.Element("target", id=unicode(word_id))
+            span.append(target)
+        e.append(span)
+        return e
+        
+class Entity(NAF_Object, namedtuple("Entity", ["entity_id", "term_ids", "type", "extra"])):
+    pass
+    
+class Dependency(NAF_Object, namedtuple("Dependency",
+                                        ["from_term", "to_term", "rfunc", "extra"])):
+    tag = "dep"
+    attr_map = {"from_term" : "from", "to_term" : "to"}
+
+class Coreference(NAF_Object, namedtuple("Coreference", ["co_id", "spans"])):
     pass
 
+class Coreference_target(NAF_Object, namedtuple("Coreference_target", ["term_id", "head"])):
+    pass
+    
+class NAF_Article(object):
+    def __init__(self):
+        self.sentences = []
+        self.words = []
+        self.terms = []
+        self.entities = []
+        self.dependencies = []
+        self.coreferences = []
+    def create_sentence(self):
+        sentence_id = len(self.sentences)+1
+        result = Sentence(self, sentence_id)
+        self.sentences.append(result)
+        return result
+    def create_coreference(self, spans=None):
+        co_id = len(self.coreferences) + 1
+        if spans is None: spans = []
+        co = Coreference(co_id, spans)
+        self.coreferences.append(co)
+        return co
+
+    def generate_xml(self):
+        root = etree.Element("NAF")
+        text, terms, deps = [etree.Element(x) for x in ["text", 'terms', "deps"]]
+        [root.append(e) for e in [text, terms, deps]]
+        [word.generate_xml(parent=text) for word in self.words]
+        [term.generate_xml(parent=terms) for term in self.terms]
+        [dep.generate_xml(parent=deps) for dep in self.dependencies]
+        return root
+
+class Sentence(object):
+    def __init__(self, article, sentence_id):
+        self.article = article
+        self.sentence_id = sentence_id
+        self.terms = [] # to offer index-based retrieval
+    def add_word(self, offset, word, lemma, pos, entity_type=None):
+        """
+        Add a new word and term to this sentence (and hence article)
+        Note, this call is NOT thread safe
+        """
+        word_id = len(self.article.words) + 1
+        term_id = len(self.article.terms) + 1
+        word = WordForm(word_id, self.sentence_id, offset, word)
+        term = Term(term_id, [word_id], lemma, pos)
+        self.article.words.append(word)
+        self.article.terms.append(term)
+        self.terms.append(term)
+        if entity_type:
+            entity_id = len(self.article.entities) + 1
+            entity = Entity(entity_id, term_id, entity_type)
+            self.article.entities.append(entity)
+    def add_dependency(self, from_term, to_term, rfunc):
+        dep = Dependency(from_term, to_term, rfunc)
+        self.article.dependencies.append(dep)
+        
 
 ###########################################################################
 #                          U N I T   T E S T S                            #

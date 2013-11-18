@@ -18,7 +18,7 @@
 ###########################################################################
 
 """
-Classes that represent NAF primitives as a named tuple with a final 'extra' argument
+Classes that represent NAF primitives as a named tuple with a final 'extra' argument.
 """
 
 from collections import namedtuple
@@ -67,6 +67,7 @@ class NAF_Object(object):
         if "extra" in self._fields:
             for f in self.extra.keys():
                 yield f
+
 
 class WordForm(NAF_Object, namedtuple("WordForm",
                                       ["word_id", "sentence_id", "offset", "word", "extra"])):
@@ -129,7 +130,18 @@ class NAF_Article(object):
         [dep.generate_xml(parent=deps) for dep in self.dependencies]
         return root
 
+    def to_dict(self):
+        """
+        Represent this article as a dict so it can be easily converted to json
+        """
+        return {k : getattr(self, k) for k in ["words", "terms", "entities", "dependencies", "coreferences"]}
+    
 class Sentence(object):
+    """
+    Helper object. Sentences are not a NAF primitive, but since terms
+    do require a sentence number (and in stanford many references are
+    to indices within a sentence) it is helpful for constructing the NAF objects.
+    """
     def __init__(self, article, sentence_id):
         self.article = article
         self.sentence_id = sentence_id
@@ -174,3 +186,5 @@ class TestNAF(amcattest.PolicyTestCase):
         self.assertEqual(w.test1, 1)
         self.assertEqual(w.test2, "bla")
         self.assertEqual(json.dumps(w), '[1, 2, 3, "test", {"test1": 1, "test2": "bla"}]')
+
+        

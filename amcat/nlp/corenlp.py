@@ -27,6 +27,8 @@ import os, sys, time
 import re
 import logging
 import pexpect
+import tempfile
+import subprocess
 from cStringIO import StringIO
 from .naf import NAF_Article, Coreference_target
 log = logging.getLogger(__name__)
@@ -68,7 +70,8 @@ def parse_sentence(article, lines):
         entity = wd.get("NamedEntityTag", None)
         sentence.add_word(wd["CharacterOffsetBegin"], wd["Text"], wd["Lemma"], wd["PartOfSpeech"],
                           entity_type=(None if entity == "O" else entity))
-    parsetree = " ".join(p.strip() for p in parse_tree(lines))
+    #TODO: not a nice way to handle trees
+    sentence.article.trees.append(" ".join(p.strip() for p in parse_tree(lines)))
     tuples = parse_tuples(sentence, lines)
     return sentence
 
@@ -263,6 +266,16 @@ class StanfordCoreNLP(object):
         return nlp.parse(text)
 
 
+def to_conll(naf_article):
+    xml = naf_article.to_stanford_xml()
+    with tempfile.NamedTemporaryFile() as f:
+        f.write(xml)
+        f.flush()
+        cmd = StanfordCoreNLP.get_command("edu.stanford.nlp.trees.EnglishGrammaticalStructure", ["-conllx", "-treeFile", f.name])
+        log.debug("Calling stanford->conll converter: {cmd}".format(**locals()))
+        p = subprocess.check_output(cmd, shell=True)
+        return p
+        
 def get_classpath(corenlp_path=None, corenlp_version=None, models_version=None):
     if corenlp_path is None: corenlp_path = os.environ["CORENLP_HOME"]
     if corenlp_version is None: corenlp_version = os.environ.get("CORENLP_VERSION", "3.2.0")
@@ -294,13 +307,42 @@ if __name__ == '__main__':
 from amcat.tools import amcattest
 
 class TestCoreNLP(amcattest.PolicyTestCase):
-    def test_interpret(self):
-        #TODO Test instead of print :-)
+    def test_lines(cls):
         import amcat
         fn = os.path.join(os.path.dirname(amcat.__file__), "tests", "testfile_corenlp.txt")
         raw_result = open(fn).read()
-        lines = [line.strip() for line in raw_result.split("\n")]
-        r = parse_results(lines)
-        from lxml import etree
+        return [line.strip() for line in raw_result.split("\n")]
+
+    def test_xml(self):
+        #TODO Test instead of print :-)
+        r = parse_results(self.test_lines())
         xml = r.generate_xml()
+        from lxml import etree
         print etree.tostring(xml, pretty_print=True)
+
+    def test_json(self):
+        import json
+        r = parse_results(self.test_lines())
+        j = r.to_json(indent=2)
+
+        d = json.loads(j)
+        tree_str = [u'(ROOT (S (NP (DT The) (NNS marines)) (VP (VBN attacked) '
+                    u'(ADVP (NP (DT the) (NN compound)) (RB again))) (. .)))',
+                    u'(ROOT (S (NP (PRP They)) (VP (VBP seem) (S (VP (TO to) (VP (VB like) (NP (PRP it)))))) (. .)))']
+        self.assertEqual(d["trees"], tree_str)
+
+        a = NAF_Article.from_json(j)
+        self.assertEqual(a.terms, r.terms)
+        self.assertEqual(a.words, r.words)
+        self.assertEqual(a.trees, r.trees)
+        self.assertEqual(a.entities, r.entities)
+        self.assertEqual(a.dependencies, r.dependencies)
+        self.assertEqual(a.coreferences, r.coreferences)
+        
+    def test_convert(self):
+        r = parse_results(self.test_lines())
+        conll = to_conll(r)
+        self.assertEqual(conll.split("\n")[0], '1\tThe\t_\tDT\tDT\t_\t2\tdet\t_\t_')
+        
+        
+        

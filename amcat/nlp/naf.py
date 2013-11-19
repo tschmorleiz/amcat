@@ -25,6 +25,16 @@ from collections import namedtuple
 import json
 from lxml import etree
 
+def element(tag, parent=None,text=None, **attrs):
+    """Helper method to create an element with parent and/or text and/or attributes"""
+    attrs = {k : unicode(v) for (k,v) in attrs.iteritems()}
+    t = etree.Element(tag, **attrs)
+    if parent is not None:
+        parent.append(t)
+    if text:
+        t.text = unicode(text)
+    return t
+    
 class NAF_Object(object):
     tag = None
     text_attr = None
@@ -38,6 +48,7 @@ class NAF_Object(object):
             for k in list(kargs):
                 if k not in self._fields:
                     kargs["extra"][k] = kargs.pop(k)
+            # merge 'args' extra with 'kargs' extra
             if len(args) == len(self._fields):
                 kargs["extra"].update(args[-1])
                 args = args[:-1]
@@ -59,12 +70,8 @@ class NAF_Object(object):
         fields = self.get_xml_fields()
         map = self.attr_map if self.attr_map is not None else {}
         kargs = {map.get(k,k): unicode(getattr(self, k)) for k in fields}
-        e = etree.Element(tag, **kargs)
-        if self.text_attr:
-            e.text = getattr(self, self.text_attr)
-        if parent is not None:
-            parent.append(e)
-        return e
+        text  = getattr(self, self.text_attr) if self.text_attr else None
+        return element(tag, parent=parent, text=text, **kargs)
 
     def get_xml_fields(self):
         for f in self._fields:
@@ -88,11 +95,9 @@ class Term(NAF_Object, namedtuple("Term", ["term_id", "word_ids", "lemma", "pos"
     
     def generate_xml(self, parent=None):
         e = super(Term, self).generate_xml(parent)
-        span = etree.Element("span")
+        span = element("span", parent=e)
         for word_id in self.word_ids:
-            target = etree.Element("target", id=unicode(word_id))
-            span.append(target)
-        e.append(span)
+            element("target", parent=span, id=unicode(word_id))
         return e
         
 class Entity(NAF_Object, namedtuple("Entity", ["entity_id", "term_ids", "type", "extra"])):
@@ -117,6 +122,12 @@ class NAF_Article(object):
         self.entities = []
         self.dependencies = []
         self.coreferences = []
+        self.trees = []
+
+    @property
+    def sentence_ids(self):
+        return sorted({wf.sentence_id for wf in self.words})
+        
     def create_sentence(self):
         sentence_id = len(self.sentences)+1
         result = Sentence(self, sentence_id)
@@ -131,18 +142,59 @@ class NAF_Article(object):
 
     def generate_xml(self):
         root = etree.Element("NAF")
-        text, terms, deps = [etree.Element(x) for x in ["text", 'terms', "deps"]]
+        text, terms, deps = [element(x, parent=root) for x in ["text", 'terms', "deps"]]
         [root.append(e) for e in [text, terms, deps]]
         [word.generate_xml(parent=text) for word in self.words]
         [term.generate_xml(parent=terms) for term in self.terms]
         [dep.generate_xml(parent=deps) for dep in self.dependencies]
         return root
 
-    def to_dict(self):
+    def to_json(self, **kargs):
         """
         Represent this article as a dict so it can be easily converted to json
         """
-        return {k : getattr(self, k) for k in ["words", "terms", "entities", "dependencies", "coreferences"]}
+        d = {k : getattr(self, k) for k in ["words", "terms", "entities", "dependencies", "coreferences", "trees"]}
+        return json.dumps(d, **kargs)
+
+    @classmethod
+    def from_json(cls, json_string):
+        a = cls()
+        d = json.loads(json_string)
+        for attr, target_class in ("words", WordForm), ("terms", Term), ("entities", Entity), ("dependencies", Dependency):
+            val = [target_class(*data) for data in d[attr]]
+            setattr(a, attr, val)
+        a.trees = d["trees"]
+        a.coreferences = [Coreference_target(co_id, [[Coreference_target(*s) for s in targets]
+                                                     for targets in spans])
+                          for co_id, spans in d["coreferences"]]
+        return a
+        
+        
+        
+    def to_stanford_xml(self):
+        root = element("root")
+        doc = element("document", parent=root)
+        sents = element("sentences", parent=doc)
+        for i in self.sentence_ids:
+            sents.append(self._get_sentence_xml(i))
+        return etree.tostring(root, pretty_print=True)
+
+    def _get_sentence_xml(self, sent_id):
+        words = {t.word_id : t for t in self.words}
+        terms = [t for t in self.terms
+                 if words[t.word_ids[0]].sentence_id == sent_id]
+        s = element("sentence")
+        tokens = element("tokens", parent=s)
+        for i, term in enumerate(terms):
+            t = element("token", parent=tokens)
+            w = words[term.word_ids[0]]
+            element("word", parent=t, text=w.word)
+            element("CharacterOffsetBegin", parent=t, text=w.offset)
+            element("CharacterOffsetEnd", parent=t, text=int(w.offset) + len(w.word))
+            element("POS", parent=t, text=term.pos)
+        element("parse", parent=s, text=self.trees[sent_id-1])
+        return s
+            
     
 class Sentence(object):
     """
@@ -154,6 +206,8 @@ class Sentence(object):
         self.article = article
         self.sentence_id = sentence_id
         self.terms = [] # to offer index-based retrieval
+        self.tree = None
+        
     def add_word(self, offset, word, lemma, pos, entity_type=None):
         """
         Add a new word and term to this sentence (and hence article)
@@ -173,7 +227,6 @@ class Sentence(object):
     def add_dependency(self, from_term, to_term, rfunc):
         dep = Dependency(from_term, to_term, rfunc)
         self.article.dependencies.append(dep)
-        
 
 ###########################################################################
 #                          U N I T   T E S T S                            #

@@ -307,6 +307,8 @@ if __name__ == '__main__':
 from amcat.tools import amcattest
 
 class TestCoreNLP(amcattest.PolicyTestCase):
+    
+    @classmethod
     def test_lines(cls):
         import amcat
         fn = os.path.join(os.path.dirname(amcat.__file__), "tests", "testfile_corenlp.txt")

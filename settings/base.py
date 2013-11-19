@@ -20,7 +20,6 @@
 # Django settings for amcatnavigator project.
 from django.templatetags.static import get_static_prefix
 import os
-import logging; log = logging.getLogger(__name__)
 
 from amcat.tools.toolkit import random_alphanum
 from amcat.tools import hg

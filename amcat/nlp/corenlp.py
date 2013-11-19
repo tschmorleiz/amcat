@@ -100,8 +100,9 @@ def parse_tuples(sentence, lines):
         if not m:
             raise Exception("Cannot interpret 'tuples' line: {line!r}".format(**locals()))
         rfunc, from_index, to_index = m.groups()
-        from_term = sentence.terms[int(from_index)].term_id
-        to_term = sentence.terms[int(to_index)].term_id
+        if rfunc == "root" : continue
+        from_term = sentence.terms[int(from_index)-1].term_id
+        to_term = sentence.terms[int(to_index)-1].term_id
         sentence.add_dependency(from_term, to_term, rfunc)
 
 def parse_word(s):
@@ -172,6 +173,7 @@ class StanfordCoreNLP(object):
 
         self.timeout = timeout
         cmd = self.get_command(classname = "edu.stanford.nlp.pipeline.StanfordCoreNLP",
+                               memory="800M",
                                **classpath_args)
 
         log.info("Starting the Stanford Core NLP parser.")
@@ -247,10 +249,7 @@ class StanfordCoreNLP(object):
         """
         log.info("Request: {text}".format(**locals()))
         results = self._parse(text)
-        print("===", results)
         log.info("Result: {results}".format(**locals()))
-        return results
-
 
     @classmethod
     def get_command(cls, classname, argstr="",memory=None, **classpath_args):
@@ -296,7 +295,7 @@ def get_classpath(corenlp_path=None, corenlp_version=None, models_version=None):
 if __name__ == '__main__':
     import json
     logging.basicConfig(level=logging.DEBUG)
-    parse = parse_text(sys.argv[1])
+    parse = parse_results(open("/tmp/parse.log").read())
     print(json.dumps(parse))
     
 

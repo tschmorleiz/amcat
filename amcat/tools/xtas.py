@@ -35,6 +35,7 @@ from celery.task import Task
 from celery.execute import send_task
 import time
 import celery
+import itertools
 
 import logging
 log = logging.getLogger(__name__)
@@ -68,12 +69,15 @@ def process_document_sync(article, *methods, **options):
     Ask xtas to process the article, see process_document
     Will halt (wait) until the document is done
     """
-    while True:
+    for i in itertools.count():
         try:
             return process_document(article, *methods, **options)
         except TaskPending:
             options.pop('force_resend', None)
-            time.sleep(1)
+            if i < 5:
+                time.sleep(.1)
+            else:
+                time.sleep(1)
 
 def clear_cache(*articles):
     article_ids = [str(a) if isinstance(a, int) else str(a.id)

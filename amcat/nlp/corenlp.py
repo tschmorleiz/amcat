@@ -250,6 +250,7 @@ class StanfordCoreNLP(object):
         log.info("Request: {text}".format(**locals()))
         results = self._parse(text)
         log.info("Result: {results}".format(**locals()))
+        return results
 
     @classmethod
     def get_command(cls, classname, argstr="",memory=None, **classpath_args):

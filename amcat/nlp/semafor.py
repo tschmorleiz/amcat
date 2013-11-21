@@ -4,6 +4,8 @@ import socket
 import json
 from cStringIO import StringIO
 
+from . import corenlp
+
 def nc(host, port, input):
     """'netcat' implementation, see http://stackoverflow.com/a/1909355"""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -18,7 +20,7 @@ def nc(host, port, input):
             return result.getvalue()
         result.write(data)
 
-def get_frames(conll_str):
+def call_semafor(conll_str):
     """
     Use semafor to parse the conll_str. Assumes that semafor is running as a web service on
     localhost:9888, and assumes conll_str to be a string representation of parse trees in conll format
@@ -31,3 +33,25 @@ def get_frames(conll_str):
     
     return [json.loads(sent) for sent in result.split("\n") if sent.strip()]
 
+def get_frames(naf_article):
+    return [{"sentence_id" : sid, "frames" : list(get_sentence_frames(naf_article, sid))}            
+            for sid in naf_article.sentence_ids]
+
+def get_sentence_frames(naf_article, sid):
+    words = [w for w in naf_article.words if w.sentence_id == sid]
+    conll = corenlp.to_conll(naf_article, sid)
+    sent, = call_semafor(conll)
+    frames, tokens = sent["frames"], sent["tokens"]
+    assert len(tokens) == len(words)
+
+    def get_words(f):
+        for span in f["spans"]:
+            for i in range(span["start"], span["end"]):
+                yield words[i].word_id
+
+    for frame in frames:
+        f = {"name" : frame["target"]["name"], "target" : list(get_words(frame["target"])), "elements" : []}
+        for a in frame["annotationSets"][0]["frameElements"]:
+            f["elements"].append({"name" : a["name"], "target" : list(get_words(a))})
+        yield f
+    

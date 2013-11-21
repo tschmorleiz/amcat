@@ -113,7 +113,7 @@ class Coreference(NAF_Object, namedtuple("Coreference", ["co_id", "spans"])):
 
 class Coreference_target(NAF_Object, namedtuple("Coreference_target", ["term_id", "head"])):
     pass
-    
+
 class NAF_Article(object):
     def __init__(self):
         self.sentences = []
@@ -168,33 +168,6 @@ class NAF_Article(object):
                                                      for targets in spans])
                           for co_id, spans in d["coreferences"]]
         return a
-        
-        
-        
-    def to_stanford_xml(self):
-        root = element("root")
-        doc = element("document", parent=root)
-        sents = element("sentences", parent=doc)
-        for i in self.sentence_ids:
-            sents.append(self._get_sentence_xml(i))
-        return etree.tostring(root, pretty_print=True)
-
-    def _get_sentence_xml(self, sent_id):
-        words = {t.word_id : t for t in self.words}
-        terms = [t for t in self.terms
-                 if words[t.word_ids[0]].sentence_id == sent_id]
-        s = element("sentence")
-        tokens = element("tokens", parent=s)
-        for i, term in enumerate(terms):
-            t = element("token", parent=tokens)
-            w = words[term.word_ids[0]]
-            element("word", parent=t, text=w.word)
-            element("CharacterOffsetBegin", parent=t, text=w.offset)
-            element("CharacterOffsetEnd", parent=t, text=int(w.offset) + len(w.word))
-            element("POS", parent=t, text=term.pos)
-        element("parse", parent=s, text=self.trees[sent_id-1])
-        return s
-            
     
 class Sentence(object):
     """

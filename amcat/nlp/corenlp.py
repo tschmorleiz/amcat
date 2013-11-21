@@ -266,15 +266,22 @@ class StanfordCoreNLP(object):
         return nlp.parse(text)
 
 
-def to_conll(naf_article):
-    xml = naf_article.to_stanford_xml()
+def to_conll(naf_article, sentence_id):
+    xml = ("<root><document><sentences><sentence>{parse}</sentence></sentences></document></root>"
+           .format(parse=naf_article.trees[sentence_id-1]))
     with tempfile.NamedTemporaryFile() as f:
         f.write(xml)
         f.flush()
         cmd = StanfordCoreNLP.get_command("edu.stanford.nlp.trees.EnglishGrammaticalStructure", ["-conllx", "-treeFile", f.name])
         log.debug("Calling stanford->conll converter: {cmd}".format(**locals()))
         p = subprocess.check_output(cmd, shell=True)
-        return p
+
+    
+    nwords = len([w for w in naf_article.words if w.sentence_id == sentence_id])
+    nlines = len([l for l in p.split("\n") if l.strip()])
+    assert nwords == nlines, "|words|={nwords} =/= |lines|={nlines}".format(**locals())
+    return p
+
         
 def get_classpath(corenlp_path=None, corenlp_version=None, models_version=None):
     if corenlp_path is None: corenlp_path = os.environ["CORENLP_HOME"]

@@ -22,6 +22,7 @@ from django.contrib.auth.views import password_change, password_change_done
 
 from navigator.views.articleset_views import ImportSetView, SampleSetView, ArticleSetView, RefreshArticleSetView
 from navigator.views.preprocessing_views import ProcessParsingView
+from navigator.views.xtas_views import XTasView
 from navigator.views.codebook_views import ImportCodebook, ExportCodebook
 from navigator.views import rule_views
 
@@ -166,4 +167,8 @@ urlpatterns = patterns(
     url(r'^semanticroles$', 'navigator.views.semanticroles.index', name='semanticroles'),
     url(r'^semanticroles/(?P<id>[0-9]+)$', 'navigator.views.semanticroles.sentence', name='semanticroles-sentence'),
 
+    #xtas results
+    url(r'^project/(?P<projectid>[0-9]+)/article/(?P<article_id>[0-9]+)/parse/(?P<methodlist>[\w,;+]+)/$',
+            XTasView.as_view(), name="xtas"),
+    
 ) 

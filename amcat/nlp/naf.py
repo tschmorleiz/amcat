@@ -123,6 +123,7 @@ class NAF_Article(object):
         self.dependencies = []
         self.coreferences = []
         self.trees = []
+        self.frames = []
 
     @property
     def sentence_ids(self):
@@ -153,7 +154,8 @@ class NAF_Article(object):
         """
         Represent this article as a dict so it can be easily converted to json
         """
-        d = {k : getattr(self, k) for k in ["words", "terms", "entities", "dependencies", "coreferences", "trees"]}
+        d = {k : getattr(self, k) for k in ["words", "terms", "entities", "dependencies", "coreferences", "trees", "frames"]}
+        
         return json.dumps(d, **kargs)
 
     @classmethod

@@ -34,8 +34,9 @@ def call_semafor(conll_str):
     return [json.loads(sent) for sent in result.split("\n") if sent.strip()]
 
 def get_frames(naf_article):
-    return [{"sentence_id" : sid, "frames" : list(get_sentence_frames(naf_article, sid))}            
-            for sid in naf_article.sentence_ids]
+    for sid in naf_article.sentence_ids:
+        for frame in get_sentence_frames(naf_article, sid):
+            yield frame
 
 def get_sentence_frames(naf_article, sid):
     words = [w for w in naf_article.words if w.sentence_id == sid]
@@ -50,7 +51,7 @@ def get_sentence_frames(naf_article, sid):
                 yield words[i].word_id
 
     for frame in frames:
-        f = {"name" : frame["target"]["name"], "target" : list(get_words(frame["target"])), "elements" : []}
+        f = {"sentence_id" : sid, "name" : frame["target"]["name"], "target" : list(get_words(frame["target"])), "elements" : []}
         for a in frame["annotationSets"][0]["frameElements"]:
             f["elements"].append({"name" : a["name"], "target" : list(get_words(a))})
         yield f

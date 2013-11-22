@@ -150,6 +150,7 @@ class NAF_Article(object):
         [dep.generate_xml(parent=deps) for dep in self.dependencies]
         return root
 
+
     def to_json(self, **kargs):
         """
         Represent this article as a dict so it can be easily converted to json
@@ -166,6 +167,7 @@ class NAF_Article(object):
             val = [target_class(*data) for data in d[attr]]
             setattr(a, attr, val)
         a.trees = d["trees"]
+        a.frames = d["frames"]
         a.coreferences = [Coreference_target(co_id, [[Coreference_target(*s) for s in targets]
                                                      for targets in spans])
                           for co_id, spans in d["coreferences"]]

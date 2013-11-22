@@ -1,0 +1,21 @@
+{% extends "navigator/project/base.html" %}
+
+{% block title %}Project {{project.id}} - {{context.name}}{% endblock %}
+
+{% block content %}
+
+<h1>Joepie!</h1>
+
+<pre>
+Methodlist: {{ methodlist }}
+Article: {{ a }}
+Sentence: {{ sentence_id }}
+Dependencies: {{ deps }}
+</pre>
+
+{{ token_table|safe }}
+
+{{ parsetree|safe }}
+
+{% endblock %}
+

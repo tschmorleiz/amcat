@@ -27,7 +27,7 @@ from amcat.models import AnalysisSentence, Label
 import logging
 log = logging.getLogger(__name__)
 
-from rdflib import Graph, Namespace, Literal
+from rdflib import ConjunctiveGraph, Namespace, Literal
 AMCAT = "http://amcat.vu.nl/amcat3/"
 NS_AMCAT = Namespace(AMCAT)
 VIS_IGNORE_PROPERTIES = "position", "label"
@@ -51,19 +51,14 @@ class SyntaxTree(object):
         if sentence_or_tokens:
             self.load_sentence(sentence_or_tokens)
 
-    def load_sentence(self, sentence_or_tokens):
+    def load_sentence(self, rdf_triples):
         """
         Load the triples for the given analysis sentence into the triple store
         """
-        if isinstance(sentence_or_tokens, AnalysisSentence):
-            self.tokens = list(sentence_or_tokens.tokens.all())
-        else:
-            self.tokens = list(sentence_or_tokens)
-            
-        g = Graph()
+        g = ConjunctiveGraph()
         g.bind("amcat", AMCAT)
         from amcat.tools import djangotoolkit
-        for triple in _tokens_to_rdf(self.tokens):
+        for triple in rdf_triples:
             g.add(triple)
         self.soh.add_triples(g, clear=True)
 
@@ -122,40 +117,56 @@ def lexical_match(lemma, token):
         
 def _id(obj):
     return obj if isinstance(obj, int) else obj.id
-def _token_uri(token):
-    tokenstr = unicode(token).encode("ascii", "ignore")
-    tokenstr = re.sub("\W", "", tokenstr)
-    uri = NS_AMCAT["t_{token.position}_{tokenstr}".format(i=_id(token), **locals())]
+    
+def _term_uri(term):
+    tokenstr = re.sub("\W", "", term.lemma.encode("ascii", "ignore"))
+    uri = NS_AMCAT["t_{term.term_id}_{tokenstr}".format(**locals())]
     return uri
 def _rel_uri(rel):
-    return NS_AMCAT["rel_{rel}".format(**locals())]
+    return NS_AMCAT["rel_{rel.rfunc}".format(**locals())]
 
-def _tokens_to_rdf(tokens):
+def _naf_to_rdf(naf_article, sentence_id):
     """
     Get the raw RDF subject, predicate, object triples representing the given analysed sentence
     """
     # token literals
     triples = set()
-    from amcat.tools import djangotoolkit
+    words = {w.word_id : w for w in naf_article.words if w.sentence_id == sentence_id}
 
+    term_uris = {} # tid : uri
+    for term in naf_article.terms:
+        uri = _term_uri(term)
+        twords = [words[wid]  for wid in term.word_ids if wid in words]
+        if not twords: continue # wrong sentences
+        
+        yield uri, NS_AMCAT["label"], Literal(",".join(t.word for t in twords))
+        yield uri, NS_AMCAT["lemma"], Literal(term.lemma)
+        yield uri, NS_AMCAT["pos"], Literal(term.pos)
+        yield uri, NS_AMCAT["position"], Literal(str(twords[0].offset))
+        term_uris[term.term_id] = uri
 
-    tokens_by_id = {} # prevent loading token again via triple.parent/child
-    for token in tokens:
-        tokens_by_id[token.id] = token
-        uri = _token_uri(token)
-        yield uri, NS_AMCAT["label"], Literal(str(token.word))
-        yield uri, NS_AMCAT["lemma"], Literal(str(token.word.lemma))
-        yield uri, NS_AMCAT["pos"], Literal(str(token.word.lemma.pos))
-        yield uri, NS_AMCAT["position"], Literal(token.position)
-        triples |= set(token.triples.all())
+    for dep in naf_article.dependencies:
+        if dep.to_term in words:
+            child = term_uris[dep.from_term]
+            parent = term_uris[dep.to_term]            
+            for pred in _rel_uri(dep), NS_AMCAT["rel"]:
+                yield parent, pred, child
 
-    for triple in triples:
-        for pred in _rel_uri(triple.relation), NS_AMCAT["rel"]:
-            child = tokens_by_id[triple.child_id]
-            parent = tokens_by_id[triple.parent_id]            
-            yield _token_uri(child), pred, _token_uri(parent)
+    for i, f in enumerate(naf_article.frames):
+        if f["target"][0] in words:
+            uri = NS_AMCAT["frame_{i}_{fname}".format(fname=f["name"], **locals())]
+            yield uri, NS_AMCAT["position"], Literal(100+i)
+            yield uri, NS_AMCAT["label"], Literal(f["name"])
 
-
+            
+            for term in f["target"]:
+                yield uri, NS_AMCAT["frame_predicate"], term_uris[term]
+            for e in f["elements"]:
+                rel_uri = NS_AMCAT["frame_{ename}".format(ename=e["name"])]
+                for term in e["target"]:
+                    yield uri, rel_uri,  term_uris[term]
+                    
+                
 def visualise_triples(triples,  triple_args_function=None, ignore_properties=VIS_IGNORE_PROPERTIES):
     """
     Visualise a triples representation of Triples such as retrieved from

@@ -125,6 +125,12 @@ class NAF_Article(object):
         self.trees = []
         self.frames = []
 
+    def term(self, term_id):
+        for term in self.terms:
+            if term.term_id == term_id:
+                return term
+        raise ValueError("Term {term_id} not found".format(**locals()))
+        
     @property
     def sentence_ids(self):
         return sorted({wf.sentence_id for wf in self.words})

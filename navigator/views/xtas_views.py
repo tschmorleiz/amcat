@@ -38,7 +38,6 @@ def get_result(article, methodlist):
             method, arg = method, ""
         methods.append((method, arg))
     r = xtas.process_document_sync(article, *methods, force_resend=True)
-    print(">>>", `r`)
     return r
     
 

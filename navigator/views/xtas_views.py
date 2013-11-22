@@ -85,6 +85,8 @@ class XTasSentenceView(ProjectViewMixin, TemplateView):
         words = {w.word_id : w for w in na.words if w.sentence_id == sentence_id}
         terms = [t for t in na.terms if any(w in words for w in t.word_ids)]
         deps = [d for d in na.dependencies if d.to_term in words]
+
+        elements = [k for (k, v) in na.__dict__.iteritems() if v]
         
         token_table = table3.ObjectTable(rows=terms)
         token_table.addColumn(lambda t:t.term_id, "term id")

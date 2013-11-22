@@ -31,9 +31,12 @@ for vs in viewsets.get_viewsets():
     router.register(vs.url, vs)
 
 urlpatterns = format_suffix_patterns(patterns('',
-                                              url(r'^$', resources.api_root),
+    url(r'^$', resources.api_root),
+                                              url(r'^taskresult/(?P<task_id>[0-9]+)$', resources.single_task_result, dict(uuid=False)),
+                                              url(r'^taskresult/(?P<task_id>[0-9a-zA-Z-]+)$', resources.single_task_result, dict(uuid=True)),
                                               url(r'^projects/(?P<project>[0-9]+)/sets/(?P<articleset>[0-9]+)/articles/(?P<pk>[^/]+)/xtas', XTasResource.as_view(), name="xtas"),
-                                              *tuple(r.get_url_pattern() for r in resources.all_resources())
+
+    *tuple(r.get_url_pattern() for r in resources.all_resources())
 ))
 
 urlpatterns +=  patterns('',

@@ -3,6 +3,13 @@ from lxml import etree
 
 NS = {'namespaces' : {'fn': 'http://framenet.icsi.berkeley.edu'}}
 
+_POS_MAP = {'jj' : 'a', 'nn' : 'n'}
+
+def map_pos(pos):
+    pos = pos.lower()
+    if pos.startswith('v'): return 'v'
+    return _POS_MAP[pos]
+
 class FrameNet(object):
     def __init__(self, framenet_home=None):
         self.framenet_home = framenet_home if framenet_home is not None else os.environ["FRAMENET_HOME"]
@@ -15,6 +22,7 @@ class FrameNet(object):
         fn = os.path.join(self.framenet_home, folder, ".".join([name, "xml"]))
         if not os.path.exists(fn): raise ValueError("Cannot find {name} -> {fn}".format(**locals()))
         return fn
+
 
 class Frame(object):
     def __init__(self, framenet, fn):
@@ -33,6 +41,11 @@ class Frame(object):
             yield LexicalUnit(self, self.framenet.get_fn("lu", "lu{id}".format(id=u.attrib["ID"])))
 
     def get_lexical_unit(self, lemma, pos):
+        if len(pos) > 1:
+            pos = map_pos(pos)
+        else:
+            pos = pos.lower()
+            
         name = "{lemma}.{pos}".format(lemma=lemma.lower(), pos=pos.lower())
         for u in self.xml.findall("fn:lexUnit", **NS):
             if u.attrib["name"] == name: 

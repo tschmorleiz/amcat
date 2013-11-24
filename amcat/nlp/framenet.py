@@ -1,6 +1,7 @@
 import os.path
 from lxml import etree
-
+import logging
+log = logging.getLogger(__name__)
 NS = {'namespaces' : {'fn': 'http://framenet.icsi.berkeley.edu'}}
 
 _POS_MAP = {'jj' : 'a', 'nn' : 'n'}
@@ -23,7 +24,22 @@ class FrameNet(object):
         if not os.path.exists(fn): raise ValueError("Cannot find {name} -> {fn}".format(**locals()))
         return fn
 
-
+    def fix_frames(self, naf_article):
+        for frame in naf_article.frames:
+            term = naf_article.term(frame["target"][0])
+            name = frame["name"]
+            try:
+                lu = self.get_frame(name).get_lexical_unit(term.lemma, term.pos)
+            except ValueError:
+                log.exception("Cannot get lexical unit")
+                continue
+            match = lu.get_elements(naf_article, term)
+            elements = [dict(name=el, target=[t.term_id]) for (el, t) in match.iteritems()]
+            
+            yield dict(name= name,
+                       target=[term.term_id],
+                       elements=elements)
+                   
 class Frame(object):
     def __init__(self, framenet, fn):
         self.framenet = framenet
@@ -52,6 +68,7 @@ class Frame(object):
                 return LexicalUnit(self, self.framenet.get_fn("lu", "lu{id}".format(id=u.attrib["ID"])))
         raise ValueError("Can't find lu {name}".format(**locals()))
 
+        
 class LexicalUnit(object):
     def __init__(self, frame, fn):
         self.frame = frame
@@ -83,9 +100,89 @@ class LexicalUnit(object):
                 group[fe] = (pt, gf)
             yield group, int(p.attrib["total"])
         
+    def get_elements(self, naf_article, naf_term):
+        """
+        Return the best matching elements for this frame in the given naf_term in the naf_article
+        """
+        children = {d.rfunc: naf_article.term(d.to_term) for d in naf_article.get_children(naf_term)}
 
+        # try whole-group match first, otherwise pick best match per-element
+        match = self.best_group(children)
+        if not match:
+            match = dict(self.best_elements(children))
+        return match
     
+    def best_group(self, children):
+        "Sort groups on length, frequency, return first fully matched group"
+        def group_score(group):
+            elements, n = group
+            n_elements = len([1 for (pos, rel) in elements.values() if pos not in SKIP_POS])
+            return -n_elements, -n
+    
+        groups = [g for g in self.get_fe_groups() if len(g[0]) > 1]
+        groups = sorted(groups, key=group_score)#lambda g: (-len(g[0]), -g[1]))
+        for group in groups: print(group)
+        for (group, n) in groups:
+            m = match_group(children, group)
+            if m:
+                return m
 
+    def best_elements(self, children):
+        "traverse elements in descending frequency, pick first hit per child"
+        for (cat, pos, rel, n) in sorted(self.get_fe_patterns(), key=lambda p : -p[3]):
+            m = match_pattern(children, pos, rel)
+            if m:
+                yield cat, m
+                log.info("Found {cat} in {pos}.{rel} for term {m.lemma}".format(**locals()))
+                # remove child from children
+                children = {k : v for (k,v) in children.iteritems() if v != m}
+            
+### MATCHING POS/REL TO STANFORD RELATIONS
+        
+SKIP_POS = ['CNI', 'INI', '2nd', 'Sinterrog']
+FRAMENET_TO_STANFORD = {
+    ('PP', 'Dep') : ['prep'],
+    ('PPing', 'Dep') : ['prepc'],
+    ('NP', 'Ext') : ['nsubjpass', 'nsubj'],
+    ('NP', 'Obj') : ['dobj'],
+    ('NP', 'Dep') : ['tmod', 'nn'],
+    ('Poss', 'Gen') : ['poss'],
+    ('AJP', 'Dep') : ['amod'],
+    ('AVP', 'Dep') : ['advmod'],
+    ('Sub', 'Dep') : ['advcl'],
+    ('Sfin', 'Dep') : ['ccomp'],
+    }
+import re
+RE_PP = re.compile(r'(\w+)\[(\w+)\]')
+
+def match_pattern(children, pos, rel):
+    # skip non-instantiated
+    if pos in SKIP_POS: return
+    # Deal with pp[as]
+    m = RE_PP.match(pos)
+    if m:
+        pos, suffix = m.groups()
+    else:
+        suffix = None
+    # NP and N are the same for us
+    if pos == 'N': pos = 'NP'
+    # try to match stanford candidates from dict
+    for candidate in FRAMENET_TO_STANFORD[pos, rel]:
+        if suffix:
+            candidate = "{candidate}_{suffix}".format(**locals())
+        if candidate in children:
+            return children[candidate]
+            
+def match_group(children, group):
+    result = {}
+    for cat, (pos, rel) in group.iteritems():
+        m = match_pattern(children, pos, rel)
+        if m:
+            result[cat] = m
+        elif pos not in SKIP_POS:
+            log.info("Missing element {pos}.{rel} in group {group}".format(**locals()))
+            return
+    return result     
 
 ###########################################################################
 #                          U N I T   T E S T S                            #

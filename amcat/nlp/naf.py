@@ -178,6 +178,12 @@ class NAF_Article(object):
                                                      for targets in spans])
                           for co_id, spans in d["coreferences"]]
         return a
+
+    def get_children(self, term):
+        if isinstance(term, Term): term = term.term_id
+        for dep in self.dependencies:
+            if dep.from_term == term:
+                yield dep
     
 class Sentence(object):
     """

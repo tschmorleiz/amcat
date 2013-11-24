@@ -155,7 +155,7 @@ def _naf_to_rdf(naf_article, sentence_id):
     for i, f in enumerate(naf_article.frames):
         if f["target"][0] in words:
             uri = NS_AMCAT["frame_{i}_{fname}".format(fname=f["name"], **locals())]
-            yield uri, NS_AMCAT["position"], Literal(100+i)
+            yield uri, NS_AMCAT["position"], Literal(1000+i)
             yield uri, NS_AMCAT["label"], Literal(f["name"])
 
             

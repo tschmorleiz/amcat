@@ -124,6 +124,8 @@ class NAF_Article(object):
         self.coreferences = []
         self.trees = []
         self.frames = []
+        self.fixed_frames = []
+
 
     def term(self, term_id):
         for term in self.terms:
@@ -161,7 +163,7 @@ class NAF_Article(object):
         """
         Represent this article as a dict so it can be easily converted to json
         """
-        d = {k : getattr(self, k) for k in ["words", "terms", "entities", "dependencies", "coreferences", "trees", "frames"]}
+        d = {k : getattr(self, k) for k in ["words", "terms", "entities", "dependencies", "coreferences", "trees", "frames", "fixed_frames"]}
         
         return json.dumps(d, **kargs)
 
@@ -173,7 +175,8 @@ class NAF_Article(object):
             val = [target_class(*data) for data in d[attr]]
             setattr(a, attr, val)
         a.trees = d["trees"]
-        a.frames = d["frames"]
+        a.frames = d.get("frames", [])
+        a.fixed_frames = d.get("fixed_frames", [])
         a.coreferences = [Coreference_target(co_id, [[Coreference_target(*s) for s in targets]
                                                      for targets in spans])
                           for co_id, spans in d["coreferences"]]

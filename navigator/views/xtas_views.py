@@ -60,8 +60,8 @@ class XTasView(ProjectViewMixin, TemplateView):
         return ctx
 
 class FrameColumn(table3.ObjectColumn):
-    def __init__(self, frame):
-        super(FrameColumn, self).__init__(label = "Frame: " + frame["name"])
+    def __init__(self, frame, prefix="Frame: "):
+        super(FrameColumn, self).__init__(label = prefix + frame["name"])
         self.funcs = collections.defaultdict(list)
         for d in [frame] + frame["elements"]:
             for word_id in d["target"]:
@@ -99,6 +99,10 @@ class XTasSentenceView(ProjectViewMixin, TemplateView):
         for f in frames:
             token_table.addColumn(FrameColumn(f))
             
+
+        frames = [f for f in na.fixed_frames if f["sentence_id"] == sentence_id]
+        for f in frames:
+            token_table.addColumn(FrameColumn(f, "Fixed Frame: "))
 
         token_table = tableoutput.table2html(token_table, printRowNames=False)
             

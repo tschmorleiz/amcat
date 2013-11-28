@@ -152,7 +152,7 @@ FRAMENET_TO_STANFORD = {
     ('VPing', 'Dep') : ['xcomp'],
     ('VPbrst', 'Dep') : ['xcomp'],
     ('PP', 'Obj') : ['prep'],
-    ('NP', 'Ext') : ['nsubjpass', 'nsubj'],
+    ('NP', 'Ext') : ['nsubjpass', 'nsubj', 'xsubj'],
     ('NP', 'Obj') : ['dobj'],
     ('NP', 'Dep') : ['tmod', 'nn'],
     ('Poss', 'Gen') : ['poss'],

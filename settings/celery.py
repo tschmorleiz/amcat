@@ -20,5 +20,7 @@
 import djcelery
 djcelery.setup_loader()
 
+# we need to work with multiple celery apps so we can set different brokers
+BROKER_URL = 'amqp://guest:guest@localhost:5672/xtas'
 CELERY_RESULT_BACKEND = 'amqp'
 CELERY_TASK_RESULT_EXPIRES = 18000  # 5 hours.

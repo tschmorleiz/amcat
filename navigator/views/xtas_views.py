@@ -22,7 +22,7 @@ import collections
 from django.core.urlresolvers import reverse
 
 from navigator.views.projectview import ProjectViewMixin
-from amcat.models import Article
+from amcat.models import Article, RuleSet
 from django.views.generic.base import TemplateView
 from amcat.tools import xtas
 from amcat.tools.table import table3, tableoutput
@@ -75,42 +75,71 @@ class FrameColumn(table3.ObjectColumn):
         
 class XTasSentenceView(ProjectViewMixin, TemplateView):
     template_name = "navigator/xtas_sentence.html"
-    
+
     def get_context_data(self, article_id, methodlist, sentence_id, **kwargs):
         ctx = super(XTasSentenceView, self).get_context_data(**kwargs)
         a = Article.objects.get(pk=int(article_id))
         na = naf.NAF_Article.from_json(get_result(a, methodlist))
         sentence_id = int(sentence_id)
-        words = {w.word_id : w for w in na.words if w.sentence_id == sentence_id}
-        terms = [t for t in na.terms if any(w in words for w in t.word_ids)]
-        deps = [d for d in na.dependencies if d.to_term in words]
 
-        elements = [k for (k, v) in na.__dict__.iteritems() if v]
+        token_table = get_token_table(na, sentence_id)
         
-        token_table = table3.ObjectTable(rows=terms)
-        token_table.addColumn(lambda t:t.term_id, "term id")
-        token_table.addColumn(lambda t:",".join(str(wid) for wid in t.word_ids), "word id(s)")
-        token_table.addColumn(lambda t:",".join(str(words[wid].offset) for wid in t.word_ids), "offset(s)")
-        token_table.addColumn(lambda t:",".join(words[wid].word for wid in t.word_ids), "word(s)")
-        token_table.addColumn(lambda t:t.lemma, "lemma")
-        token_table.addColumn(lambda t:t.pos, "pos")
-
-        frames = [f for f in na.frames if f["sentence_id"] == sentence_id]
-        for f in frames:
-            token_table.addColumn(FrameColumn(f))
-            
-
-        frames = [f for f in na.fixed_frames if f["sentence_id"] == sentence_id]
-        for f in frames:
-            token_table.addColumn(FrameColumn(f, "Fixed Frame: "))
-
-        token_table = tableoutput.table2html(token_table, printRowNames=False)
-            
         rdf = list(syntaxtree._naf_to_rdf(na, sentence_id))
 
         soh = SOHServer(url="http://localhost:3030/x")
         tree = syntaxtree.SyntaxTree(soh, rdf)
-        parsetree = tree.visualise().getHTMLObject()
+        trees = [("Syntactic Structure", tree.visualise().getHTMLObject())]
+
+        rulesetid = self.request.GET.get("ruleset", None)
+        
+        if rulesetid:
+            trees += list(apply_rules(tree, int(rulesetid)))
         
         ctx.update(**locals())
         return ctx
+
+def apply_rules(tree, rulesetid):
+    ruleset = RuleSet.objects.get(pk=rulesetid)
+    
+    tree.apply_lexicon(ruleset.lexicon_codebook, ruleset.lexicon_language)
+    yield "Enriched", tree.visualise().getHTMLObject()
+    grey_rel = lambda triple : ({'color':'grey'} if 'rel_' in triple.predicate else {})
+        
+    for rule in ruleset.rules.all():
+        try:
+            tree.apply_rule(rule)
+            if rule.display:
+                yield rule, tree.visualise(triple_args_function=grey_rel).getHTMLObject()
+        except Exception, e:
+            ruleset_error = "Exception processing rule {rule.order}: {rule.label}\n\n{e}".format(**locals())
+            return
+
+    yield "Final result", tree.visualise(triple_args_function=grey_rel).getHTMLObject()
+            
+    
+def get_token_table(naf_article, sentence_id):
+
+    words = {w.word_id : w for w in naf_article.words if w.sentence_id == sentence_id}
+    terms = [t for t in naf_article.terms if any(w in words for w in t.word_ids)]
+    deps = [d for d in naf_article.dependencies if d.to_term in words]
+
+    elements = [k for (k, v) in naf_article.__dict__.iteritems() if v]
+
+    token_table = table3.ObjectTable(rows=terms)
+    token_table.addColumn(lambda t:t.term_id, "term id")
+    token_table.addColumn(lambda t:",".join(str(wid) for wid in t.word_ids), "word id(s)")
+    token_table.addColumn(lambda t:",".join(str(words[wid].offset) for wid in t.word_ids), "offset(s)")
+    token_table.addColumn(lambda t:",".join(words[wid].word for wid in t.word_ids), "word(s)")
+    token_table.addColumn(lambda t:t.lemma, "lemma")
+    token_table.addColumn(lambda t:t.pos, "pos")
+
+    #frames = [f for f in naf_article.frames if f["sentence_id"] == sentence_id]
+    #for f in frames:
+    #    token_table.addColumn(FrameColumn(f))
+
+
+    frames = [f for f in naf_article.fixed_frames if f["sentence_id"] == sentence_id]
+    for f in frames:
+        token_table.addColumn(FrameColumn(f, "Fixed Frame: "))
+
+    return tableoutput.table2html(token_table, printRowNames=False)

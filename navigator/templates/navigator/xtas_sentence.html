@@ -15,7 +15,13 @@ Elements: {{ elements }}
 
 {{ token_table|safe }}
 
-{{ parsetree|safe }}
+{% for name, tree in trees %}
+
+<h2>{{ name }}</h2>
+
+{{ tree|safe }}
+
+{% endfor %}
 
 {% endblock %}
 

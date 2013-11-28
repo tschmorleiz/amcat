@@ -31,8 +31,7 @@ amcat and xtas use the same rabbitmq server.
 """
 
 from hashlib import md5
-from celery.task import Task
-from celery.execute import send_task
+from celery import Celery
 import time
 import celery
 import itertools
@@ -45,6 +44,11 @@ TASK_PROCESS_NAME = "process_document"
 TASK_PROCESS_FULL = "processing.tasks." + TASK_PROCESS_NAME
 TASK_CLEAR = "processing.tasks.clear_cache"
 STATE_SENT = 'SENT'
+
+from celery import Celery
+xtas_app = Celery()
+import settings.xtas_celery
+xtas_app.config_from_object(settings.xtas_celery)
 
 class TaskPending(Exception):
     pass
@@ -82,7 +86,7 @@ def process_document_sync(article, *methods, **options):
 def clear_cache(*articles):
     article_ids = [str(a) if isinstance(a, int) else str(a.id)
                    for a in articles]
-    t = send_task(TASK_CLEAR, args=(KEY, article_ids))
+    t = xtas_app.send_task(TASK_CLEAR, args=(KEY, article_ids))
     t.get()
             
 def process_document(article, *methods, **options):
@@ -104,7 +108,7 @@ def process_document(article, *methods, **options):
         state = celery.states.PENDING
     else:
         # check if task already exists
-        t = Task.AsyncResult(tid)
+        t = xtas_app.AsyncResult(tid)
         state = t.state
     log.info("Task {tid}: {state}".format(**locals()))
         
@@ -116,8 +120,8 @@ def process_document(article, *methods, **options):
         # PENDING really means UNKNOWN, here meaning UNSENT
         # so, send new task and set state to 'SENT' in task backend
         # (inspired by http://stackoverflow.com/questions/9824172/find-out-whether-celery-task-exists)
-        t = send_task(TASK_PROCESS_FULL, args=args, task_id=tid, kwargs={'hid' : tid})
-        t.backend.store_result(tid, None, STATE_SENT)
+        t = xtas_app.send_task(TASK_PROCESS_FULL, args=args, task_id=tid, kwargs={'hid' : tid})
+        xtas_app.backend.store_result(tid, None, STATE_SENT)
         raise TaskPending()
     elif state == STATE_SENT:
         raise TaskPending()

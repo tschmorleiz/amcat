@@ -27,16 +27,20 @@ class FrameNet(object):
     def fix_frames(self, naf_article):
         for frame in naf_article.frames:
             term = naf_article.term(frame["target"][0])
-            name = frame["name"]
+            name, sentence_id = frame["name"], frame["sentence_id"]
             try:
                 lu = self.get_frame(name).get_lexical_unit(term.lemma, term.pos)
-            except ValueError:
-                log.exception("Cannot get lexical unit")
+            except ValueError, KeyError:
+                log.exception("Cannot get lexical unit for frame {name}, term {term.lemma}/{term.pos}".format(**locals()))
                 continue
-            match = lu.get_elements(naf_article, term)
+            try:
+                match = lu.get_elements(naf_article, term)
+            except Exception:
+                log.exception("Error on interpreting frame {name}".format(**locals()))
+                raise
             elements = [dict(name=el, target=[t.term_id]) for (el, t) in match.iteritems()]
             
-            yield dict(name= name,
+            yield dict(name= name, sentence_id = sentence_id,
                        target=[term.term_id],
                        elements=elements)
                    
@@ -62,10 +66,12 @@ class Frame(object):
         else:
             pos = pos.lower()
             
-        name = "{lemma}.{pos}".format(lemma=lemma.lower(), pos=pos.lower())
         for u in self.xml.findall("fn:lexUnit", **NS):
-            if u.attrib["name"] == name: 
-                return LexicalUnit(self, self.framenet.get_fn("lu", "lu{id}".format(id=u.attrib["ID"])))
+            tlemmata, tpos = u.attrib["name"].lower().split(".")
+            for tlemma in tlemmata.split(" "):
+                
+                if tlemma == lemma.lower() and tpos == pos.lower():
+                    return LexicalUnit(self, self.framenet.get_fn("lu", "lu{id}".format(id=u.attrib["ID"])))
         raise ValueError("Can't find lu {name}".format(**locals()))
 
         
@@ -143,6 +149,9 @@ SKIP_POS = ['CNI', 'INI', '2nd', 'Sinterrog']
 FRAMENET_TO_STANFORD = {
     ('PP', 'Dep') : ['prep'],
     ('PPing', 'Dep') : ['prepc'],
+    ('VPto', 'Obj') : ['prep_to'],
+    ('VPing', 'Dep') : ['xcomp'],
+    ('PP', 'Obj') : ['prep'],
     ('NP', 'Ext') : ['nsubjpass', 'nsubj'],
     ('NP', 'Obj') : ['dobj'],
     ('NP', 'Dep') : ['tmod', 'nn'],
@@ -151,6 +160,10 @@ FRAMENET_TO_STANFORD = {
     ('AVP', 'Dep') : ['advmod'],
     ('Sub', 'Dep') : ['advcl'],
     ('Sfin', 'Dep') : ['ccomp'],
+    ('QUO', 'Dep') : ['ccomp'],
+    ('QUO', 'Head') : ['ccomp'],
+    ('unknown', 'Dep') : ['prepc_based_on'], # HACK?
+    ('VPto', 'Dep') : ['xcomp'], # doesn't capture the 'to' part...
     }
 import re
 RE_PP = re.compile(r'(\w+)\[(\w+)\]')

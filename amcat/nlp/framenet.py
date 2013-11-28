@@ -4,7 +4,7 @@ import logging
 log = logging.getLogger(__name__)
 NS = {'namespaces' : {'fn': 'http://framenet.icsi.berkeley.edu'}}
 
-_POS_MAP = {'jj' : 'a', 'nn' : 'n'}
+_POS_MAP = {'jj' : 'a', 'nn' : 'n', 'md' : 'v', 'nns' : 'n', 'rb' : 'prep', 'nnp' : 'n'}
 
 def map_pos(pos):
     pos = pos.lower()
@@ -30,13 +30,13 @@ class FrameNet(object):
             name, sentence_id = frame["name"], frame["sentence_id"]
             try:
                 lu = self.get_frame(name).get_lexical_unit(term.lemma, term.pos)
-            except ValueError, KeyError:
+            except (ValueError, KeyError):
                 log.exception("Cannot get lexical unit for frame {name}, term {term.lemma}/{term.pos}".format(**locals()))
                 continue
             try:
                 match = lu.get_elements(naf_article, term)
             except Exception:
-                log.exception("Error on interpreting frame {name}".format(**locals()))
+                log.exception("Error on interpreting frame {name}, term {term.lemma}/{term.pos}".format(**locals()))
                 raise
             elements = [dict(name=el, target=[t.term_id]) for (el, t) in match.iteritems()]
             
@@ -72,7 +72,7 @@ class Frame(object):
                 
                 if tlemma == lemma.lower() and tpos == pos.lower():
                     return LexicalUnit(self, self.framenet.get_fn("lu", "lu{id}".format(id=u.attrib["ID"])))
-        raise ValueError("Can't find lu {name}".format(**locals()))
+        raise ValueError("Can't find lu for {lemma}.{pos}".format(**locals()))
 
         
 class LexicalUnit(object):
@@ -127,7 +127,6 @@ class LexicalUnit(object):
     
         groups = [g for g in self.get_fe_groups() if len(g[0]) > 1]
         groups = sorted(groups, key=group_score)#lambda g: (-len(g[0]), -g[1]))
-        for group in groups: print(group)
         for (group, n) in groups:
             m = match_group(children, group)
             if m:
@@ -145,18 +144,21 @@ class LexicalUnit(object):
             
 ### MATCHING POS/REL TO STANFORD RELATIONS
         
-SKIP_POS = ['CNI', 'INI', '2nd', 'Sinterrog']
+SKIP_POS = ['CNI', 'INI', '2nd', 'Sinterrog', '--', 'DNI', 'DEN']
 FRAMENET_TO_STANFORD = {
     ('PP', 'Dep') : ['prep'],
     ('PPing', 'Dep') : ['prepc'],
     ('VPto', 'Obj') : ['prep_to'],
     ('VPing', 'Dep') : ['xcomp'],
+    ('VPbrst', 'Dep') : ['xcomp'],
     ('PP', 'Obj') : ['prep'],
     ('NP', 'Ext') : ['nsubjpass', 'nsubj'],
     ('NP', 'Obj') : ['dobj'],
     ('NP', 'Dep') : ['tmod', 'nn'],
     ('Poss', 'Gen') : ['poss'],
+    ('Poss', 'Ext') : ['poss'],
     ('AJP', 'Dep') : ['amod'],
+    ('A', 'Dep') : ['amod'],
     ('AVP', 'Dep') : ['advmod'],
     ('Sub', 'Dep') : ['advcl'],
     ('Sfin', 'Dep') : ['ccomp'],
@@ -164,6 +166,9 @@ FRAMENET_TO_STANFORD = {
     ('QUO', 'Head') : ['ccomp'],
     ('unknown', 'Dep') : ['prepc_based_on'], # HACK?
     ('VPto', 'Dep') : ['xcomp'], # doesn't capture the 'to' part...
+    ('Sfin', 'Head') : [], # Should be 'inverse advmod'
+    ('Srel', 'Head') : [], # Should be 'inverse advmod'
+    ('NP' ,'Head') : [], # Should be any inverse rel to a NP (?)
     }
 import re
 RE_PP = re.compile(r'(\w+)\[(\w+)\]')
@@ -193,7 +198,7 @@ def match_group(children, group):
         if m:
             result[cat] = m
         elif pos not in SKIP_POS:
-            log.info("Missing element {pos}.{rel} in group {group}".format(**locals()))
+            log.debug("Missing element {pos}.{rel} in group {group}".format(**locals()))
             return
     return result     
 

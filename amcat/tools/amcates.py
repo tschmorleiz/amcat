@@ -31,7 +31,7 @@ from json import dumps as serialize
 
 from amcat.tools import queryparser, toolkit
 from amcat.tools.toolkit import multidict, splitlist
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, connection
 from elasticsearch.client import indices, cluster
 from django.conf import settings
 from amcat.tools.caching import cached
@@ -41,10 +41,10 @@ def _clean(s):
 
 def get_article_dict(art, sets=None):
     date = art.date
-    if isinstance(art.date, (str, unicode)):
-        date = toolkit.readDate(date)
-    date = date.isoformat()
-
+    if date:
+        if isinstance(art.date, (str, unicode)):
+            date = toolkit.readDate(date)
+        date = date.isoformat()
     d = dict(
         # dublin core elements
         id = art.id,
@@ -147,11 +147,17 @@ class Result(object):
     
 class ES(object):
     def __init__(self, index=None, **args):
-        self.es = Elasticsearch(**args)
+        elhost = {"host":settings.ES_HOST, "port":settings.ES_PORT}
+        self.es = Elasticsearch(hosts=[elhost, ], **args)
         self.index = settings.ES_INDEX if index is None else index
 
     def flush(self):
         indices.IndicesClient(self.es).flush()
+
+
+    def clear_cache(self):
+        indices.IndicesClient(self.es).clear_cache()
+        
     def delete_index(self):
         try:
             indices.IndicesClient(self.es).delete(self.index)
@@ -160,7 +166,9 @@ class ES(object):
             raise
         
     def create_index(self):
-        body = {"mappings" : {settings.ES_ARTICLE_DOCTYPE : settings.ES_MAPPING}}
+        body = {
+            "settings" : settings.ES_SETTINGS,
+            "mappings" : {settings.ES_ARTICLE_DOCTYPE : settings.ES_MAPPING}}
         indices.IndicesClient(self.es).create(self.index, body)
 
     def check_index(self):
@@ -194,7 +202,7 @@ class ES(object):
         Note that query and filters can be combined in a single call
         """
         body = dict(build_body(query, filter, filters))
-
+        log.debug("Query_ids body={body!r}".format(**locals()))
         options = dict(scroll="1m", size=1000, fields="")
         options.update(kwargs)
         res = self.es.search(index=self.index, search_type='scan', body=body, **options)
@@ -220,7 +228,7 @@ class ES(object):
         if highlight: body['highlight'] = HIGHLIGHT_OPTIONS
         if lead: body['script_fields'] = LEAD_SCRIPT_FIELD 
 
-        log.info("es.search(body={body}, **{kwargs})".format(**locals()))
+        log.debug("es.search(body={body}, **{kwargs})".format(**locals()))
         result = self.es.search(index=self.index, body=body, fields=fields, **kwargs)
         return SearchResult(result, fields, score, body)
 
@@ -235,16 +243,18 @@ class ES(object):
             result.hits += result2.hits
 
         return result
-    
-    def add_articles(self, article_ids):
+
+
+    def add_articles(self, article_ids, batch_size = 1000):
         """
         Add the given article_ids to the index. This is done in batches, so there
         is no limit on the length of article_ids (which can be a generator).
         """
         if not article_ids: return
         from amcat.models import Article, ArticleSetArticle
-        for i, batch in enumerate(splitlist(article_ids, itemsperbatch=100)):
-            log.info("Adding batch {i}".format(**locals()))
+        n = len(article_ids) / batch_size
+        for i, batch in enumerate(splitlist(article_ids, itemsperbatch=batch_size)):
+            log.info("Adding batch {i}/{n}".format(**locals()))
             all_sets = multidict((aa.article_id, aa.articleset_id)
                                  for aa in ArticleSetArticle.objects.filter(article__in=batch))
             dicts = (get_article_dict(article, list(all_sets.get(article.id, [])))
@@ -332,14 +342,23 @@ class ES(object):
         If date is used as a group_by variable, uses date_interval to bin it
         Currently, group by must be a single field as elastic doesn't support multiple group by
         """
-        filter = build_filter(**filters)
-        body = dict(build_body(query))
-        body['facets'] = {}
-        if group_by == 'date':
-            body['facets']['group'] = {'date_histogram' : {'field' : group_by, 'interval' : date_interval}}
+        if filters is None: raise ValueError("Please specify filters for aggregate query")
+        filters = list(get_filter_clauses(**filters))
+        if query:
+            filters.append(queryparser.parse_to_terms(query).get_filter_dsl())
+
+        if len(filters) == 1:
+            filter = filters[0]
         else:
-            body['facets']['group'] = {'terms' : {'size' : 999999, 'field' : group_by}}
-        body['facets']['group']['facet_filter'] = filter
+            filter = {"bool" : {"must" : [filters]}}
+
+        if group_by == 'date':
+            group = {'date_histogram' : {'field' : group_by, 'interval' : date_interval}}
+        else:
+            group = {'terms' : {'size' : 999999, 'field' : group_by}}
+        body = {"query" : {"constant_score" : {"filter" : filter}},
+                "facets" : {"group" : group}}
+
         result = self.es.search(index=self.index, body=body, size=0)
         if group_by == 'date':
             for row in result['facets']['group']['entries']:
@@ -348,7 +367,6 @@ class ES(object):
         else:
             for row in result['facets']['group']['terms']:
                 yield row['term'], row['count']
-
 
     def statistics(self, query=None, filters=None):
         """
@@ -401,7 +419,7 @@ def get_date(timestamp):
     d = datetime.fromtimestamp(timestamp/1000)
     return datetime(d.year, d.month, d.day)
 
-def build_filter(start_date=None, end_date=None, on_date=None, **filters):
+def get_filter_clauses(start_date=None, end_date=None, on_date=None, **filters):
     """
     Build a elastic DSL query from the 'form' fields.
     For convenience, the singular versions (mediumid, id) etc are allowed as aliases
@@ -437,27 +455,28 @@ def build_filter(start_date=None, end_date=None, on_date=None, **filters):
     if filters:
         raise TypeError("Unknown filter keywords: {filters}".format(**locals()))
     
-    filters = []
-    if 'set' in f: filters.append(dict(terms={'sets' : _list(f['set'])}))
-    if 'mediumid' in f: filters.append(dict(terms={'mediumid' : _list(f['mediumid'])}))
-    if 'id' in f: filters.append(dict(ids={'values' : _list(f['id'])}))
+    if 'set' in f: yield dict(terms={'sets' : _list(f['set'])})
+    if 'mediumid' in f: yield dict(terms={'mediumid' : _list(f['mediumid'])})
+    if 'id' in f: yield dict(ids={'values' : _list(f['id'])})
 
     date_range = {}
     if start_date: date_range['gte'] = parse_date(start_date)
     if end_date: date_range['lt'] = parse_date(end_date)
-    if date_range: filters.append(dict(range={'date' : date_range}))
+    if date_range: yield dict(range={'date' : date_range})
 
     if 'hash' in f:
         hashes = f['hash']
         if isinstance(hashes, str): hashes = [hashes]
-        filters.append(dict(terms={'hash': hashes}))
-            
+        yield dict(terms={'hash': hashes})
+
+def build_filter(*args, **kargs):
+    filters = list(get_filter_clauses(*args, **kargs))
     if len(filters) == 0:
         return None
     elif len(filters) == 1:
         return filters[0]
     else:
-        return {'and' : filters}
+        return {'bool' : {'must' : filters}}
 
 def build_body(query=None, filter=None, filters=None):
     """
@@ -483,7 +502,7 @@ if __name__ == '__main__':
 from amcat.tools import amcattest
 from unittest import skipUnless, skip
 
-class TestAmcatES(amcattest.PolicyTestCase):
+class TestAmcatES(amcattest.AmCATTestCase):
 
     @amcattest.use_elastic
     def test_aggregate(self):
@@ -693,7 +712,6 @@ class TestAmcatES(amcattest.PolicyTestCase):
         self.assertEqual(set(ES().query_ids(filters=dict(sets=s.id, mediumid=m1.id))), set())
         self.assertEqual(set(ES().query_ids(filters=dict(sets=s.id, mediumid=m2.id))), {a.id})
 
-    @skip("Need to setup a good list of test searches and expected scores")
     def test_scores(self):
         "test if scores (and matches) are as expected for various queries" 
         s = amcattest.create_test_set(articles=[
@@ -711,8 +729,10 @@ class TestAmcatES(amcattest.PolicyTestCase):
         a = amcattest.create_test_article(text='aap noot mies', medium=m1)
         b = amcattest.create_test_article(text='noot mies wim zus', medium=m2)
         c = amcattest.create_test_article(text='mies bla bla bla wim zus jet', medium=m2)
-        ES().add_articles([a.id, b.id, c.id])
-
+        d = amcattest.create_test_article(text='ik woon in een sociale huurwoning, net als anderen', medium=m2)
+        ES().add_articles([a.id, b.id, c.id, d.id])
+        ES().flush()
+        
         self.assertEqual(set(ES().query_ids("no*")), {a.id, b.id})
         self.assertEqual(set(ES().query_ids("no*", filters=dict(mediumid=m2.id))), {b.id})
         self.assertEqual(set(ES().query_ids("zus AND jet", filters=dict(mediumid=m2.id))), {c.id})
@@ -720,7 +740,10 @@ class TestAmcatES(amcattest.PolicyTestCase):
         self.assertEqual(set(ES().query_ids('"mies wim"', filters=dict(mediumid=m2.id))), {b.id})
         self.assertEqual(set(ES().query_ids('"mies wim"~5', filters=dict(mediumid=m2.id))), {b.id, c.id})
 
-
+        self.assertEqual(set(ES().query_ids('"sociale huur*"', filters=dict(mediumid=m2.id))), {d.id})
+        self.assertEqual(set(ES().query_ids('"sociale huur*"', filters=dict(mediumid=m2.id))), {d.id})
+        
+        
     @skip("ComplexPhraseQueryParser does not work for elastic")
     def test_complex_phrase_query(self):
         """Test complex phrase queries. DOES NOT WORK YET"""
@@ -730,4 +753,31 @@ class TestAmcatES(amcattest.PolicyTestCase):
         s1 = amcattest.create_test_set(articles=[a,b,c])
         ES().add_articles([a.id, b.id, c.id])
         self.assertEqual(set(ES().query_ids('"mi* wi*"~5', filters=dict(sets=s1.id))), {b.id, c.id})
+
+        
+    @amcattest.use_elastic
+    def test_tokenizer(self):
+        text = u"Rutte's Fu\xdf.d66,  50plus, 50+, el ni\xf1o, kanji (\u6f22\u5b57) en Noord-Korea"
+        a = amcattest.create_test_article(headline="test", text=text)
+        s1 = amcattest.create_test_set(articles=[a])
+        ES().add_articles([a.id])
+        ES().flush()
+        self.assertEqual(set(ES().query_ids("kanji", filters=dict(sets=s1.id))), {a.id})
+        self.assertEqual(set(ES().query_ids("blablabla", filters=dict(sets=s1.id))), set())
+
+        # test noord-korea --> noord korea
+        self.assertEqual(set(ES().query_ids("korea", filters=dict(sets=s1.id))), {a.id})
+        self.assertEqual(set(ES().query_ids('"korea-noord"', filters=dict(sets=s1.id))), set())
+        self.assertEqual(set(ES().query_ids('"noord-korea"', filters=dict(sets=s1.id))), {a.id})
+        
+        # test ni\~no -> nino
+        self.assertEqual(set(ES().query_ids(u"ni\xf1o", filters=dict(sets=s1.id))), {a.id})
+        self.assertEqual(set(ES().query_ids("nino", filters=dict(sets=s1.id))), {a.id})
+
+        # test real kanji
+        self.assertEqual(set(ES().query_ids(u"\u6f22\u5b57", filters=dict(sets=s1.id))), {a.id})
+
+        # test Rutte's -> rutte s
+        self.assertEqual(set(ES().query_ids("rutte", filters=dict(sets=s1.id))), {a.id})
+        self.assertEqual(set(ES().query_ids("Rutte", filters=dict(sets=s1.id))), {a.id})
 

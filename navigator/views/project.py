@@ -45,7 +45,7 @@ from api.rest.resources import  CodebookCodeResource
 from api.rest.resources import CodingSchemaFieldResource
 from api.rest.resources import PluginResource, ScraperResource
 
-from settings.menu import PROJECT_MENU
+PROJECT_MENU = None
 
 from django.shortcuts import render, redirect
 from django.core.urlresolvers import reverse
@@ -180,126 +180,6 @@ def upload_article_action(request, plugin, project):
 
     return render(request, "navigator/project/upload_action.html", locals())
 
-def projectlist(request, what):
-
-        
-    if what is None: what = "favourite"
-    if what.startswith("/"): what = what[1:]
-
-    tables = [("favourite", "Favourite Projects", dict(active=True)),
-              ("my", "My Projects", dict(projectrole__user=request.user, active=True)),
-              ("all", "All Projects", dict()),
-              ]
-    selected_filter = {name : filter for (name, label, filter) in tables}[what]
-
-    # ugly code! but the menu render code will change anyway I suppose...?
-    menu = [(label, "projects", {"APPEND":"/"+name}) for (name, label, filter) in tables]
-    selected =  {name : label for (name, label, filter) in tables}[what]
-    
-    if what == "favourite":
-        # ugly solution - get project ids that are favourite and use that to filter, otherwise would have to add many to many to api?
-        # (or use api request.user to add only current user's favourite status). But good enough for now...
-        
-        ids = request.user.get_profile().favourite_projects.all().values_list("id")
-        ids = [id for (id, ) in ids]
-        if ids: 
-            selected_filter["pk"] = ids
-        else:
-            selected_filter["name"] = "This is a really stupid way to force an empty table (so sue me!)"
-
-    url = reverse('project', args=[123]) + "?star="
-    table = FavouriteDatatable(set_url=url+"1", unset_url=url+"0", label="project", resource=ProjectResource)
-    table = table.filter(**selected_filter)
-    table = table.hide("project", "index_dirty", "indexed")
-
-    return render(request, 'navigator/project/projectlist.html', locals())
-
-
-### VIEW SINGLE PROJECT ###
-@check(Project)
-def view(request, project):
-    """
-    View a single project
-    """
-    edited = session_pop(request.session, "project-edited", False)
-
-    starred = request.user.get_profile().favourite_projects.filter(pk=project.id).exists()
-    star = request.GET.get("star")
-    if (star is not None):
-        if bool(int(star)) != starred:
-            starred = not starred
-            if starred:
-                request.user.get_profile().favourite_projects.add(project.id)
-            else:
-                request.user.get_profile().favourite_projects.remove(project.id)
-    
-    return render(request, 'navigator/project/view.html', {
-        "context" : project, "menu" : PROJECT_MENU,
-        "selected" : "overview", "edited" : edited, "starred" : starred
-    })
-        
-
-@check(Project)
-def articlesets(request, project, what):
-    """
-    Project articlesets page
-    """
-    if what is None: what = "favourite"
-    if what.startswith("/"): what = what[1:]
-    
-
-    tables = [("favourite", '<i class="icon-star"></i> <b>Favourites</b>', dict()),
-              ("own", "Own Sets", dict(project=project, codingjob_set__id='null')),
-              ("linked", "Linked Sets", dict(projects_set=project)),
-              ("codingjob", "Coding Job Sets", dict()),
-              ]
-    selected_filter = {name : filter for (name, label, filter) in tables}[what]
-
-    if what == "favourite":
-        # ugly solution - get project ids that are favourite and use that to filter, otherwise would have to add many to many to api?
-        # (or use api request.user to add only current user's favourite status). But good enough for now...
-
-        # they need to be favourte AND still contained in the project
-        ids = project.favourite_articlesets.filter(Q(project=project.id) | Q(projects_set=project.id)).values_list("id", flat=True)
-        if ids: 
-            selected_filter["pk"] = ids
-        else:
-            no_favourites = True
-            # keep the table with all ids - better some output than none
-            all_ids = ArticleSet.objects.filter(Q(project=project.id) | Q(projects_set=project.id)).values_list("id", flat=True)
-            if all_ids:
-                selected_filter["pk"] = all_ids
-            else:
-                no_sets = True
-                selected_filter["name"] = "This is a really stupid way to force an empty table (so sue me!)"
-            
-    elif what == "codingjob":
-        # more ugliness. Filtering the api on codingjob_set__id__isnull=False gives error from filter set
-        ids = ArticleSet.objects.filter(Q(project=project.id) | Q(projects_set=project.id), codingjob_set__id__isnull=False)
-        ids = [id for (id, ) in ids.values_list("id")]
-        if ids: 
-            selected_filter["pk"] = ids
-        else:
-            selected_filter["name"] = "This is a really stupid way to force an empty table (so sue me!)"
-    
-    url = reverse('articleset', args=[project.id, 123]) 
-
-    table = FavouriteDatatable(resource=ArticleSet, label="article set", set_url=url + "?star=1", unset_url=url+"?star=0")
-    table = table.rowlink_reverse('articleset', args=[project.id, '{id}'])
-    table = table.filter(**selected_filter)
-    table = table.hide("project", "index_dirty", "indexed", "needs_deduplication")
-
-    #table.url += "&project_for_favourites={project.id}".format(**locals())
-    table = table.add_arguments(project_for_favourites=project.id)
-    
-    context = project
-    menu = PROJECT_MENU
-    deleted = session_pop(request.session, "deleted_articleset")
-    unlinked = session_pop(request.session, "unlinked_articleset")
-    selected = "article sets"
-    
-    return render(request, 'navigator/project/articlesets.html', locals())
-
 @check(ArticleSet, args='id', action='delete')
 @check(Project, args_map={'projectid' : 'id'}, args='projectid')
 def delete_articleset(request, project, aset):
@@ -322,61 +202,6 @@ def unlink_articleset(request, project, aset):
     project.articlesets.remove(aset)
     request.session['unlinked_articleset'] = True
     return redirect(reverse("project-articlesets", args=[project.id]))
-
-@check(ArticleSet, args='id', action='update')
-@check(Project, args_map={'projectid' : 'id'}, args='projectid')
-def edit_articleset(request, project, aset):
-    form = modelform_factory(ArticleSet, fields=("project", "name", "provenance"))
-    form = form(instance=aset, data=request.POST or None)
-        
-    form.fields['project'].queryset = Project.objects.filter(projectrole__user=request.user,
-                                                             projectrole__role_id__gte=PROJECT_READ_WRITE)
-    
-    if form.is_valid():
-        form.save()
-
-    return render(request, 'navigator/project/edit_articleset.html', {
-        "context" : project, "menu" : PROJECT_MENU, "selected" : "overview",
-        "form" : form, "articleset" : aset, 
-    })
-
-
-@check(Project)
-def selection(request, project):
-    """
-    Render article selection page.
-
-    TODO:
-     - update to meet PEP8 style
-     - remove/replace webscripts (?)
-    """
-    outputs = []
-    for ws in mainScripts:
-        outputs.append({
-            'id':ws.__name__, 'name':ws.name,
-            'formAsHtml': ws.formHtml(project=project)
-        })
-
-    all_articlesets = project.all_articlesets()
-
-    favs = tuple(project.favourite_articlesets.filter(Q(project=project.id) | Q(projects_set=project.id)).values_list("id", flat=True))
-    no_favourites = not favs
-    favourites = json.dumps(favs)
-    
-    codingjobs = json.dumps(tuple(CodingJob.objects.filter(articleset__in=all_articlesets).values_list("articleset_id", flat=True)))
-    all_sets = json.dumps(tuple(all_articlesets.values_list("id", flat=True)))
-
-    ctx = locals()
-    ctx.update({
-        'form' : SelectionForm(project=project, data=request.GET, initial={"datetype" : "all" }),
-        'outputs' : outputs,
-        'project' : project,
-        'context' : project,
-        'menu' : PROJECT_MENU,
-        'selected' : 'query'
-    })
-
-    return render(request, 'navigator/project/selection.html', ctx)
 
 @check(Project)
 def codingjobs(request, project):
@@ -781,7 +606,6 @@ def codebooks(request, project):
     linked_codebooks = (Datatable(CodebookResource, rowlink='./codebook/{id}')
                         .filter(projects_set=project))
 
-    ## TODO: HACK: NEED PROPER SECURITY
     can_import = True#project.can_update(request.user)
     can_create = True#Codebook.can_create(request.user) and project.can_update(request.user)
 
@@ -899,8 +723,8 @@ def save_labels(request, codebook, project):
 
     if "parent" in request.POST:
         # New code should be created
-        if not Code.can_create(request.user):
-            raise PermissionDenied
+        #if not Code.can_create(request.user):
+        #    raise PermissionDenied
 
         code = Code.objects.create()
         parent = json.loads(request.POST["parent"])
@@ -913,8 +737,8 @@ def save_labels(request, codebook, project):
     else:
         code = Code.objects.get(id=int(request.POST['code']))
 
-        if not code.can_update(request.user):
-            raise PermissionDenied
+        #if not code.can_update(request.user):
+        #    raise PermissionDenied
 
     # Get changed, deleted and new labels
     changed_labels_map = { int(lbl.get("id")) : lbl for lbl in labels if lbl.get("id") is not None}

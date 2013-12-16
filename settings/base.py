@@ -27,8 +27,6 @@ from os import path
 
 import setup
 
-from .elastic import *
-
 # Python 2.x vs 3.x
 try:
     import ConfigParser as configparser
@@ -44,8 +42,6 @@ else:
 COMPRESS_ENABLED = os.environ.get("DJANGO_COMPRESS", not DEBUG) in (True, "1", "Y", "ON")
 COMPRESS_PARSER = 'compressor.parser.LxmlParser'
 
-LOG_LEVEL = os.environ.get('DJANGO_LOG_LEVEL', 'INFO' if DEBUG else 'WARNING')
-                 
 LOCAL_DEVELOPMENT = not (os.environ.get('APACHE_RUN_USER', '') == 'www-data'
                          or os.environ.get('UPSTART_JOB', '') == 'amcat_wsgi')
 
@@ -60,7 +56,7 @@ DATABASE_OPTIONS = {
    "init_command" : "set transaction isolation level read uncommitted"
 }
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", ".amcat.nl,.vu.nl").split(",")
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,.amcat.nl,.vu.nl").split(",")
 
 DATABASES = dict(default=dict(
         ENGINE = os.environ.get("DJANGO_DB_ENGINE", 'django.db.backends.postgresql_psycopg2'),
@@ -78,9 +74,6 @@ CACHES = {
     }
 }
 
-RAVEN_CONFIG = {
-    "dsn" : os.environ.get("DJANGO_RAVEN_DSN")
-}
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -169,14 +162,12 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django.contrib.admin',
     'django.contrib.staticfiles',
-    'raven.contrib.django.raven_compat',
     'rest_framework',
     'accounts',
     'annotator',
     'navigator',
     'api',
     'amcat',
-    'djcelery',
     'django_extensions',
     'compressor',
 ]
@@ -236,7 +227,6 @@ REST_FRAMEWORK = {
     )
 }
 
-## SETUP LOGGER ##
 if not DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", '')
@@ -245,86 +235,94 @@ if not DEBUG:
     EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_PASSWORD", '')
     EMAIL_USE_TLS = os.environ.get("DJANGO_EMAIL_TLS", 'Y') in ("1","Y", "ON")
 
-    logger = logging.getLogger()
-
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': True,
-        'root': {
-            'level': 'INFO',
-            'handlers': ['sentry'],
-        },
-        'formatters': {
-            'standard': {
-                'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-            },
-        },
-        'handlers': {
-            'sentry': {
-                'level': 'INFO',
-                'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
-            },
-            'console': {
-                'level': 'DEBUG',
-                'class': 'logging.StreamHandler',
-                'formatter': 'standard'
-            }
-        },
-        'loggers': {
-            'django.db.backends': {
-                'level': 'ERROR',
-                'handlers': ['console'],
-                'propagate': False,
-            },
-            'raven': {
-                'level': 'DEBUG',
-                'handlers': ['console'],
-                'propagate': False,
-            },
-            'sentry.errors': {
-                'level': 'DEBUG',
-                'handlers': ['console'],
-                'propagate': False,
-            },
-        },
-    }
 else:
     ALLOWED_HOSTS.append("*")
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'standard': {
-                'format': '%(asctime)s [%(levelname)s %(name)s:%(lineno)s] %(message)s'
-            },
-        },
-        'handlers': {
-            'default': {
-                'level': LOG_LEVEL,
-                'class':'logging.StreamHandler',
-                'formatter':'standard',
-            },
-            'request_handler': {
-                    'level': LOG_LEVEL,
-                    'class':'logging.StreamHandler',
-                    'formatter':'standard',
-            },
-        },
-        'loggers': {
-            '': {
-                'handlers': ['default'],
-                'level': LOG_LEVEL,
-                'propagate': True
-            },
-            'django.request': { # Stop SQL debug from logging to main logger
-                'handlers': ['request_handler'],
-                'level': LOG_LEVEL,
-                'propagate': False
-            },
-        }
-    }
 
+
+
+import os
+
+LOG_LEVEL = os.environ.get('DJANGO_LOG_LEVEL', 'DEBUG' if DEBUG else 'INFO')
+                 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+'color': {
+    '()': 'colorlog.ColoredFormatter',
+    'format' : "%(log_color)s[%(asctime)s %(levelname)s %(name)s:%(lineno)s] %(message)s",
+    'log_colors': {
+        'DEBUG':    'bold_black',
+        'INFO':     'white',
+        'WARNING':  'yellow',
+        'ERROR':    'bold_red',
+        'CRITICAL': 'bold_red',
+    },
+},
+
+        
+        'standard': {
+            'format' : "[%(asctime)s %(levelname)s %(name)s:%(lineno)s] %(message)s",
+            'datefmt' : "%Y-%m-%d %H:%M:%S"
+        },
+    },
+    'handlers': {
+        'null': {
+            'level':LOG_LEVEL,
+            'class':'django.utils.log.NullHandler',
+        },
+        'console':{
+            'level':LOG_LEVEL,
+            'class':'logging.StreamHandler',
+            'formatter': 'color'
+        },
+    },
+    'loggers': {
+        'urllib3': { # avoid annoying 'starting new connection' messages
+            'handlers':['console'],
+            'propagate': True,
+            'level':'WARN',
+        },
+        'elasticsearch': { # avoid annoying 'starting new connection' messages
+            'handlers':['console'],
+            'propagate': True,
+            'level':'WARN',
+        },
+            
+        'django': {
+            'handlers':['console'],
+            'propagate': True,
+            'level':'WARN',
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'WARN',
+            'propagate': False,
+        },
+        'amcat': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+        },
+        '': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+        },
+    }
+}
+
+if 'DJANGO_LOG_FILE' in os.environ:
+    LOG_FILE = os.environ['DJANGO_LOG_FILE']
+
+    LOGGING['handlers']['logfile'] = {
+        'level':LOG_LEVEL,
+        'class':'logging.handlers.RotatingFileHandler',
+        'filename': LOG_FILE,
+        'maxBytes': 50000,
+        'backupCount': 2,
+        'formatter': 'color',
+        }
+    LOGGING['loggers']['']['handlers'] += ['logfile']
 
 
 

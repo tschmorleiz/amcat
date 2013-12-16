@@ -20,14 +20,15 @@
 from django.conf.urls import patterns, url, include
 from rest_framework.urlpatterns import format_suffix_patterns
 
-from api.rest import resources, viewsets
+from api.rest import resources
 
 from rest_framework.routers import DefaultRouter
+from api.rest.viewsets import get_viewsets
 
 from api.rest.resources.xtas import XTasResource
 
 router = DefaultRouter()
-for vs in viewsets.get_viewsets():
+for vs in get_viewsets():
     router.register(vs.url, vs)
 
 urlpatterns = format_suffix_patterns(patterns('',

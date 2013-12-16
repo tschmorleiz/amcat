@@ -102,15 +102,16 @@ class ArticleSet(AmcatModel):
         """add(*a) is an alias for add_articles(a)"""
         self.add_articles(articles)
             
-    def remove_articles(self, articles):
+    def remove_articles(self, articles, remove_from_index=True):
         """
         Add the given articles to this article set
         If refresh or deduplicate are True, schedule a new celery task to do this
         """
         ArticleSetArticle.objects.filter(articleset=self, article__in=articles).delete()
         
-        self.index_dirty = True
-        self.save()
+        if remove_from_index:
+            to_remove = {(art if type(art) is int else art.id) for art in articles}
+            amcates.ES().remove_from_set(self.id, to_remove)
 
     def get_article_ids(self):
         """
@@ -132,7 +133,6 @@ class ArticleSet(AmcatModel):
         from amcat.tools.amcates import ES
         ES().check_index()
         ES().synchronize_articleset(self, full_refresh=full_refresh)
-        self.index_dirty = False
         self.save()
 
     def save(self, *args, **kargs):
@@ -171,7 +171,7 @@ ArticleSetArticle = ArticleSet.articles.through
 from amcat.tools import amcattest
 from django.test import skipUnlessDBFeature
 
-class TestArticleSet(amcattest.PolicyTestCase):
+class TestArticleSet(amcattest.AmCATTestCase):
         
     def test_create(self):
         """Can we create a set with some articles and retrieve the articles?"""       

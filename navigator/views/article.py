@@ -22,7 +22,7 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 from django.db.models import Q
 
-from settings.menu import PROJECT_MENU
+PROJECT_MENU = None
 
 from amcat.tools import toolkit
 from amcat.models import Article, Project, ArticleSet, AnalysedArticle, AnalysisSentence
@@ -402,7 +402,7 @@ def upload_article(request, id):
 
 from amcat.tools import amcattest
 
-class TestArticleViews(amcattest.PolicyTestCase):
+class TestArticleViews(amcattest.AmCATTestCase):
     def create_test_sentences(self):
         article = amcattest.create_test_article(byline="foo", text="Dit is. Tekst.\n\n"*3 + "Einde.")
         sbd.create_sentences(article)

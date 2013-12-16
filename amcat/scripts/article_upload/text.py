@@ -59,12 +59,23 @@ def _convert_doc(file):
     if not text.strip():
         raise Exception("No text from {antiword?}")
     return text.decode("utf-8")
-        
-        
+
+
+import pyPdf
+import StringIO
+def _convert_pdf(file):
+    _file = StringIO.StringIO()
+    _file.write(file.bytes)
+    pdf = pyPdf.PdfFileReader(_file)
+    text = ""
+    for page in pdf.pages:
+        text += page.extractText()
+    return text
 
 def _convert_multiple(file, convertors):
     errors = []
     for convertor in convertors:
+        return convertor(file)
         try:
             return convertor(file)
         except Exception, e:
@@ -106,6 +117,8 @@ class Text(UploadScript):
             convertors = [_convert_docx, _convert_doc]
         elif ext.lower() == ".doc":
             convertors = [_convert_doc, _convert_docx]
+        elif ext.lower() == ".pdf":
+            convertors = [_convert_pdf]
 
         if convertors:
             text = _convert_multiple(file, convertors)
@@ -133,7 +146,7 @@ from amcat.tools import amcattest
 from amcat.tools import amcatlogging
 amcatlogging.debug_module("amcat.scripts.article_upload.upload")
 
-class TestUploadText(amcattest.PolicyTestCase):
+class TestUploadText(amcattest.AmCATTestCase):
     def test_article(self):
         from django.core.files import File
         base = dict(project=amcattest.create_test_project().id,

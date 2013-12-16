@@ -277,6 +277,9 @@ class Datatable(object):
         if isinstance(value, Model):
             return self._filter(selector + '__%s' % value._meta.pk.attname, value.pk, check_can_filter=check_can_filter)
 
+        if isinstance(value, unicode):
+            value = value.encode('utf-8')
+            
         return urlencode({selector : value})
 
     def filter(self, **filters):
@@ -371,7 +374,7 @@ class FavouriteDatatable(Datatable):
 
 from amcat.tools import amcattest
 
-class TestDatatable(amcattest.PolicyTestCase):
+class TestDatatable(amcattest.AmCATTestCase):
     PROJECT_FIELDS = {'id', 'name', 'description', 'insert_date', 'owner',
                       'insert_user', 'guest_role', 'active', 'favourite'}
 

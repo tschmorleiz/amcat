@@ -25,6 +25,8 @@ TODO: NOTE: This module replaces the old 'solrlib', but I wonder whether it can 
 (but then I started moving things from the form to here...)
 """
 
+from __future__ import unicode_literals, print_function, absolute_import
+
 from django.db import models
 import collections
 import logging
@@ -155,6 +157,7 @@ def getTable(form):
     table.rowNamesRequired = True
     dateInterval = form['dateInterval']
     group_by = form['xAxis']
+    if group_by == "medium": group_by = "mediumid"
     filters = dict(filters_from_form(form))
 
     queries = list(queries_from_form(form))
@@ -179,9 +182,24 @@ def getTable(form):
     table.queries = queries
     return table
 
+def add_medium_names(result):
+    "Change medium ids to medium names"
+    result = list(result)
+    ids = {group for (group, n) in result}
+    media = dict(Medium.objects.filter(pk__in=ids).values_list("pk", "name"))
+    for mid, n in result:
+        label = "{mid} - {name}".format(name=media[mid], **locals())
+        yield label, n
+    
+    
 def _add_column(table, column_name, query, filters, group_by, dateInterval):
-    for group, n in ES().aggregate_query(query, filters, group_by, dateInterval):
+    results = ES().aggregate_query(query, filters, group_by, dateInterval)
+    if group_by == "mediumid": 
+        results = add_medium_names(results)
+    
+    for group, n in results:
         table.addValue(unicode(group), column_name, n)
+        
     
 
                                  
@@ -239,11 +257,24 @@ def queries_from_form(form):
     Returns a sequence of SearchQuery objects taken from the form['query'] field
     """
     if form['query']:
+        #HACK: clean doesn't get called with delayed webscripts, webscripts need overhaul!
+        from amcat.models import Codebook, Language
+        cb, lbl, rep = [form.get(x) for x in ['codebook', 'codebook_label_language', 'codebook_replacement_language']]
+        if not cb:
+            cb = None
+        elif isinstance(cb, (int, unicode)):
+            cb = Codebook.objects.get(pk=int(cb))
+        if lbl and isinstance(lbl, (int, unicode)): lbl = Language.objects.get(pk=int(lbl))
+        if rep and isinstance(rep, (int, unicode)): rep = Language.objects.get(pk=int(rep)) 
+        if cb: cb.cache_labels()
+        
+        log.warn("X {cb}:{lbl}->{rep}".format(**locals()))
+        
         queries = [SearchQuery.from_string(line)
                    for line in form['query'].split("\n")
                    if line.strip()]
-        resolved = resolve_queries(queries, codebook=None, label_language=None,
-                                   replacement_language=None)
+        resolved = resolve_queries(queries, codebook=cb, label_language=lbl, replacement_language=rep)
+
         resolved = list(resolved)
         return (q for q in resolved if not q.label.startswith("_"))
     else:
@@ -252,16 +283,18 @@ def queries_from_form(form):
 def query_from_form(form):
     queries = list(queries_from_form(form))
     if queries:
-        return ' OR '.join('({q.query})'.format(**locals()) for q in queries)
+        return u' OR '.join(u'({q.query})'.format(**locals()) for q in queries)
         
 def _resolve_recursive(codebook, tree_item, rlanguage):
     this = codebook.get_code(tree_item.code_id).get_label(rlanguage, fallback=False)
 
-    if this is None:
-        raise ValidationError("Code with id '{tree_item.code_id}' has no label in replacement-language.".format(**locals()), code="invalid")
+    if this is not None:
+        yield this
 
-    children = " OR ".join(_resolve_recursive(codebook, t, rlanguage) for t in tree_item.children)
-    return ("{this} OR ({children})".format(**locals()) if children else this)
+    for t in tree_item.children:
+        for child in _resolve_recursive(codebook, t, rlanguage):
+            yield child
+
 
 
 def resolve_reference(reference, recursive, queries, codebook=None, labels=None, rlanguage=None):
@@ -270,8 +303,8 @@ def resolve_reference(reference, recursive, queries, codebook=None, labels=None,
         code = codebook.get_code(int(reference))
         if recursive:
             tree = codebook.get_tree(roots=[code])
-            tree = _resolve_recursive(codebook, tree[0], rlanguage)
-            return "({})".format(tree)
+            tree = list(_resolve_recursive(codebook, tree[0], rlanguage))
+            return " OR ".join(tree)
         return code.get_label(rlanguage, fallback=False)
 
     # Case 2: reference refers to labeled subquery
@@ -284,7 +317,16 @@ def resolve_reference(reference, recursive, queries, codebook=None, labels=None,
 
     # Case 3: reference refers to code in codebook, refered to by its label
     try:
-        label = labels[reference].get_label(rlanguage, fallback=False)
+        log.warn("Finding {reference} in {rlanguage} in {labels}, rec={recursive}".format(**locals()))
+        code = labels[reference]
+        
+        if recursive:
+            tree = codebook.get_tree(roots=[code])
+            log.warn("Tree: {tree}".format(**locals()))
+            tree = list(_resolve_recursive(codebook, tree[0], rlanguage))
+            return " OR ".join(tree)
+        else:
+            return code.get_label(rlanguage, fallback=False)
     except Label.DoesNotExist:
         raise ValidationError("Code with label '{reference}' has no label in replacement-language."
                               .format(**locals()), code="invalid")
@@ -292,6 +334,7 @@ def resolve_reference(reference, recursive, queries, codebook=None, labels=None,
         raise ValidationError("No code with label '{reference}' found in {codebook}"
                               .format(**locals()), code="invalid")
     except TypeError:
+        log.warn(reference)
         raise ValidationError("<{reference}> does not refer to either a code or a query-label. "
                               "Did you forget to set a codebook?".format(**locals()), code="invalid")
 
@@ -321,6 +364,9 @@ def resolve_query(query, queries, codebook=None, labels=None, rlanguage=None):
             reference, recursive, queries,
             codebook, labels, rlanguage
         )
+        if not replacement:
+            raise Exception("Empty replacement: {query.label}: {query.query} -> {replacement!r}".format(**locals()))
+
         replacement = "(" + replacement + ")"
         query.query = query.query.replace(mo.group(0), replacement, 1)
 
@@ -328,6 +374,7 @@ def resolve_query(query, queries, codebook=None, labels=None, rlanguage=None):
 
 
 def resolve_queries(queries, codebook=None, label_language=None, replacement_language=None):
+    log.warn("Resolving queries {queries}, {codebook}:{label_language} -> {replacement_language}".format(**locals()))
     _queries = {}
     for q in queries:
         if not q.declared_label: continue
@@ -344,7 +391,9 @@ def resolve_queries(queries, codebook=None, label_language=None, replacement_lan
         labels = None
         
     for query in queries:
-        yield resolve_query(query, _queries, codebook, labels, replacement_language)
+        q = resolve_query(query, _queries, codebook, labels, replacement_language)
+        if q:
+            yield q
 
 
 ###########################################################################
@@ -353,7 +402,7 @@ def resolve_queries(queries, codebook=None, label_language=None, replacement_lan
 
 from amcat.tools import amcattest
 
-class TestKeywordSearch(amcattest.PolicyTestCase):
+class TestKeywordSearch(amcattest.AmCATTestCase):
         
     def test_get_label_delimiter(self):
         self.assertEquals(SearchQuery._get_label_delimiter("abc", "a"), "a")

@@ -1,0 +1,203 @@
+{% extends "project/base.html" %}
+{% load compress %}
+{% load staticfiles %}
+
+{% block css %}
+{% compress css %}
+    <link href="{% static 'css/selection.css' %}" rel="stylesheet" type="text/css" media="screen" />
+    <link href="{% static 'css/jquery.jqplot.min.css' %}" rel="stylesheet" type="text/css" media="screen" />
+{% endcompress %}
+{% endblock %}
+{% block javascript %}    
+<!--[if lt IE 9]><script type="text/javascript" src="{{MEDIA_URL}}js/jqplot/excanvas.min.js"></script><![endif]-->
+  {% compress js %}
+  <script type="text/javascript" src="{% static 'js/jqplot/jquery.jqplot.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.dateAxisRenderer.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.canvasTextRenderer.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.canvasAxisLabelRenderer.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.canvasTextRenderer.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.canvasAxisTickRenderer.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.highlighter.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.enhancedLegendRenderer.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.barRenderer.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.categoryAxisRenderer.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jqplot/plugins/jqplot.pointLabels.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jquery.csv-0.71.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jquery.upload_query.js' %}"></script>
+  
+  <script src="{% static 'js/selection.js' %}" type="text/javascript"></script>
+  {% endcompress %}
+{% endblock %}
+
+{% block title %}Project {{context.id}} - {{context.name}}{% endblock %}
+
+{% block content %}
+  <form method="POST" target="formpost" action="url_overwritten_by_js" id="selectionform">
+    {% csrf_token %}
+    <input type="hidden" name="output" value="json-html" />
+    {{ form.projects.as_hidden }}
+    <div class="row">
+      <div class="col-md-6">
+	<legend>Filter options</legend>
+	<table class="query query-filter" border="0">
+	  <tr>
+            <td>Show sets:</td>
+            <td colspan="2">{% include "project/query_articlesets.html" %}</td>
+	  </tr>
+	  <tr>
+            <td style="width:70px">
+              <label>Article Set: </label>
+            </td>
+            <td style="width:400px; min-width:380px;">
+              {{ form.articlesets }}
+            </td>
+	  <tr>
+            <td>
+              <label>Date: </label>
+            </td>
+            <td>
+              <select name="datetype" id="id_datetype">
+                <option selected="selected" value="all">All Dates</option>
+                <option value="on">On</option>
+                <option value="after">After</option>
+                <option value="between">Between</option>
+                <option value="before">Before</option>
+              </select>
+              <span id="date-start" style="display:none">Start: {{ form.start_date }} </span>
+              <span id="date-end" style="display:none"> End: {{ form.end_date }}</span> 
+              <span id="date-on" style="display:none">{{ form.on_date }}</span> 
+            </td>
+	  </tr>  <tr>
+            <td>
+              <label>Medium:</label>
+            </td>
+            <td>
+              {{ form.mediums }}
+            </td>
+	  </tr>
+
+	</table>
+	<br/>
+	<legend>Output options</legend>
+	<table class="query query-output" border="0">
+	  <tr>
+            <td style="padding-top:30px">
+              <label>Output:</label>
+            </td>
+            <td style="padding-top:30px; min-height:50px">
+              <div id="webscripts">
+                {% for out in outputs %}
+                <input type="radio" name="webscriptToRun" id="{{out.id}}" value="{{out.id}}" checked="checked" />
+                <label for="{{out.id}}">{{out.name}}</label>
+                {% endfor %}
+              </div>
+            </td>
+	  </tr>
+	  <tr>
+	    <td></td>
+            <td class="output-options-td">
+              {% for out in outputs %}
+              <div id="options-{{out.id}}" class="output-options">
+                {{out.formAsHtml}}
+              </div>
+              {% endfor %}
+              <div id="options-radio-additional" class="output-options">
+		
+              </div>
+            </td>
+	  </tr>
+
+	  <tr>
+	</table>
+      </div> <!-- col -->
+      <div class="col-md-6">
+	<legend>Query options</legend>
+	<div class="panel-group" id="accordion">
+	  <div class="panel panel-default">
+	    <div class="panel-heading">
+	      <h4 class="panel-title">
+		<a data-toggle="collapse" data-parent="#accordion" href="#collapseOne">
+		  Keyword Search string(s) 
+		</a>
+	      </h4>
+	    </div>
+	    <div id="collapseOne" class="panel-collapse collapse in">
+	      <div class="panel-body query">
+		
+		{{ form.query }}
+<a id="help-link" class="pull-right" style="font-size:12px" href="#"><i class="glyphicon glyphicon-info-sign"></i>
+Search Syntax Help</a><br />
+	      </div>
+	    </div>
+	  </div>
+	  <div class="panel panel-default">
+	    <div class="panel-heading">
+	      <h4 class="panel-title">
+		<a data-toggle="collapse" data-parent="#accordion" href="#collapseTwo">
+		  Article IDs
+		</a>
+	      </h4>
+	    </div>
+	    <div id="collapseTwo" class="panel-collapse collapse">
+	      <div class="panel-body">
+		<label>Article IDs</label> <br />
+		{{ form.article_ids }}
+	      </div>
+	    </div>
+	  </div>
+	  <div class="panel panel-default">
+	    <div class="panel-heading">
+	      <h4 class="panel-title">
+		<a data-toggle="collapse" data-parent="#accordion" href="#collapseThree">
+		  Codebook
+		</a>
+	      </h4>
+	    </div>
+	    <div id="collapseThree" class="panel-collapse collapse">
+	      <div class="panel-body">
+		{{form.codebook.label_tag}} {{form.codebook}}<br/> 
+		{{form.codebook_label_language.label_tag}} {{form.codebook_label_language}}<br/>
+		{{form.codebook_replacement_language.label_tag}} {{form.codebook_replacement_language}}<br/>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+      </div> <!-- col -->
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+        <input type="submit" value="Submit" id="form-submit" />
+      </div> <!-- col -->
+    </div> <!-- row -->
+
+    <br/>
+    <div class="row">
+      <div class="col-md-12">
+	<legend>Results</legend>
+	<script type="text/javascript">
+	  $(document).ready(function(){
+          amcat.selection.apiUrl = "{% url "api" %}";
+	  });
+	</script>
+	<span id="query-time"></span>
+	<!-- <div id="form-errors"></div> -->
+      </div>
+    </div>
+  </form>
+  
+  <div id="select-message" class="message"></div>
+  <div id="select-result"></div>
+  
+  <iframe name="formpost" style="display:none"></iframe>
+  
+  <div id="dialog-message" style="display:none">
+    <div id="dialog-message-content"></div>
+    <div id="dialog-message-status"></div>
+  </div>
+  
+  </div> <!-- col -->
+  </div> <!-- row -->
+  {% include "navigator/selection/querysyntax.html" %}
+
+{% endblock %}

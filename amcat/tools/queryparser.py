@@ -26,10 +26,20 @@ Also paves the way for more customization, i.e. allowing Lexis style queries
 
 from __future__ import unicode_literals, print_function, absolute_import
 from pyparsing import ParseResults, ParserElement
-import itertools
+import itertools, collections
 
 ParserElement.enablePackrat()
 
+def c(s):
+    "Clean ('analyze') the provided string"
+    return s.lower()
+
+def query_filter(dsl, cache=False):
+    if cache:
+        return {"fquery" : {"query" : dsl, "_cache" : True}}
+    else:
+        return {"query" : dsl}
+    
 class ParseError(ValueError):
     pass
 
@@ -47,26 +57,33 @@ class BaseTerm(FieldTerm):
     def __init__(self, text, field):
         super(BaseTerm, self).__init__(field=field)
         self.text = text.replace("!", "*")
-
+    def get_filter_dsl(self):
+        return query_filter(self.get_dsl())
+        
 class Term(BaseTerm):
     def __unicode__(self):
         return "{self.qfield}::{self.text}".format(**locals())
     def __str__(self):
         return unicode(self).encode('utf-8')
     def get_dsl(self):
-        qtype = "wildcard" if '*' in self.text else "term"
+        qtype = "wildcard" if '*' in self.text else "match"
         return {qtype : {self.qfield : self.text.lower()}}
-
+    def get_filter_dsl(self):
+        if "*" in self.text:
+            if "*" in self.text[:-1]:
+                return query_filter(self.get_dsl())
+            else: # last must be *
+                return {"prefix" : {self.qfield : c(self.text[:-1])}}
+        else:
+            return {"term" : {self.qfield : c(self.text)}}
+        
 class Quote(BaseTerm):
     def __unicode__(self):
         return u'{self.qfield}::QUOTE[{self.text}]'.format(**locals())
     def __str__(self):
         return unicode(self).encode('utf-8')
     def get_dsl(self):
-        if self.text.endswith("*"):
-            return {"match_phrase_prefix" : {self.qfield : self.text[:-1]}}
-        else:
-            return {"match_phrase" : {self.qfield : self.text}}
+        return {"match_phrase" : {self.qfield : self.text}}
 
 class Boolean(object):
     def __init__(self, operator, terms, implicit=False):
@@ -89,7 +106,32 @@ class Boolean(object):
         else:
             op = dict(OR="should", AND="must", NOT="must_not")[self.operator]
             return {"bool" : {op : [term.get_dsl() for term in self.terms]}}
+            
+    def get_filter_dsl(self):
+        if self.operator == "OR":
+            simple_terms = collections.defaultdict(list) # field : termlist
+            clauses = [] # OR clauses 
+            for t in self.terms:
+                if isinstance(t, Term) and "*" not in t.text:
+                    simple_terms[t.qfield].append(c(t.text))
+                else:
+                    clauses.append(t.get_filter_dsl())
+            for field, terms in simple_terms.iteritems():
+                clauses.append({"terms" : {field : terms}})
 
+            return {"bool" : {"should" : clauses}}
+        
+        if self.operator == "NOT":
+            # in lucene, NOT is binary rather than unary, so
+            # x NOT y means x AND (NOT y) or +x -y.
+            # We interpret x NOT y NOT z  as x AND (NOT y) AND (NOT z) or +x -y -z
+            return {"bool" : {"must" : [self.terms[0].get_filter_dsl()],
+                              "must_not" : [t.get_filter_dsl() for t in self.terms[1:]]}}
+        else:
+            op = dict(OR="should", AND="must", NOT="must_not")[self.operator]
+            return {"bool" : {op : [term.get_filter_dsl() for term in self.terms]}}
+        
+    
 def _check_span(terms, field=None, allow_boolean=True):
     """
     Checks whether a span contains terms using the same field and
@@ -154,7 +196,8 @@ class Span(Boolean, FieldTerm):
             return clauses[0]
         else:
             return {"bool" : {"should" : clauses}}
-
+    def get_filter_dsl(self):
+        return query_filter(self.get_dsl())
 
 def lucene_span(quote, field, slop):
     '''Create a span query from a lucene style string, i.e. "terms"~10'''
@@ -171,7 +214,7 @@ def get_term(tokens):
         # this is where it gets weird: phrase queries don't support general
         # prefixes, but span (=slop) queries do. So, make a span query
         # with slop=0 and in_order=True if a non-final wildcard is present
-        if "*" in tokens.quote[:-1]:
+        if "*" in tokens.quote:
             return lucene_span(tokens.quote, tokens.field, 0)
         else:
             return Quote(tokens.quote, tokens.field)
@@ -244,8 +287,20 @@ def get_grammar():
         _grammar = boolean_expr
     return _grammar
 
+def simplify(term):
+    if isinstance(term, Boolean):
+        new_terms = []
+        for t in term.terms:
+            t = simplify(t)
+            if isinstance(t, Boolean) and term.operator in ("OR", "AND") and t.operator == term.operator:
+                new_terms += t.terms
+            else:
+                new_terms.append(t)
+        term.terms = new_terms
+    return term
+    
 def parse_to_terms(s):
-    return get_grammar().parseString(s, parseAll=True)[0]
+    return simplify(get_grammar().parseString(s, parseAll=True)[0])
     
 def parse(s):
     terms = parse_to_terms(s)
@@ -259,7 +314,7 @@ def parse(s):
 
 from amcat.tools import amcattest
 
-class TestQueryParser(amcattest.PolicyTestCase):
+class TestQueryParser(amcattest.AmCATTestCase):
     def test_parse(self):
         q = lambda s : unicode(parse_to_terms(s))
 
@@ -327,3 +382,13 @@ class TestQueryParser(amcattest.PolicyTestCase):
         ]}}
 
         self.assertEqual(q('a W/10 (b c)'), expected)
+
+    def test_rewrite(self):
+        t = parse_to_terms("(a (b c)) NOT ((a (b c)) d e (f AND (g AND (i OR k))))")
+        #t = parse_to_terms("(a (b c)) NOT (x y)")
+        print(t)
+        t = simplify(t)
+        print(t)
+        print(t.get_dsl())
+        print(t.get_filter_dsl())
+        

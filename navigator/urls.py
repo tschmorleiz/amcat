@@ -20,7 +20,7 @@
 from django.conf.urls import patterns, url
 from django.contrib.auth.views import password_change, password_change_done
 
-from navigator.views.articleset_views import ImportSetView, SampleSetView, ArticleSetView, RefreshArticleSetView
+from navigator.views.articleset_views import ImportSetView, SampleSetView, RefreshArticleSetView, EditSetView
 from navigator.views.preprocessing_views import ProcessParsingView
 from navigator.views.xtas_views import XTasView, XTasSentenceView
 from navigator.views.codebook_views import ImportCodebook, ExportCodebook
@@ -30,9 +30,6 @@ urlpatterns = patterns(
     '',
      url(r'^$', 'navigator.views.report.index', name="index"),
 
-    # Project report
-    url(r'^projects(?P<what>/\w+)?$', 'navigator.views.project.projectlist', name='projects'),
-
     # User report
     url(r'^users$', 'navigator.views.user.my_affiliated_active', name='users'),
     url(r'^users/my_all$', 'navigator.views.user.my_affiliated_all'),
@@ -41,27 +38,19 @@ urlpatterns = patterns(
     url(r'^media$', 'navigator.views.report.media', name='media'),
     url(r'^nyi$', 'navigator.views.nyi.index', name='nyi'),
     
-    url(r'^selection$', 'navigator.views.selection.index', name='selection'),
-
     # Articles
     url(r'^project/(?P<project_id>[0-9]+)/article/(?P<article_id>[0-9]+)/split$', 'navigator.views.article.split', name="split_article"),
     url(r'^project/(?P<project_id>[0-9]+)/article/(?P<article_id>[0-9]+)/remove_from/(?P<remove_articleset_id>[0-9]+)$',
             'navigator.views.article.remove_from', name="remove_from_articleset"),
     url(r'^project/(?P<project_id>[0-9]+)/article/(?P<article_id>[0-9]+)$',
             'navigator.views.project.article', name="article"),
-    url(r'^project/(?P<projectid>[0-9]+)/articleset/(?P<pk>[0-9]+)$',
-        ArticleSetView.as_view(), name="articleset"),
-    url(r'^project/(?P<projectid>[0-9]+)/articleset/edit/(?P<id>[0-9]+)$',
-        'navigator.views.project.edit_articleset', name="articleset-edit"),
     url(r'^project/(?P<projectid>[0-9]+)/articleset/delete/(?P<id>[0-9]+)$',
         'navigator.views.project.delete_articleset', name="articleset-delete"),
-    url(r'^project/(?P<projectid>[0-9]+)/articleset/refresh/(?P<pk>[0-9]+)$',
-        RefreshArticleSetView.as_view(), name="articleset-refresh"),
+    #url(r'^project/(?P<projectid>[0-9]+)/articleset/refresh/(?P<pk>[0-9]+)$',
+    #    RefreshArticleSetView.as_view(), name="articleset-refresh"),
     
     url(r'^project/(?P<projectid>[0-9]+)/articleset/unlink/(?P<id>[0-9]+)$',
         'navigator.views.project.unlink_articleset', name="articleset-unlink"),
-    url(r'^project/(?P<projectid>[0-9]+)/articleset/(?P<articleset>[0-9]+)/sample$',
-        SampleSetView.as_view(), name="articleset-sample"),
     url(r'^project/(?P<projectid>[0-9]+)/articleset/(?P<articleset>[0-9]+)/import$',
         ImportSetView.as_view(), name="articleset-import"),
 
@@ -104,9 +93,7 @@ urlpatterns = patterns(
     
     # Projects (+managers)
     url(r'^project/add$', 'navigator.views.project.add', name='project-add'),
-    url(r'^project/(?P<id>[0-9]+)$', 'navigator.views.project.view', name='project'),
-    url(r'^project/(?P<id>[0-9]+)/articlesets(?P<what>/\w+)?$', 'navigator.views.project.articlesets', name='project-articlesets'),
-    url(r'^project/(?P<id>[0-9]+)/selection$', 'navigator.views.project.selection', name='project-selection'),
+
     url(r'^project/(?P<id>[0-9]+)/codingjobs$', 'navigator.views.project.codingjobs', name='project-codingjobs'),
     url(r'^project/(?P<id>[0-9]+)/schemas$', 'navigator.views.project.schemas', name='project-schemas'),
     url(r'^project/(?P<id>[0-9]+)/codebooks$', 'navigator.views.project.codebooks', name='project-codebooks'),
@@ -175,3 +162,23 @@ urlpatterns = patterns(
             XTasSentenceView.as_view(), name="xtas-sentence"),
     
 ) 
+
+from navigator.views.articleset_views import *
+from navigator.views.article_views import *
+from navigator.views.query import *
+from navigator.views.project_views import *
+
+
+for view in [ArticleSetListView, ArticleSetDetailsView, ArticleSetArticleDetailsView, QueryView, SampleSetView, EditSetView]:
+    for pattern in view.get_url_patterns():
+        urlpatterns += patterns('',
+                                url(pattern, view.as_view(), name=view.get_view_name())
+                            )
+        print view.__name__, view.get_view_name(),  pattern
+
+urlpatterns += patterns('',
+                        url("^projects/(?P<project_id>[0-9]+)/$", ArticleSetListView.as_view(), name="project"),
+                        url("^projects/$", ProjectListView.as_view(), name="projects"),
+                        url("^projects/(?P<what>[a-z]+)/$", ProjectListView.as_view(), name="projects"),
+                        )
+#    url(r'^projects(?P<what>/\w+)?$', 'navigator.views.project.projectlist', name='projects'),

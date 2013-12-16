@@ -421,6 +421,14 @@ class Codebook(AmcatModel):
 
         return child
 
+    def create_code(self, label, language, parent=None, **kargs):
+        """
+        Convenience method to create a new code with given language:label,
+        and add it to this codebook under the optional parent
+        """
+
+        return self.add_code(Code.create(label, language), parent=parent, **kargs)
+        
     def delete_codebookcode(self, codebookcode):
         """Delete this CodebookCode from this Codebook."""
         if self.cached:
@@ -562,9 +570,7 @@ class CodebookCode(AmcatModel):
 
 from amcat.tools import amcattest
 
-class TestCodebook(amcattest.PolicyTestCase):
-    PYLINT_IGNORE_EXTRA = "W0212",
-
+class TestCodebook(amcattest.AmCATTestCase):
     def test_create(self):
         """Can we create objects?"""
         c = amcattest.create_test_codebook()

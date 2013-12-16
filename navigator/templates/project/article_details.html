@@ -1,3 +1,21 @@
+{% extends "project/base.html" %}
+
+{% block actions %}
+ <a class="btn btn-warning" href="{% url 'split_article' project.id article.id %}">Split article</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+<div class="col-md-8 col-sm-12">
+ <h1>{{article.headline}}</h1>
+ <article>
+  {% if article.byline %}<h2>{{article.byline}}</h2>{% endif %}
+  {{ article.text|urlizetrunc:30|linebreaks }}
+ </article>
+</div>
+<div class="col-md-4 col-sm-12">
+ <h1>Article details</h1>
+
 <style type="text/css">
  table tr td:first-child{ font-weight:bold; }
 </style>
@@ -59,8 +77,8 @@
   <td>In&nbsp;articlesets:</td>
   <td>
   {% for aset in article.articlesets_set.all.distinct %}
-    <a href="{% url "articleset" article.project.id aset.id %}">{{aset.id}} - {{aset}}</a>
-    <a href="{% url "remove_from_articleset" article.project.id article.id aset.id %}" class="btn btn-mini">Remove</a><br/>
+    <a href="{% url "article set-details" article.project.id aset.id %}">{{aset.id}} - {{aset}}</a>
+    <!--<a href="{% url "remove_from_articleset" article.project.id article.id aset.id %}" class="btn btn-mini">Remove</a><br/>-->
   {% empty %}
     This article does not occur in any set
   {% endfor %}
@@ -78,3 +96,9 @@
   </tr>
 
 </table>
+</div>
+
+
+</div>
+
+{% endblock %}

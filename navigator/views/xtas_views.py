@@ -121,7 +121,7 @@ class XTasSentenceView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin,
 def apply_rules(tree, rulesetid):
     ruleset = RuleSet.objects.get(pk=rulesetid)
     
-    tree.apply_lexicon(ruleset.lexicon_codebook, ruleset.lexicon_language)
+    tree.apply_lexicon(ruleset)
     yield "Enriched", tree.visualise().getHTMLObject()
     grey_rel = lambda triple : ({'color':'grey'} if 'rel_' in triple.predicate else {})
         

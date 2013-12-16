@@ -95,21 +95,29 @@ class SyntaxTree(object):
         """Apply the given amcat.models.rule.Rule"""
         self.soh.update(rule.where, rule.insert, rule.remove)
 
+    def get_tokens(self):
+        tokens = defaultdict(dict) # id : {attrs}
+        for s,p,o in self.soh.get_triples(parse=True):
+            if p == NS_AMCAT["lemma"]:
+                tokens[s]["lemma"] = o
+        return tokens
+        
     def apply_lexicon(self, ruleset):
         lexicon = ruleset.lexicon
-        for token in self.tokens:
+        lexicon = {"say" : ["test"]}
+        for token_id, attrs in self.get_tokens().iteritems():
             for lemma, lexclasses in lexicon.iteritems():
-                if lexical_match(lemma, token):
-                    self.apply_lexical_entry(token, lexclasses)
+                if lexical_match(lemma, attrs):
+                    self.apply_lexical_entry(token_id, lexclasses)
                     
-    def apply_lexical_entry(self, token, lexclasses):
-        uri = _token_uri(token).replace(AMCAT, ":")
+    def apply_lexical_entry(self, token_id, lexclasses):
+        uri = str(token_id).replace(AMCAT, ":")
         insert = "\n;   ".join(':lexclass "{lexclass}"'.format(**locals()) for lexclass in lexclasses)
         self.soh.update(insert='{uri} {insert}'.format(**locals()))
 
                     
-def lexical_match(lemma, token):
-    l = token.word.lemma.lemma
+def lexical_match(lemma, attrs):
+    l = attrs['lemma']
     if l == lemma: return True
     if lemma.endswith("*") and l.startswith(lemma[:-1]): return True
                     
@@ -157,6 +165,7 @@ def _naf_to_rdf(naf_article, sentence_id):
             uri = NS_AMCAT["frame_{i}_{fname}".format(fname=f["name"], **locals())]
             yield uri, NS_AMCAT["position"], Literal(1000+i)
             yield uri, NS_AMCAT["label"], Literal(f["name"])
+            yield uri, NS_AMCAT["frame"], Literal(f["name"])
 
             
             for term in f["target"]:

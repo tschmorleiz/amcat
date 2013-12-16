@@ -104,7 +104,6 @@ class SyntaxTree(object):
         
     def apply_lexicon(self, ruleset):
         lexicon = ruleset.lexicon
-        lexicon = {"say" : ["test"]}
         for token_id, attrs in self.get_tokens().iteritems():
             for lemma, lexclasses in lexicon.iteritems():
                 if lexical_match(lemma, attrs):

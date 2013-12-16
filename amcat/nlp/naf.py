@@ -226,7 +226,7 @@ class Sentence(object):
 
 from amcat.tools import amcattest
 
-class TestNAF(amcattest.PolicyTestCase):
+class TestNAF(amcattest.AmCATTestCase):
     def test_wordform(self):
         w = WordForm(1,2,3,"test")
         self.assertEqual(w.word, "test")

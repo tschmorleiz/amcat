@@ -208,7 +208,7 @@ def match_group(children, group):
 
 from amcat.tools import amcattest
 
-class TestFrameNet(amcattest.PolicyTestCase):
+class TestFrameNet(amcattest.AmCATTestCase):
     def test_get_frame(self):
         f = FrameNet().get_frame("finish competition")
         self.assertRaises(ValueError, FrameNet().get_frame, "bla")

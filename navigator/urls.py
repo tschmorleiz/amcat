@@ -153,14 +153,6 @@ urlpatterns = patterns(
 
     url(r'^semanticroles$', 'navigator.views.semanticroles.index', name='semanticroles'),
     url(r'^semanticroles/(?P<id>[0-9]+)$', 'navigator.views.semanticroles.sentence', name='semanticroles-sentence'),
-
-    #xtas results
-    url(r'^project/(?P<projectid>[0-9]+)/article/(?P<article_id>[0-9]+)/parse/(?P<methodlist>[\w,;+]+)/$',
-            XTasView.as_view(), name="xtas"),
-    url(r'^project/(?P<projectid>[0-9]+)/article/(?P<article_id>[0-9]+)/parse/(?P<methodlist>[\w,;+]+)/'
-        'sentences/(?P<sentence_id>[0-9]+)$',
-            XTasSentenceView.as_view(), name="xtas-sentence"),
-    
 ) 
 
 from navigator.views.articleset_views import *
@@ -169,7 +161,7 @@ from navigator.views.query import *
 from navigator.views.project_views import *
 
 
-for view in [ArticleSetListView, ArticleSetDetailsView, ArticleSetArticleDetailsView, QueryView, SampleSetView, EditSetView]:
+for view in [ArticleSetListView, ArticleSetDetailsView, ArticleSetArticleDetailsView, QueryView, SampleSetView, EditSetView, XTasView, XTasSentenceView]:
     for pattern in view.get_url_patterns():
         urlpatterns += patterns('',
                                 url(pattern, view.as_view(), name=view.get_view_name())

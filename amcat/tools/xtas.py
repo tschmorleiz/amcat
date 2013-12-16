@@ -135,7 +135,7 @@ def process_document(article, *methods, **options):
 from amcat.tools import amcattest
 import collections
 
-class TestXtas(amcattest.PolicyTestCase):
+class TestXtas(amcattest.AmCATTestCase):
 
     #TODO: not very meaningful unit tests since it is hard to test async, but see
     #      http://docs.celeryproject.org/en/latest/django/unit-testing.html

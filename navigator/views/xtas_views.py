@@ -28,6 +28,8 @@ from amcat.tools import xtas
 from amcat.tools.table import table3, tableoutput
 from amcat.nlp import naf, syntaxtree
 from amcat.tools.pysoh.pysoh import SOHServer
+from navigator.views.projectview import ProjectViewMixin, HierarchicalViewMixin, BreadCrumbMixin, ProjectScriptView
+from navigator.views.article_views import ArticleSetArticleDetailsView
 
 def get_result(article, methodlist):
     methods = []
@@ -40,25 +42,34 @@ def get_result(article, methodlist):
     r = xtas.process_document_sync(article, *methods, force_resend=True)
     return r
     
-
-class XTasView(ProjectViewMixin, TemplateView):
+class XTasView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, TemplateView):
+    parent = ArticleSetArticleDetailsView
+    model = Article
+    context_categorie = 'Articles'
+    url_fragment="process/(?P<methodlist>[a-z;+_]+)"
     template_name = "navigator/xtas.html"
+    view_name="xtas"
     
-    def get_context_data(self,projectid, article_id, methodlist, **kwargs):
+    def get_context_data(self, project_id, articleset_id, article_id, methodlist, **kwargs):
         ctx = super(XTasView, self).get_context_data(**kwargs)
-        a = Article.objects.get(pk=int(article_id))
-        na = naf.NAF_Article.from_json(get_result(a, methodlist))
+        article = Article.objects.get(pk=int(article_id))
 
+        na = naf.NAF_Article.from_json(get_result(article, methodlist))
+            
         sentences = []
         for sid in na.sentence_ids:
             words = " ".join(w.word for w in na.words if w.sentence_id == sid)
-            url = reverse('xtas-sentence', args=(projectid, article_id, methodlist, sid))
+            url = reverse('xtas-sentence', args=(project_id, articleset_id, article_id, methodlist, sid))
             sentences.append((sid, url, words))
 
         
         ctx.update(**locals())
         return ctx
 
+    @classmethod
+    def _get_breadcrumb_name(cls, kwargs):
+        return "{methodlist}".format(**kwargs)
+        
 class FrameColumn(table3.ObjectColumn):
     def __init__(self, frame, prefix="Frame: "):
         super(FrameColumn, self).__init__(label = prefix + frame["name"])
@@ -73,9 +84,18 @@ class FrameColumn(table3.ObjectColumn):
             func += self.funcs[wid]
         return ",".join(func)
         
-class XTasSentenceView(ProjectViewMixin, TemplateView):
+class XTasSentenceView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, TemplateView):
+    model = Article
+    context_categorie = 'Articles'
+    parent = XTasView
     template_name = "navigator/xtas_sentence.html"
+    url_fragment = "sentences/(?P<sentence_id>[0-9]+)"
+    view_name="xtas-sentence"
 
+    @classmethod
+    def _get_breadcrumb_name(cls, kwargs):
+        return "Sentence {sentence_id}".format(**kwargs)
+    
     def get_context_data(self, article_id, methodlist, sentence_id, **kwargs):
         ctx = super(XTasSentenceView, self).get_context_data(**kwargs)
         a = Article.objects.get(pk=int(article_id))

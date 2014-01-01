@@ -1,4 +1,3 @@
-#!/usr/bin/python
 ###########################################################################
 #          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
 #                                                                         #
@@ -18,36 +17,30 @@
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-"""
-Script run a scraper from the DB
-"""
+from navigator.views.projectview import ProjectViewMixin, HierarchicalViewMixin, BreadCrumbMixin, ProjectScriptView
+from django.views.generic.list import ListView
+from django.views.generic.detail import DetailView
+from api.rest.datatable import Datatable
+from api.rest.resources import CodingJobResource
+from navigator.views.datatableview import DatatableMixin
+from amcat.models import CodingJob
+from navigator.utils.misc import session_pop
 
-import logging; log = logging.getLogger(__name__)
 
-from django import forms
+class CodingJobListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin, DatatableMixin, ListView):
+    model = CodingJob
+    parent = None
+    base_url = "projects/(?P<project_id>[0-9]+)"
+    context_category = 'Coding'
+    resource = CodingJobResource
 
-from amcat.scripts.script import Script
-from amcat.models.scraper import Scraper
-from amcat.scraping.scraper import DBScraperForm
-from amcat.scraping.controller import RobustController
+    def get_context_data(self, **kwargs):
+        ctx = super(CodingJobListView, self).get_context_data(**kwargs)
 
-class RunScraperForm(forms.Form):
-    scraper = forms.ModelChoiceField(queryset=Scraper.objects.all())
-    date = forms.CharField()
+        deleted = session_pop(self.request.session, "deleted_codingjob")
+        added = session_pop(self.request.session, "added_codingjob")
+        if added:
+            added = [CodingJob.objects.get(pk=i) for i in added]
 
-class AddProject(Script):
-    """Add a project to the database."""
-
-    options_form = RunScraperForm
-    output_type = None
-
-    def run(self, _input=None):
-        scraper = self.options["scraper"].get_scraper(date=self.options["date"])
-        controller = RobustController()
-        controller.scrape(scraper)
-
-if __name__ == '__main__':
-    from amcat.tools import amcatlogging
-    amcatlogging.debug_module("amcat.scraping.controller")
-    from amcat.scripts.tools import cli
-    cli.run_cli()
+        ctx.update(**locals())
+        return ctx

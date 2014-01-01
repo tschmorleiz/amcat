@@ -41,17 +41,18 @@ class DailyScript(Script):
     def run(self, _input):
         log.info("Getting scrapers...")
         scrapers = list(self.get_scrapers(date = self.options['date']))
+        print([s.__class__.__name__ for s in scrapers])
         log.info("Starting scraping with {n} scrapers: {classnames}".format(
                 n = len(scrapers),
                 classnames = [s.__class__.__name__ for s in scrapers]))
-        self.scrape(ThreadedController(), scrapers)
+        self.scrape(Controller(), scrapers)
 
     def scrape(self, controller, scrapers, deduplicate = False):
         """Use the controller to scrape the given scrapers."""
-        g = controller.run(scrapers)
-        if g: #is a generator
-            for s, a in g:
-                pass
+        if isinstance(controller, ThreadedController):
+            controller.run(scrapers)
+        else:
+            [a for a in controller.run(scrapers)] #unpack generator
 
     def get_scrapers(self, date=None, days_back=7, **options):
         """
@@ -69,7 +70,9 @@ class DailyScript(Script):
                     try:
                         s_instance = s.get_scraper(date = day, **options)
                     except Exception:
-                        log.exception("get_scraper for scraper {s.pk} ({s.label}) failed".format(**locals()))
+                        import traceback
+                        exc = traceback.format_exc()
+                        print(exc)
                     else:
                         yield s_instance
 
@@ -90,7 +93,7 @@ import sys
 
 def setup_logging():
     loggers = (logging.getLogger("amcat"), logging.getLogger("scrapers"),
-               logging.getLogger(__name__), logging.getLogger("celery"))
+               logging.getLogger("__main__"), logging.getLogger("celery"))
     d = datetime.date.today()
     filename = "/home/amcat/log/daily_{d.year:04d}-{d.month:02d}-{d.day:02d}.txt".format(**locals())
     sys.stderr = open(filename, 'a')

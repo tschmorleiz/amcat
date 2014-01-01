@@ -64,6 +64,7 @@ class ShowArticleList(WebScript):
         
         if self.options['outputTypeAl'] == 'table':
             t = keywordsearch.getDatatable(self.data)
+            t = t.rowlink_reverse("project-article-details", args=[project_id, '{id}'])
             cols = {FORM_FIELDS_TO_ELASTIC.get(f,f) for f in self.data.getlist('columns')}
             for f in list(t.get_fields()):
                 if f not in cols:
@@ -81,9 +82,11 @@ class ShowArticleList(WebScript):
             else:
                 return self.outputJsonHtml(html)
         else:
+            n = keywordsearch.get_total_n(formData)
             articles = list(ArticleListScript(formData).run())
             for a in articles:
                 a.hack_project_id = project_id
             self.output_template = 'api/webscripts/articlelist.html'
-            return self.outputResponse(articles, ArticleListScript.output_type)
+            
+            return self.outputResponse(dict(articlelist=articles, n=n, page=formData.get('start')), ArticleListScript.output_type)
         

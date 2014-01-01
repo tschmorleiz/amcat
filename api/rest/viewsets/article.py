@@ -19,14 +19,13 @@
 import json
 from amcat.models import Medium, Article
 from api.rest.serializer import AmCATModelSerializer
-from api.rest.viewsets.project import ProjectViewSetMixin
-from api.rest.viewsets.articleset import ArticleSetViewSet
-
-from api.rest.resources.amcatresource import DatatablesMixin
-from rest_framework.viewsets import ModelViewSet
-from amcat.models import Article, ArticleSet, ROLE_PROJECT_READER
+from api.rest.viewset import AmCATViewSetMixin
 
 __all__ = ("ArticleSerializer", "ArticleViewSet")
+
+class ArticleViewSetMixin(AmCATViewSetMixin):
+    model_key = "article"
+    model = Article
 
 class ArticleSerializer(AmCATModelSerializer):
 
@@ -96,12 +95,17 @@ class ArticleSerializer(AmCATModelSerializer):
         # make sure that self.many is True for serializing result
         self.many = True
         return self.object
+        
+from api.rest.viewsets.articleset import ArticleSetViewSetMixin
+from rest_framework.viewsets import ModelViewSet
+from api.rest.resources.amcatresource import DatatablesMixin
+from api.rest.viewsets.project import ProjectViewSetMixin
+from amcat.models import Article, ArticleSet, ROLE_PROJECT_READER
+from api.rest.viewsets.project import CannotEditLinkedResource, NotFoundInProject
 
-
-
-class ArticleViewSet(ProjectViewSetMixin, DatatablesMixin, ModelViewSet):
+class ArticleViewSet(ProjectViewSetMixin, ArticleSetViewSetMixin, DatatablesMixin, ModelViewSet):
     model = Article
-    url = ArticleSetViewSet.url + '/(?P<articleset>[0-9]+)/articles'
+    model_key = "article"
     permission_map = {'GET' : ROLE_PROJECT_READER}
     model_serializer_class = ArticleSerializer
     
@@ -128,3 +132,4 @@ class ArticleViewSet(ProjectViewSetMixin, DatatablesMixin, ModelViewSet):
     def filter_queryset(self, queryset):
         queryset = super(ArticleViewSet, self).filter_queryset(queryset)
         return queryset.filter(articlesets_set=self.articleset)
+        return self.object

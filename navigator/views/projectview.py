@@ -38,10 +38,10 @@ class BreadCrumbMixin(object):
         return context
 
     def get_breadcrumbs(self):
-        bc = self._get_breadcrumbs(self.kwargs)
+        bc = self._get_breadcrumbs(self.kwargs, self)
         return bc
         
-    def _get_breadcrumbs(cls, kwargs):
+    def _get_breadcrumbs(cls, kwargs, view):
         return []
         
 class ProjectViewMixin(object):
@@ -86,7 +86,7 @@ class ProjectViewMixin(object):
 
 
     def get_breadcrumbs(self):
-        bc = self._get_breadcrumbs(self.kwargs)
+        bc = self._get_breadcrumbs(self.kwargs, self)
         bc.insert(0, ("Projects", reverse("projects")))
         bc.insert(1, ("{self.project.id} : {self.project}".format(**locals()),
                       reverse("project", args=(self.project.id, ))))
@@ -163,6 +163,7 @@ class HierarchicalViewMixin(object):
 
     @classmethod
     def _get_breadcrumb_name(cls, kwargs):
+
         """Return the name of this 'level' in the breadcrumb trail"""
         if hasattr(cls, 'url_fragment'):
             return cls.url_fragment.title()

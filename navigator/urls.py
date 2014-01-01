@@ -96,7 +96,6 @@ urlpatterns = patterns(
     # Projects (+managers)
     url(r'^project/add$', 'navigator.views.project.add', name='project-add'),
 
-    url(r'^project/(?P<id>[0-9]+)/codingjobs$', 'navigator.views.project.codingjobs', name='project-codingjobs'),
     url(r'^project/(?P<id>[0-9]+)/schemas$', 'navigator.views.project.schemas', name='project-schemas'),
     
     url(r'^project/(?P<id>[0-9]+)/edit$', 'navigator.views.project.edit', name='project-edit'),
@@ -112,6 +111,7 @@ urlpatterns = patterns(
     url(r'^project/(?P<projectid>[0-9]+)/codebook/(?P<id>[-0-9]+)/delete$', 'navigator.views.project.codebook_delete', name="project-delete-codebook"), 
     url(r'^project/(?P<project>[0-9]+)/codebook/(?P<codebook>[-0-9]+)/save_changesets$', 'navigator.views.project.save_changesets'),
     url(r'^project/(?P<projectid>[0-9]+)/codebook/import$', ImportCodebook.as_view(), name='project-import-codebook'),
+    url(r'^project/(?P<projectid>[0-9]+)/codebook/(?P<codebookid>[-0-9]+)/update$', ImportCodebook.as_view(), name='project-import-codebook'),
     url(r'^project/(?P<projectid>[0-9]+)/codebook/(?P<codebookid>[-0-9]+)/export$', ExportCodebook.as_view(), name='project-export-codebook'),
     url(r'^project/(?P<project>[0-9]+)/schema/(?P<schema>[-0-9]+)$', 'navigator.views.project.schema', name='project-schema'),
     url(r'^project/(?P<project>[0-9]+)/schema/(?P<schema>[-0-9]+)/delete$', 'navigator.views.project.delete_schema', name='project-delete-schema'),
@@ -159,12 +159,15 @@ from navigator.views.query import *
 from navigator.views.project_views import *
 from navigator.views.codebook_views import *
 from navigator.views.user_views import *
+from navigator.views.codingjob_views import *
 
-for view in [ArticleSetListView, ArticleSetDetailsView, ArticleSetArticleDetailsView,
+for view in [ArticleSetListView, ArticleSetDetailsView,
+             ArticleSetArticleDetailsView, ProjectArticleDetailsView,
              QueryView, SampleSetView, EditSetView,
              XTasView, XTasSentenceView,
-             CodebookListView, CodebookDetailsView, UserListView,
-         ]:
+             CodebookListView, CodebookDetailsView,
+             CodingJobListView,
+             UserListView]:
     for pattern in view.get_url_patterns():
         urlpatterns += patterns('',
                                 url(pattern, view.as_view(), name=view.get_view_name())

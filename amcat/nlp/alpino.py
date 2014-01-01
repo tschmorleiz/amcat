@@ -1,98 +1,81 @@
-###########################################################################
-#          (C) Vrije Universiteit, Amsterdam (the Netherlands)            #
-#                                                                         #
-# This file is part of AmCAT - The Amsterdam Content Analysis Toolkit     #
-#                                                                         #
-# AmCAT is free software: you can redistribute it and/or modify it under  #
-# the terms of the GNU Affero General Public License as published by the  #
-# Free Software Foundation, either version 3 of the License, or (at your  #
-# option) any later version.                                              #
-#                                                                         #
-# AmCAT is distributed in the hope that it will be useful, but WITHOUT    #
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or   #
-# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public     #
-# License for more details.                                               #
-#                                                                         #
-# You should have received a copy of the GNU Affero General Public        #
-# License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
-###########################################################################
+import threading, subprocess, logging
+from amcat.nlp import naf
+log = logging.getLogger(__name__)
 
-"""
-Preprocess using Alpino
-See http://www.let.rug.nl/vannoord/alp/Alpino/
-"""
+ALPINO_HOME="/home/wva/Alpino"
+PIPE = "{alpino_home}/Tokenization/tok | {alpino_home}/bin/Alpino end_hook=dependencies -parse"
 
-CMD = "Alpino-amcat"
-from amcat.tools import toolkit
-from amcat.models.token import TokenValues, TripleValues
-from amcat.models import AnalysisSentence
+class AlpinoReader(threading.Thread):
+    def __init__(self, stream, article):
+        threading.Thread.__init__(self)
+        self.stream = stream
+        self.article = article
+        self.current_sentence = None
+        self.exception = None
+        
+    def run(self):
+        log.info("Listening for Alpino output..")
+        line = None
+        try:
+            while True:
+                line = self.stream.readline()
+                if not line: break
 
-from amcat.nlp.analysisscript import VUNLPParser
-from amcat.nlp import sbd, wordcreator
+                line = line.strip().split("|")
+                sid = int(line[-1])
+                if self.current_sentence is None or sid != self.current_sentence.sentence_id:
+                    self.current_sentence = self.article.create_sentence(sentence_id = sid)
+                    self.current_sentence.terms_by_offset = {} 
 
-class AlpinoParser(VUNLPParser):
-    parse_command = CMD
+                interpret_line(self.current_sentence, line)
+        except Exception, e:
+            log.exception("Error on parsing line {line!r}".format(**locals()))
+            self.exception = e
 
-    def store_parse(self, analysed_article, data):
-        analysis_sentences = {sentence.id : AnalysisSentence.objects.create(analysed_article=analysed_article, sentence=sentence).id
-                              for sentence in sbd.get_or_create_sentences(analysed_article.article)}
-        result = interpret_output(analysis_sentences, data)
-        wordcreator.store_analysis(analysed_article, *result)
-
-    def _sanitize(self, input):
-        input = toolkit.stripAccents(input, latin1=True)
-        input = input.replace("\n", " ")# alpino will stop parsing on line break
-        input = input.replace("|", "-") # | is field separator and we don't care anyway
-        input = input.encode('latin-1', 'ignore').decode('latin-1')
-        return input
-
-    def _get_text_to_submit(self, article):
-        input = u"\n".join(u"{0}|{1}".format(sent.id, self._sanitize(sent.sentence))
-                           for sent in self._get_sentences(article))
-        if not input.endswith("\n"): input += "\n"
-        return input
-
-def interpret_output(sentences, data):
-    tokens, triples = set(), []
-    for line in data.split("\n"):
-        if not line.strip(): continue
-        parent, child, triple = interpret_line(sentences, line)
-        tokens |= {parent, child}
-        triples += [triple]
-    return tokens, triples    
+def parse(text):
+    cmd = PIPE.format(alpino_home=ALPINO_HOME)
+    article = naf.NAF_Article()
+    p = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    a = AlpinoReader(p.stdout, article)
+    a.start()
+    p.stdin.write(text)
+    p.stdin.close()
+    a.join()
+    if a.exception:
+        raise a.exception
+        
+    return article
     
-def interpret_token(sid, lemma, word, begin, _end, dummypos, dummypos2, pos):
-    if "(" in pos:
-        major, minor = pos.split("(", 1)
-        minor = minor[:-1]
-    else:
-        major, minor = pos, None
-    if "_" in major:
-        m2 = major.split("_")[-1]
-    else:
-        m2 = major
-    cat = POSMAP.get(m2)
-    if not cat:
-        raise Exception("Unknown POS: %r (%s/%s/%s/%s)" % (m2, major, begin, word, pos))
-    return TokenValues(sid, int(begin), word, lemma, cat, major, minor, None)
-
-
-def interpret_line(sentences, line):
-    data = line.split("|")
-    if len(data) != 16:
-        raise ValueError("Cannot interpret line %r, has %i parts (needed 16)" % (line, len(data)))
-    sid = sentences[int(data[-1])]
-    parent = interpret_token(sid, *data[:7])
-    child = interpret_token(sid, *data[8:15])
-    func, rel = data[7].split("/")
-
-    triple = TripleValues(sid, child.position, parent.position, rel.strip())
+def interpret_line(sentence, line):
+    if len(line) != 16:
+        raise ValueError("Cannot interpret line %r, has %i parts (needed 16)" % (line, len(line)))
+    sid = int(line[-1])
+    parent = interpret_token(sentence, *line[:7])
+    child = interpret_token(sentence, *line[8:15])
+    func, rel = line[7].split("/")
+    sentence.add_dependency(child, parent, rel)
     
-    return parent, child, triple
+def interpret_token(sentence, lemma, word, begin, _end, dummypos, dummypos2, pos):
+    begin = int(begin)
+    term = sentence.terms_by_offset.get(begin)
+    if not term:
+        if "(" in pos:
+            major, minor = pos.split("(", 1)
+            minor = minor[:-1]
+        else:
+            major, minor = pos, None
+        if "_" in major:
+            m2 = major.split("_")[-1]
+        else:
+            m2 = major
+        cat = POSMAP.get(m2)
+        if not cat:
+            raise Exception("Unknown POS: %r (%s/%s/%s/%s)" % (m2, major, begin, word, pos))
+            
+        term = sentence.add_word(begin, word, lemma, pos=cat, term_extra={'major' : major, 'minor' : minor})
+        sentence.terms_by_offset[begin] = term
+    return term
 
-###########################################################################
-#                        U G L Y   C O N S T A N T                        #
-###########################################################################
 
 POSMAP = {"pronoun" : 'O',
           "verb" : 'V',
@@ -130,3 +113,9 @@ POSMAP = {"pronoun" : 'O',
           'sbar' : '?',
           '--' : '?',
           }
+
+
+if __name__ == '__main__':
+    import sys    
+    a = parse(sys.stdin.read())
+    print a.to_json(indent=2)

@@ -3,46 +3,34 @@ from amcat.nlp import naf
 log = logging.getLogger(__name__)
 
 ALPINO_HOME="/home/wva/Alpino"
-PIPE = "{alpino_home}/Tokenization/tok | {alpino_home}/bin/Alpino end_hook=dependencies -parse"
-
-class AlpinoReader(threading.Thread):
-    def __init__(self, stream, article):
-        threading.Thread.__init__(self)
-        self.stream = stream
-        self.article = article
-        self.current_sentence = None
-        self.exception = None
-        
-    def run(self):
-        log.info("Listening for Alpino output..")
-        line = None
-        try:
-            while True:
-                line = self.stream.readline()
-                if not line: break
-
-                line = line.strip().split("|")
-                sid = int(line[-1])
-                if self.current_sentence is None or sid != self.current_sentence.sentence_id:
-                    self.current_sentence = self.article.create_sentence(sentence_id = sid)
-                    self.current_sentence.terms_by_offset = {} 
-
-                interpret_line(self.current_sentence, line)
-        except Exception, e:
-            log.exception("Error on parsing line {line!r}".format(**locals()))
-            self.exception = e
+ALPINO = ["bin/Alpino","end_hook=dependencies","-parse"]
+TOK = ["Tokenization/tok"]
 
 def parse(text):
-    cmd = PIPE.format(alpino_home=ALPINO_HOME)
+    if isinstance(text, unicode): text=text.encode("utf-8")
+
+    p = subprocess.Popen(TOK, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=ALPINO_HOME)
+    tokens, err = p.communicate(text)
+
+    p = subprocess.Popen(ALPINO, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                         cwd=ALPINO_HOME, env={'ALPINO_HOME': ALPINO_HOME})
+
+    parse, err = p.communicate(tokens)
+    return interpret_parse(parse)
+    
+
+def interpret_parse(parse):
     article = naf.NAF_Article()
-    p = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    a = AlpinoReader(p.stdout, article)
-    a.start()
-    p.stdin.write(text)
-    p.stdin.close()
-    a.join()
-    if a.exception:
-        raise a.exception
+    current_sentence = None
+
+    for line in parse.split("\n"):
+        if not line.strip(): continue
+        line = line.strip().split("|")
+        sid = int(line[-1])
+        if current_sentence is None or sid != current_sentence.sentence_id:
+            current_sentence = article.create_sentence(sentence_id = sid)
+            current_sentence.terms_by_offset = {} 
+        interpret_line(current_sentence, line)
         
     return article
     
@@ -53,7 +41,7 @@ def interpret_line(sentence, line):
     parent = interpret_token(sentence, *line[:7])
     child = interpret_token(sentence, *line[8:15])
     func, rel = line[7].split("/")
-    sentence.add_dependency(child, parent, rel)
+    sentence.add_dependency(child.term_id, parent.term_id, rel)
     
 def interpret_token(sentence, lemma, word, begin, _end, dummypos, dummypos2, pos):
     begin = int(begin)

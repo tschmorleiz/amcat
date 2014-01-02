@@ -137,8 +137,8 @@ class NAF_Article(object):
     def sentence_ids(self):
         return sorted({wf.sentence_id for wf in self.words})
         
-    def create_sentence(self):
-        sentence_id = len(self.sentences)+1
+    def create_sentence(self, sentence_id = None):
+        if sentence_id is None: sentence_id = len(self.sentences)+1
         result = Sentence(self, sentence_id)
         self.sentences.append(result)
         return result
@@ -158,14 +158,15 @@ class NAF_Article(object):
         [dep.generate_xml(parent=deps) for dep in self.dependencies]
         return root
 
+    def to_dict(self):
+        return {k : getattr(self, k)
+                for k in ["words", "terms", "entities", "dependencies", "coreferences", "trees", "frames", "fixed_frames"]}
 
     def to_json(self, **kargs):
         """
         Represent this article as a dict so it can be easily converted to json
         """
-        d = {k : getattr(self, k) for k in ["words", "terms", "entities", "dependencies", "coreferences", "trees", "frames", "fixed_frames"]}
-        
-        return json.dumps(d, **kargs)
+        return json.dumps(self.to_dict(), **kargs)
 
     @classmethod
     def from_json(cls, json_string):
@@ -200,15 +201,15 @@ class Sentence(object):
         self.terms = [] # to offer index-based retrieval
         self.tree = None
         
-    def add_word(self, offset, word, lemma, pos, entity_type=None):
+    def add_word(self, offset, word, lemma, pos, entity_type=None, term_extra=None):
         """
         Add a new word and term to this sentence (and hence article)
         Note, this call is NOT thread safe
         """
         word_id = len(self.article.words) + 1
         term_id = len(self.article.terms) + 1
-        word = WordForm(word_id, self.sentence_id, offset, word)
-        term = Term(term_id, [word_id], lemma, pos)
+        word = WordForm(word_id, self.sentence_id, int(offset), word)
+        term = Term(term_id, [word_id], lemma, pos, extra=term_extra)
         self.article.words.append(word)
         self.article.terms.append(term)
         self.terms.append(term)
@@ -216,6 +217,8 @@ class Sentence(object):
             entity_id = len(self.article.entities) + 1
             entity = Entity(entity_id, term_id, entity_type)
             self.article.entities.append(entity)
+        return term
+        
     def add_dependency(self, from_term, to_term, rfunc):
         dep = Dependency(from_term, to_term, rfunc)
         self.article.dependencies.append(dep)

@@ -6,17 +6,29 @@ ALPINO_HOME="/home/wva/Alpino"
 ALPINO = ["bin/Alpino","end_hook=dependencies","-parse"]
 TOK = ["Tokenization/tok"]
 
-def parse(text):
+def tokenize(text):
     if isinstance(text, unicode): text=text.encode("utf-8")
 
     p = subprocess.Popen(TOK, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, cwd=ALPINO_HOME)
     tokens, err = p.communicate(text)
+    tokens = tokens.replace("|", "") # alpino interprets 'sid | line' as sid indicator
+    return tokens
 
+def parse(tokens):
     p = subprocess.Popen(ALPINO, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                          cwd=ALPINO_HOME, env={'ALPINO_HOME': ALPINO_HOME})
-
     parse, err = p.communicate(tokens)
-    return interpret_parse(parse)
+    try:
+        return interpret_parse(parse)
+    except:
+        import tempfile
+        h, fnt = tempfile.mkstemp()
+        open(fnt, 'w').write(tokens)
+        h, fnp = tempfile.mkstemp()
+        open(fnp, 'w').write(parse)
+
+        log.exception("Error on interpreting parse! Parse written to {fnp}, tokens to {fnt}".format(**locals()))
+        raise
     
 
 def interpret_parse(parse):
@@ -47,6 +59,7 @@ def interpret_token(sentence, lemma, word, begin, _end, dummypos, dummypos2, pos
     begin = int(begin)
     term = sentence.terms_by_offset.get(begin)
     if not term:
+        if pos == "denk_ik": pos = "verb"
         if "(" in pos:
             major, minor = pos.split("(", 1)
             minor = minor[:-1]
@@ -104,6 +117,18 @@ POSMAP = {"pronoun" : 'O',
 
 
 if __name__ == '__main__':
-    import sys    
-    a = parse(sys.stdin.read())
-    print a.to_json(indent=2)
+    import sys
+    a = naf.NAF_Article()
+    
+    line="waar|Waar|0|1|adv|adv(er_loc,ywh)|er_wh_loc_adverb|nucl/tag|denk|denk|5|6|verb|verb(denk_ik)|denk_ik|106".split("|")
+
+    for line in sys.stdin:
+        print line
+        if line.startswith("#"): continue
+        s = a.create_sentence()
+        s.terms_by_offset={}
+        interpret_line(s, line.split("|"))
+        
+    
+    #a = parse(sys.stdin.read())
+    #print a.to_json(indent=2)

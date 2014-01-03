@@ -126,7 +126,13 @@ class NAF_Article(object):
         self.frames = []
         self.fixed_frames = []
 
-
+    def get_word(self, word_id):
+        try:
+            d = self.__word_dict
+        except AttributeError:
+            d = self.__word_dict = {w.word_id : w for w in self.words}
+        return d[word_id]
+        
     def term(self, term_id):
         for term in self.terms:
             if term.term_id == term_id:
@@ -167,6 +173,24 @@ class NAF_Article(object):
         Represent this article as a dict so it can be easily converted to json
         """
         return json.dumps(self.to_dict(), **kargs)
+
+    @classmethod
+    def from_dict(cls, d):
+        """
+        Reconstruct a NAF Article from a dict
+        """
+        result = cls()
+        for attr, target_class in [("words", WordForm),
+                                   ("terms", Term),
+                                   ("entities", Entity),
+                                   ("dependencies", Dependency),
+                                   ]:
+            if attr not in d: continue
+            objects = [target_class(**data) for data in d[attr]]
+            setattr(result, attr, objects)
+        return result
+            
+        
 
     @classmethod
     def from_json(cls, json_string):

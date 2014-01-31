@@ -23,7 +23,6 @@ Syntax tree represented in RDF
 import re
 from collections import namedtuple, defaultdict
 from itertools import chain
-from amcat.models import AnalysisSentence, Label
 import logging
 log = logging.getLogger(__name__)
 
@@ -45,7 +44,12 @@ class Node(object):
     
 class SyntaxTree(object):
 
-    def __init__(self, soh, sentence_or_tokens=None):
+    def __init__(self, soh, rdf_triples=None):
+        """
+        @param soh: a SOH server (see amcat.tools.pysoh)
+        @param rdf_triples: optional set of triples to load (see load_sentence)
+        """
+        
         self.soh = soh
         self.soh.prefixes[""] = AMCAT
         if sentence_or_tokens:
@@ -53,7 +57,7 @@ class SyntaxTree(object):
 
     def load_sentence(self, rdf_triples):
         """
-        Load the triples for the given analysis sentence into the triple store
+        Load the given triples into the triple store
         """
         g = ConjunctiveGraph()
         g.bind("amcat", AMCAT)
@@ -87,13 +91,17 @@ class SyntaxTree(object):
         return visualise_triples(list(self.get_triples()), **kargs)
 
     def apply_ruleset(self, ruleset):
+        """
+        Apply a set of rules to this tree. Rules should have .where, .insert, and/or .remove
+        SPARQL 1.1 UPDATE clauses
+        """
         self.apply_lexicon(ruleset)
         for rule in ruleset.rules.all():
-            self.apply_rule(rule)
+            self.apply_rule(rule.where, rule.insert, rule.remove)
     
-    def apply_rule(self, rule):
-        """Apply the given amcat.models.rule.Rule"""
-        self.soh.update(rule.where, rule.insert, rule.remove)
+    def apply_rule(self, where, insert=None, remove=None):
+        """Apply the given rule, consisting of a where and insert and/or remove clause"""
+        self.soh.update(where, insert, remove)
 
     def get_tokens(self):
         tokens = defaultdict(dict) # id : {attrs}

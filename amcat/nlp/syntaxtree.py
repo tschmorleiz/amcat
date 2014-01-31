@@ -52,8 +52,8 @@ class SyntaxTree(object):
         
         self.soh = soh
         self.soh.prefixes[""] = AMCAT
-        if sentence_or_tokens:
-            self.load_sentence(sentence_or_tokens)
+        if rdf_triples:
+            self.load_sentence(rdf_triples)
 
     def load_sentence(self, rdf_triples):
         """
@@ -110,8 +110,7 @@ class SyntaxTree(object):
                 tokens[s]["lemma"] = o
         return tokens
         
-    def apply_lexicon(self, ruleset):
-        lexicon = ruleset.lexicon
+    def apply_lexicon(self, lexicon):
         for token_id, attrs in self.get_tokens().iteritems():
             for lemma, lexclasses in lexicon.iteritems():
                 if lexical_match(lemma, attrs):
@@ -165,7 +164,7 @@ def _naf_to_rdf(naf_article, sentence_id):
             child = term_uris[dep.from_term]
             parent = term_uris[dep.to_term]            
             for pred in _rel_uri(dep), NS_AMCAT["rel"]:
-                yield parent, pred, child
+                yield child, pred, parent
 
     for i, f in enumerate(naf_article.fixed_frames):
         if f["target"][0] in words:

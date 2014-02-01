@@ -19,7 +19,7 @@ class SOHServer(object):
         r = self.session.get(url, headers=dict(Accept=format))
         if r.status_code != 200:
             raise Exception(r.text)
-        result = r.text
+        result = r.text.encode('utf-8')
         if parse:
             g = rdflib.ConjunctiveGraph()
             result = g.parse(StringIO(result), format="n3")

@@ -20,10 +20,10 @@
 """
 Syntax tree represented in RDF
 """
+from amcat.tools.toolkit import stripAccents
 import re
 from collections import namedtuple, defaultdict
 from itertools import chain
-from amcat.models import AnalysisSentence, Label
 import logging
 log = logging.getLogger(__name__)
 
@@ -45,15 +45,20 @@ class Node(object):
     
 class SyntaxTree(object):
 
-    def __init__(self, soh, sentence_or_tokens=None):
+    def __init__(self, soh, rdf_triples=None):
+        """
+        @param soh: a SOH server (see amcat.tools.pysoh)
+        @param rdf_triples: optional set of triples to load (see load_sentence)
+        """
+        
         self.soh = soh
         self.soh.prefixes[""] = AMCAT
-        if sentence_or_tokens:
-            self.load_sentence(sentence_or_tokens)
+        if rdf_triples:
+            self.load_sentence(rdf_triples)
 
     def load_sentence(self, rdf_triples):
         """
-        Load the triples for the given analysis sentence into the triple store
+        Load the given triples into the triple store
         """
         g = ConjunctiveGraph()
         g.bind("amcat", AMCAT)
@@ -87,13 +92,17 @@ class SyntaxTree(object):
         return visualise_triples(list(self.get_triples()), **kargs)
 
     def apply_ruleset(self, ruleset):
+        """
+        Apply a set of rules to this tree. Rules should have .where, .insert, and/or .remove
+        SPARQL 1.1 UPDATE clauses
+        """
         self.apply_lexicon(ruleset)
         for rule in ruleset.rules.all():
-            self.apply_rule(rule)
+            self.apply_rule(rule.where, rule.insert, rule.remove)
     
-    def apply_rule(self, rule):
-        """Apply the given amcat.models.rule.Rule"""
-        self.soh.update(rule.where, rule.insert, rule.remove)
+    def apply_rule(self, where, insert=None, remove=None):
+        """Apply the given rule, consisting of a where and insert and/or remove clause"""
+        self.soh.update(where, insert, remove)
 
     def get_tokens(self):
         tokens = defaultdict(dict) # id : {attrs}
@@ -102,8 +111,7 @@ class SyntaxTree(object):
                 tokens[s]["lemma"] = o
         return tokens
         
-    def apply_lexicon(self, ruleset):
-        lexicon = ruleset.lexicon
+    def apply_lexicon(self, lexicon):
         for token_id, attrs in self.get_tokens().iteritems():
             for lemma, lexclasses in lexicon.iteritems():
                 if lexical_match(lemma, attrs):
@@ -132,6 +140,10 @@ def _term_uri(term):
 def _rel_uri(rel):
     return NS_AMCAT["rel_{rel.rfunc}".format(**locals())]
 
+def clean(s):
+    s = stripAccents(s)
+    return s.encode("ascii", "replace")
+    
 def _naf_to_rdf(naf_article, sentence_id):
     """
     Get the raw RDF subject, predicate, object triples representing the given analysed sentence
@@ -146,8 +158,8 @@ def _naf_to_rdf(naf_article, sentence_id):
         twords = [words[wid]  for wid in term.word_ids if wid in words]
         if not twords: continue # wrong sentences
         
-        yield uri, NS_AMCAT["label"], Literal(",".join(t.word for t in twords))
-        yield uri, NS_AMCAT["lemma"], Literal(term.lemma)
+        yield uri, NS_AMCAT["label"], Literal(clean(",".join(t.word for t in twords)))
+        yield uri, NS_AMCAT["lemma"], Literal(clean(term.lemma))
         yield uri, NS_AMCAT["pos"], Literal(term.pos)
         yield uri, NS_AMCAT["position"], Literal(str(twords[0].offset))
         term_uris[term.term_id] = uri
@@ -157,7 +169,7 @@ def _naf_to_rdf(naf_article, sentence_id):
             child = term_uris[dep.from_term]
             parent = term_uris[dep.to_term]            
             for pred in _rel_uri(dep), NS_AMCAT["rel"]:
-                yield parent, pred, child
+                yield child, pred, parent
 
     for i, f in enumerate(naf_article.fixed_frames):
         if f["target"][0] in words:

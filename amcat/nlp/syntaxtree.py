@@ -20,6 +20,7 @@
 """
 Syntax tree represented in RDF
 """
+from amcat.tools.toolkit import stripAccents
 import re
 from collections import namedtuple, defaultdict
 from itertools import chain
@@ -139,6 +140,10 @@ def _term_uri(term):
 def _rel_uri(rel):
     return NS_AMCAT["rel_{rel.rfunc}".format(**locals())]
 
+def clean(s):
+    s = stripAccents(s)
+    return s.encode("ascii", "replace")
+    
 def _naf_to_rdf(naf_article, sentence_id):
     """
     Get the raw RDF subject, predicate, object triples representing the given analysed sentence
@@ -153,8 +158,8 @@ def _naf_to_rdf(naf_article, sentence_id):
         twords = [words[wid]  for wid in term.word_ids if wid in words]
         if not twords: continue # wrong sentences
         
-        yield uri, NS_AMCAT["label"], Literal(",".join(t.word for t in twords))
-        yield uri, NS_AMCAT["lemma"], Literal(term.lemma)
+        yield uri, NS_AMCAT["label"], Literal(clean(",".join(t.word for t in twords)))
+        yield uri, NS_AMCAT["lemma"], Literal(clean(term.lemma))
         yield uri, NS_AMCAT["pos"], Literal(term.pos)
         yield uri, NS_AMCAT["position"], Literal(str(twords[0].offset))
         term_uris[term.term_id] = uri

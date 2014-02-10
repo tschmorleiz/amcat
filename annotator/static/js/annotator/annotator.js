@@ -108,6 +108,7 @@ annotator = (function(self){
     self.article_schemafields = [];
 
     self.state = self.get_empty_state();
+    self.prefetched_articles = {};
     self.highlight_labels = null;
     self.codingjob = null;
     self.datatable = null;
@@ -813,6 +814,9 @@ annotator = (function(self){
             // Reset 'unsaved' state
             self.unsaved = false;
 
+            // State changed, prefetched data not valid anymore
+            delete self.prefetched_articles[self.state.coded_article.id];
+
             // Change article status in table
             var td_index = self.article_table_container.find("thead th:contains('status')").index();
             var current_row = self.article_table_container.find("tr.row_selected");
@@ -925,11 +929,53 @@ annotator = (function(self){
 
         var container = (self.codingjob.articleschema === null) ? self.sentence_codings_container : self.article_coding_container;
         container.find("input:visible").first().focus();
+
+        self.prefetch_next_article();
     };
 
     self.highlight = function(){
         console.log("Highlighting ", self.highlight_labels.length ," labels in article..");
         $("div.sentences").easymark("highlight", self.highlight_labels.join(" "));
+    };
+
+    /*
+     * Fetch codings and sentences of next article in the background
+     */
+    self.prefetch_next_article = function(){
+        var next_row = self.datatable.find(".row_selected").next();
+        if (next_row.length === 0) return;
+
+        var coded_article_id = parseInt(next_row.children('td:first').text());
+
+        if (self.prefetched_articles[coded_article_id] !== undefined){
+            // Nothing to do. Already prefetched or prefetch busy.
+            return;
+        }
+
+        // Fill slot indicating we're prefetching but have no results yet.
+        self.prefetched_articles[coded_article_id] = null;
+        $.when.apply(undefined, self.get_article_requests(coded_article_id)).then(self.next_article_prefetched);
+    };
+
+    self.next_article_prefetched = function(coded_article, codings, sentences){
+        self.prefetched_articles[coded_article[0].id] = {
+            coded_article : coded_article,
+            codings : codings,
+            sentences : sentences
+        }
+    };
+
+    /*
+     * Generates (and executes) a list of requests which can be used with $.when
+     */
+    self.get_article_requests = function(coded_article_id){
+        var base_url = self.get_api_url() + "coded_articles/" + coded_article_id + "/";
+
+        return [
+            self.from_api(base_url),
+            self.from_api(base_url + "codings"),
+            self.from_api(base_url + "sentences")
+        ]
     };
 
     /*
@@ -940,19 +986,18 @@ annotator = (function(self){
      * coded_article_fetched is called when requests finished
      */
     self.get_article = function(coded_article_id){
-        var base_url = self.get_api_url() + "coded_articles/" + coded_article_id + "/";
-
         self.state = self.get_empty_state();
         self.sentence_codings_container.find("table tbody").html("");
         self.state.coded_article_id = coded_article_id;
-
-        self.state.requests = [
-            self.from_api(base_url),
-            self.from_api(base_url + "codings"),
-            self.from_api(base_url + "sentences")
-        ];
-
         self.loading_dialog.text("Loading codings..").dialog("open");
+
+        var prefetched = self.prefetched_articles[coded_article_id];
+        if (prefetched !== undefined && prefetched !== null){
+            // Article already fetched
+            return self.coded_article_fetched(prefetched.coded_article, prefetched.codings, prefetched.sentences);
+        }
+
+        self.state.requests = self.get_article_requests(coded_article_id);
         $.when.apply(undefined, self.state.requests).then(self.coded_article_fetched);
     };
 
@@ -1191,8 +1236,8 @@ annotator = (function(self){
         var coded_article_id = parseInt(row.children('td:first').text());
         self.datatable.find(".row_selected").removeClass("row_selected");
         self.datatable.parent().scrollTo(row, {offset: -50});
-        self.get_article(coded_article_id);
         row.addClass("row_selected");
+        self.get_article(coded_article_id);
     };
 
     self.window_scrolled = function(){

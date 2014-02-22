@@ -19,7 +19,8 @@
 ###########################################################################
 
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from django import forms
 
@@ -29,7 +30,9 @@ from amcat.models import ArticleSet
 
 from amcat.tools.amcates import ES
 
+
 class Query(Script):
+
     """
     Perform a keyword query on an articleset.
     """
@@ -38,7 +41,7 @@ class Query(Script):
         articlesets = forms.ModelMultipleChoiceField(queryset=ArticleSet.objects.all())
         query = forms.CharField()
     output_type = Table
-   
+
     def run(self, _input=None):
         sets = self.options['articlesets'].values_list("id", flat=True)
 
@@ -48,9 +51,8 @@ class Query(Script):
         )
 
         return Table(rows=rows, columns=("id", "score"), cellfuc=dict.get)
-   
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     result = cli.run_cli()
     print result.output()
-

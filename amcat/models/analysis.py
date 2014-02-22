@@ -28,7 +28,7 @@ See http://code.google.com/p/amcat/wiki/Preprocessing
 from __future__ import unicode_literals, print_function, absolute_import
 
 from django.db import models, transaction
- 
+
 from amcat.tools.model import AmcatModel
 from amcat.tools.djangotoolkit import receiver
 from amcat.models.article import Article
@@ -43,9 +43,12 @@ from amcat.tools.djangotoolkit import get_or_create
 from django.db.models.signals import post_save, post_delete
 from django.db.models import Q
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
+
 
 class AnalysedArticle(AmcatModel):
+
     """
     The analysed article table keeps track of which articles are (being) preprocessed.
 
@@ -62,7 +65,7 @@ class AnalysedArticle(AmcatModel):
 
     article = models.ForeignKey(Article)
     plugin = models.ForeignKey("amcat.Plugin")
-    
+
     done = models.BooleanField(default=False)
     error = models.BooleanField(default=False)
     info = models.TextField(null=True)
@@ -72,15 +75,16 @@ class AnalysedArticle(AmcatModel):
         app_label = 'amcat'
         unique_together = ('article', 'plugin')
 
-        
+
 class AnalysisSentence(AmcatModel):
+
     """
     Explicity many-to-many sentence - analysisarticle
     """
     id = models.AutoField(primary_key=True)
     analysed_article = models.ForeignKey(AnalysedArticle, related_name="sentences")
     sentence = models.ForeignKey(Sentence, related_name="analyses")
-    
+
     class Meta():
         app_label = 'amcat'
         db_table = "analysis_sentences"
@@ -90,7 +94,7 @@ class AnalysisSentence(AmcatModel):
         tokens = Token.objects.filter(sentence=self).select_related("word", "word__lemma")
         self._tokendict = dict((t.position, t) for t in tokens)
         return self._tokendict
-        
+
     @property
     def tokendict(self):
         try:
@@ -100,10 +104,10 @@ class AnalysisSentence(AmcatModel):
 
     def get_token(self, position):
         return self.tokendict[position]
-        
+
     @property
     def triples(self):
         return list(Triple.objects.filter(parent__sentence=self).select_related("parent", "child", "relation"))
-        
+
     def __int__(self):
         return self.id

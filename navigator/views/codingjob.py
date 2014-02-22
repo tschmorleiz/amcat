@@ -25,10 +25,11 @@ from api.rest.datatable import Datatable
 from navigator.utils.auth import check
 from amcat.models.user import User
 
-CODINGJOB_MENU=None
+CODINGJOB_MENU = None
 from api.rest.resources import CodingJobResource
 
-@check(User, args='coder_id', args_map={'coder_id' : 'id'})
+
+@check(User, args='coder_id', args_map={'coder_id': 'id'})
 def index(request, coder=None):
     """
     Show unfinished jobs
@@ -38,13 +39,13 @@ def index(request, coder=None):
     coder = coder if coder is not None else request.user
 
     jobs = Datatable(CodingJobResource, rowlink='/annotator/codingjob/{id}')
-    jobs = jobs.filter(coder=coder).hide('coder',)#.filter(status='unfinished')
+    jobs = jobs.filter(coder=coder).hide('coder',)  # .filter(status='unfinished')
 
     ctx = locals()
     ctx.update({
-        'menu' : CODINGJOB_MENU,
-        'context' : coder,
-        'selected' : 'unfinished jobs'
+        'menu': CODINGJOB_MENU,
+        'context': coder,
+        'selected': 'unfinished jobs'
     })
 
     return render(request, 'codingjobs.html', locals())

@@ -290,7 +290,7 @@ __docformat__ = "restructuredtext en"
 #       semantic groups of things in the expression but no submatch group
 #       corresponding in the match object.
 #==============================================================================
-__all__ = ["TreeTaggerError","TreeTagger"]
+__all__ = ["TreeTaggerError", "TreeTagger"]
 import os
 import string
 import logging
@@ -366,130 +366,133 @@ DEFAULT_ENCERRORS = "strict"
 #   replipexp: regular expression subtitution string for IP addresses.
 #   repldnsexp: regular expression subtitution string for DNS names.
 # Chars alonemarks:
-#         !?¿;,*¤@°:%|¦/()[]{}<>«»´`¨&~=#±£¥$©®"
+# !?¿;,*¤@°:%|¦/()[]{}<>«»´`¨&~=#±£¥$©®"
 # must have spaces around them to make them tokens.
 # Notes: they may be in pchar or fchar too, to identify punctuation after
 #        a fchar.
 #        \202 is a special ,
 #        \226 \227 are special -
-alonemarks = u"!?¿;,\202*¤@°:%|¦/()[\]{}<>«»´`¨&~=#±\226"+\
+alonemarks = u"!?¿;,\202*¤@°:%|¦/()[\]{}<>«»´`¨&~=#±\226" +\
              u"\227£¥$©®\""
 g_langsupport = {
-    "en": { "binfile-win": "tree-tagger.exe",
-            "binfile-lin": "tree-tagger",
-            "binfile-darwin": "tree-tagger",
-            "tagparfile": "english.par",
-            "abbrevfile": "english-abbreviations",
-            "pchar"     : alonemarks+ur"'",
-            "fchar"     : alonemarks+ur"'",
-            "pclictic"  : ur"",
-            "fclictic"  : ur"'(s|re|ve|d|m|em|ll)|n't",
-            "number"    : ur"""(
+    "en": {"binfile-win": "tree-tagger.exe",
+           "binfile-lin": "tree-tagger",
+           "binfile-darwin": "tree-tagger",
+           "tagparfile": "english.par",
+           "abbrevfile": "english-abbreviations",
+           "pchar": alonemarks + ur"'",
+           "fchar": alonemarks + ur"'",
+           "pclictic": ur"",
+           "fclictic": ur"'(s|re|ve|d|m|em|ll)|n't",
+           "number"    : ur"""(
                             [-+]?[0-9]+(?:\.[0-9]*)?(?:[eE][-+]?[0-9]+)?
                                 |
                             [-+]?\.[0-9]+(?:[eE][-+]?[0-9]+)?
                               )""",
-            "dummysentence": u"This is a dummy sentence to ensure data push .",
-            "replurlexp": ur' replaced-url <repurl text="\1" />',
-            "replemailexp": ur' replaced-email <repemail text="\1" />',
-            "replipexp" : ur' replaced-ip <repip text="\1" />',
-            "repldnsexp" : ur' replaced-dns <repdns text="\1" />'
-          },
-    "fr": { "binfile-win": "tree-tagger.exe",
-            "binfile-lin": "tree-tagger",
-            "binfile-darwin": "tree-tagger",
-            "tagparfile": "french-utf8.par",
-            "abbrevfile": "french-abbreviations-utf8",
-            "pchar"     : alonemarks+ur"'",
-            "fchar"     : alonemarks+ur"'",
-            "pclictic"  : ur"[dcjlmnstDCJLNMST]'|[Qq]u'|[Jj]usqu'|[Ll]orsqu'",
-            "fclictic"  : ur"'-t-elles|-t-ils|-t-on|-ce|-elles|-ils|-je|-la|"+\
-                          ur"-les|-leur|-lui|-mêmes|-m'|-moi|-on|-toi|-tu|-t'|"+\
+           "dummysentence": u"This is a dummy sentence to ensure data push .",
+           "replurlexp": ur' replaced-url <repurl text="\1" />',
+           "replemailexp": ur' replaced-email <repemail text="\1" />',
+           "replipexp": ur' replaced-ip <repip text="\1" />',
+           "repldnsexp": ur' replaced-dns <repdns text="\1" />'
+           },
+    "fr": {"binfile-win": "tree-tagger.exe",
+           "binfile-lin": "tree-tagger",
+           "binfile-darwin": "tree-tagger",
+           "tagparfile": "french-utf8.par",
+           "abbrevfile": "french-abbreviations-utf8",
+           "pchar": alonemarks + ur"'",
+           "fchar": alonemarks + ur"'",
+           "pclictic": ur"[dcjlmnstDCJLNMST]'|[Qq]u'|[Jj]usqu'|[Ll]orsqu'",
+           "fclictic": ur"'-t-elles|-t-ils|-t-on|-ce|-elles|-ils|-je|-la|" +
+                          ur"-les|-leur|-lui|-mêmes|-m'|-moi|-on|-toi|-tu|-t'|" +
                           ur"-vous|-en|-y|-ci|-là",
-            "number"    : ur"""(
+           "number"    : ur"""(
                             [-+]?[0-9]+(?:[.,][0-9]*)?(?:[eE][-+]?[0-9]+)?
                                 |
                             [-+]?[.,][0-9]+(?:[eE][-+]?[0-9]+)?
                                )""",
-            "dummysentence": u"Cela est une phrase inutile pour assurer la "+\
+           "dummysentence": u"Cela est une phrase inutile pour assurer la " +
                           u"transmission des données .",
-            "replurlexp": ur' url-remplacée <repurl text="\1" />',
-            "replemailexp": ur' email-remplacé <repemail text="\1" />',
-            "replipexp" : ur' ip-remplacée <repdip text="\1" />',
-            "repldnsexp" : ur' dns-remplacé <repdns text="\1" />'
-          },
-    "de": { "binfile-win": "tree-tagger.exe",
-            "binfile-lin": "tree-tagger",
-            "binfile-darwin": "tree-tagger",
-            "tagparfile": "german.par",
-            "abbrevfile": "german-abbreviations",
-            "pchar"     : alonemarks+ur"'",
-            "fchar"     : alonemarks+ur"'",
-            "pclictic"  : ur"",
-            "fclictic"  : ur"'(s|re|ve|d|m|em|ll)|n't",
-            "number"    : ur"""(
+           "replurlexp": ur' url-remplacée <repurl text="\1" />',
+           "replemailexp": ur' email-remplacé <repemail text="\1" />',
+           "replipexp": ur' ip-remplacée <repdip text="\1" />',
+           "repldnsexp": ur' dns-remplacé <repdns text="\1" />'
+           },
+    "de": {"binfile-win": "tree-tagger.exe",
+           "binfile-lin": "tree-tagger",
+           "binfile-darwin": "tree-tagger",
+           "tagparfile": "german.par",
+           "abbrevfile": "german-abbreviations",
+           "pchar": alonemarks + ur"'",
+           "fchar": alonemarks + ur"'",
+           "pclictic": ur"",
+           "fclictic": ur"'(s|re|ve|d|m|em|ll)|n't",
+           "number"    : ur"""(
                             [-+]?[0-9]+(?:\.[0-9]*)?(?:[eE][-+]?[0-9]+)?
                                 |
                             [-+]?\.[0-9]+(?:[eE][-+]?[0-9]+)?
                               )""",
-            "dummysentence": u"Das ist ein Testsatz um das Stossen der "+\
-                            u"Daten sicherzustellen .",
-            "replurlexp": ur' replaced-url <repurl text="\1" />',
-            "replemailexp": ur' replaced-email <repemail text="\1" />',
-            "replipexp" : ur' replaced-ip <repip text="\1" />',
-            "repldnsexp" : ur' replaced-dns <repdns text="\1" />'
-          },
-    "es": { "binfile-win": "tree-tagger.exe",
-            "binfile-lin": "tree-tagger",
-            "binfile-darwin": "tree-tagger",
-            "tagparfile": "spanish.par",
-            "abbrevfile": "spanish-abbreviations",
-            "pchar"     : alonemarks+ur"'",
-            "fchar"     : alonemarks+ur"'",
-            "pclictic"  : ur"",
-            "fclictic"  : ur"",
-            "number"    : ur"""(
+           "dummysentence": u"Das ist ein Testsatz um das Stossen der " +
+           u"Daten sicherzustellen .",
+           "replurlexp": ur' replaced-url <repurl text="\1" />',
+           "replemailexp": ur' replaced-email <repemail text="\1" />',
+           "replipexp": ur' replaced-ip <repip text="\1" />',
+           "repldnsexp": ur' replaced-dns <repdns text="\1" />'
+           },
+    "es": {"binfile-win": "tree-tagger.exe",
+           "binfile-lin": "tree-tagger",
+           "binfile-darwin": "tree-tagger",
+           "tagparfile": "spanish.par",
+           "abbrevfile": "spanish-abbreviations",
+           "pchar": alonemarks + ur"'",
+           "fchar": alonemarks + ur"'",
+           "pclictic": ur"",
+           "fclictic": ur"",
+           "number"    : ur"""(
                              [-+]?[0-9]+(?:[.,][0-9]*)?(?:[eE][-+]?[0-9]+)?
                                 |
                             [-+]?[.,][0-9]+(?:[eE][-+]?[0-9]+)?
                                )""",
-             "dummysentence": u"Quiero darle las gracias a usted y explicar un malentendido.",
-            "replurlexp": ur' sustituir-url <repurl text="\1" />',
-            "replemailexp": ur' sustituir-email <repemail text="\1" />',
-            "replipexp" : ur' sustituir-ip <repdip text="\1" />',
-            "repldnsexp" : ur' sustituir-dns <repdns text="\1" />'
+           "dummysentence": u"Quiero darle las gracias a usted y explicar un malentendido.",
+           "replurlexp": ur' sustituir-url <repurl text="\1" />',
+           "replemailexp": ur' sustituir-email <repemail text="\1" />',
+           "replipexp": ur' sustituir-ip <repdip text="\1" />',
+           "repldnsexp": ur' sustituir-dns <repdns text="\1" />'
            },
-    }
+}
 
 # We consider following rules to apply whatever be the langage.
 # ... is an ellipsis, put spaces around before splitting on spaces
 # (make it a token)
 ellipfind_re = re.compile(ur"(\.\.\.)",
-                          re.IGNORECASE|re.VERBOSE)
+                          re.IGNORECASE | re.VERBOSE)
 ellipfind_subst = ur" ... "
 # A regexp to put spaces if missing after alone marks.
-punct1find_re = re.compile(ur"(["+alonemarks+"])([^ ])",
-                           re.IGNORECASE|re.VERBOSE)
+punct1find_re = re.compile(ur"([" + alonemarks + "])([^ ])",
+                           re.IGNORECASE | re.VERBOSE)
 punct1find_subst = ur"\1 \2"
 # A regexp to put spaces if missing before alone marks.
-punct2find_re = re.compile(ur"([^ ])([["+alonemarks+"])",
-                           re.IGNORECASE|re.VERBOSE)
+punct2find_re = re.compile(ur"([^ ])([[" + alonemarks + "])",
+                           re.IGNORECASE | re.VERBOSE)
 punct2find_subst = ur"\1 \2"
 # A regexp to identify acronyms like U.S.A. or U.S.A (written to force
 # at least two chars in the acronym, and the final dot optionnal).
 acronymexpr_re = re.compile(ur"^[a-zÀ-ÿ]+(\.[a-zÀ-ÿ])+\.?$",
-                           re.IGNORECASE|re.VERBOSE)
+                            re.IGNORECASE | re.VERBOSE)
 
 #==============================================================================
-class TreeTaggerError (Exception) :
+
+
+class TreeTaggerError (Exception):
+
     """For exceptions generated directly by TreeTagger class code.
     """
     pass
 
 
 #==============================================================================
-def PipeWriter(pipe,text,flushsequence,encoding=TREETAGGER_ENCODING,
-                                        errors=TREETAGGER_INENCERR) :
+def PipeWriter(pipe, text, flushsequence, encoding=TREETAGGER_ENCODING,
+               errors=TREETAGGER_INENCERR):
     r"""Write a text to a pipe and manage pre-post data to ensure flushing.
 
     For internal use.
@@ -510,47 +513,49 @@ def PipeWriter(pipe,text,flushsequence,encoding=TREETAGGER_ENCODING,
                     default to strict as Python standard.
     :type  errors: str
     """
-    try :
+    try:
         # Warn the user of possible bad usage.
-        if not text :
+        if not text:
             logger.warning("Requested to tag an empty text.")
             # We continue to unlock the thread waiting for the ENDOFTEXT on
             # TreeTagger output.
 
         logger.info("Writing starting part to pipe.")
         # Note: STARTOFTEXT is a str - no encoding (basic ASCII).
-        pipe.write(STARTOFTEXT+"\n")
+        pipe.write(STARTOFTEXT + "\n")
 
         logger.info("Writing data to pipe.")
 
-        if text :
-            if isinstance(text,basestring) :
+        if text:
+            if isinstance(text, basestring):
                 # Typically if called without pre-processing.
-                if isinstance(text,unicode) :
-                    text = text.encode(encoding,errors)
+                if isinstance(text, unicode):
+                    text = text.encode(encoding, errors)
                 pipe.write(text)
-                if text[-1] != '\n' : pipe.write("\n")
-            else :
+                if text[-1] != '\n':
+                    pipe.write("\n")
+            else:
                 # Typically when we have done pre-processing.
-                for line in text :
-                    if isinstance(line,unicode) :
-                        line = line.encode(encoding,errors)
+                for line in text:
+                    if isinstance(line, unicode):
+                        line = line.encode(encoding, errors)
                     pipe.write(line)
                     pipe.write("\n")
 
         logger.info("Writing ending and flushing part to pipe.")
         # Note: ENDOFTEXT is a str - no encoding (basic ASCII).
-        if isinstance(flushsequence,unicode) :
-            flushsequence = flushsequence.encode(encoding,errors)
-        pipe.write(ENDOFTEXT+"\n.\n"+flushsequence+"\n")
+        if isinstance(flushsequence, unicode):
+            flushsequence = flushsequence.encode(encoding, errors)
+        pipe.write(ENDOFTEXT + "\n.\n" + flushsequence + "\n")
         pipe.flush()
         logger.info("Finished writing data to pipe. Pipe flushed.")
-    except :
-        logger.error("Failure during pipe writing.",exc_info=True)
+    except:
+        logger.error("Failure during pipe writing.", exc_info=True)
 
 
 #==============================================================================
-class TreeTagger (object) :
+class TreeTagger (object):
+
     """Wrap TreeTagger binary to optimize its usage on multiple texts.
 
     The two main methods you may use are the L{__init__()} initializer,
@@ -640,7 +645,8 @@ class TreeTagger (object) :
     :type   tagoutput: read stream
     """
     #--------------------------------------------------------------------------
-    def __init__ (self,**kargs) :
+
+    def __init__(self, **kargs):
         """
         Construction of a wrapper for a TreeTagger process.
 
@@ -689,137 +695,137 @@ class TreeTagger (object) :
         # Note: TreeTagger process is started later, when really needed.
 
     #-------------------------------------------------------------------------
-    def SetLangage(self,kargs) :
+    def SetLangage(self, kargs):
         """Set langage for tagger.
 
         Internal use.
         """
         #----- Find langage to tag.
-        if kargs.has_key("TAGLANG") :
+        if kargs.has_key("TAGLANG"):
             self.lang = kargs["TAGLANG"]
-        elif os.environ.has_key("TAGLANG") :
+        elif os.environ.has_key("TAGLANG"):
             self.lang = os.environ["TAGLANG"]
-        else :
+        else:
             self.lang = "en"
         self.lang = self.lang[:2].lower()
-        if not g_langsupport.has_key(self.lang) :
-            logger.error("Langage %s not supported.",self.lang)
-            raise TreeTaggerError,"Unsupported langage code: "+self.lang
-        logger.info("lang=%s",self.lang)
+        if not g_langsupport.has_key(self.lang):
+            logger.error("Langage %s not supported.", self.lang)
+            raise TreeTaggerError, "Unsupported langage code: " + self.lang
+        logger.info("lang=%s", self.lang)
         self.langsupport = g_langsupport[self.lang]
 
     #-------------------------------------------------------------------------
-    def SetTagger(self,kargs) :
+    def SetTagger(self, kargs):
         """Set tagger paths, files, and options.
 
         Internal use.
         """
         #----- Find TreeTagger directory.
-        if kargs.has_key("TAGDIR") :
+        if kargs.has_key("TAGDIR"):
             self.tagdir = kargs["TAGDIR"]
-        elif os.environ.has_key("TAGDIR") :
+        elif os.environ.has_key("TAGDIR"):
             self.tagdir = os.environ["TAGDIR"]
-        else :
+        else:
             logger.error("Cant locate TreeTagger directory via TAGDIR.")
-            raise TreeTaggerError,"Cant locate TreeTagger directory via TAGDIR."
+            raise TreeTaggerError, "Cant locate TreeTagger directory via TAGDIR."
         self.tagdir = os.path.abspath(self.tagdir)
-        if not os.path.isdir(self.tagdir) :
-            logger.error("Bad TreeTagger directory: %s",self.tagdir)
-            raise TreeTaggerError,"Bad TreeTagger directory: "+self.tagdir
-        logger.info("tagdir=%s",self.tagdir)
+        if not os.path.isdir(self.tagdir):
+            logger.error("Bad TreeTagger directory: %s", self.tagdir)
+            raise TreeTaggerError, "Bad TreeTagger directory: " + self.tagdir
+        logger.info("tagdir=%s", self.tagdir)
 
         #----- Set subdirectories.
-        self.tagbindir = os.path.join(self.tagdir,"bin")
-        self.tagcmddir = os.path.join(self.tagdir,"cmd")
-        self.taglibdir = os.path.join(self.tagdir,"lib")
+        self.tagbindir = os.path.join(self.tagdir, "bin")
+        self.tagcmddir = os.path.join(self.tagdir, "cmd")
+        self.taglibdir = os.path.join(self.tagdir, "lib")
 
         #----- Set binary by platform.
-        if sys.platform == "win32" :
-            self.tagbin = os.path.join(self.tagbindir,self.langsupport["binfile-win"])
-        elif sys.platform == "linux2" :
-            self.tagbin =os.path.join(self.tagbindir,self.langsupport["binfile-lin"])
-        elif sys.platform == "darwin" :
-            self.tagbin =os.path.join(self.tagbindir,self.langsupport ["binfile-darwin"])
-        else :
+        if sys.platform == "win32":
+            self.tagbin = os.path.join(self.tagbindir, self.langsupport["binfile-win"])
+        elif sys.platform == "linux2":
+            self.tagbin = os.path.join(self.tagbindir, self.langsupport["binfile-lin"])
+        elif sys.platform == "darwin":
+            self.tagbin = os.path.join(self.tagbindir, self.langsupport["binfile-darwin"])
+        else:
             logger.error("TreeTagger binary name undefined for platform %s",
-                                                                sys.platform)
-            raise TreeTaggerError,"TreeTagger binary name undefined "+\
-                                  "for platform "+sys.platform
-        if not os.path.isfile(self.tagbin) :
+                         sys.platform)
+            raise TreeTaggerError, "TreeTagger binary name undefined " +\
+                "for platform " + sys.platform
+        if not os.path.isfile(self.tagbin):
             logger.error("TreeTagger binary invalid: %s", self.tagbin)
-            raise TreeTaggerError,"TreeTagger binary invalid: " + self.tagbin
-        logger.info("tagbin=%s",self.tagbin)
+            raise TreeTaggerError, "TreeTagger binary invalid: " + self.tagbin
+        logger.info("tagbin=%s", self.tagbin)
 
         #----- Find options.
-        if kargs.has_key("TAGOPT") :
+        if kargs.has_key("TAGOPT"):
             self.tagopt = kargs["TAGOPT"]
-        elif os.environ.has_key("TAGOPT") :
+        elif os.environ.has_key("TAGOPT"):
             self.tagopt = os.environ["TAGOPT"]
-        else :
+        else:
             self.tagopt = "-token -lemma -sgml -quiet"
-        if self.tagopt.find("-sgml") == -1 :
-            self.tagopt = "-sgml "+self.tagopt
+        if self.tagopt.find("-sgml") == -1:
+            self.tagopt = "-sgml " + self.tagopt
             self.removesgml = True
-        else :
+        else:
             self.removesgml = False
-        logger.info("tagopt=%s",self.tagopt)
+        logger.info("tagopt=%s", self.tagopt)
 
         #----- Find parameter file.
-        if kargs.has_key("TAGPARFILE") :
+        if kargs.has_key("TAGPARFILE"):
             self.tagparfile = kargs["TAGPARFILE"]
-        elif os.environ.has_key("TAGPARFILE") :
+        elif os.environ.has_key("TAGPARFILE"):
             self.tagparfile = os.environ["TAGPARFILE"]
-        else :
+        else:
             self.tagparfile = None
         # Not in previous else to manage None parameter in kargs.
-        if self.tagparfile is None :
+        if self.tagparfile is None:
             self.tagparfile = self.langsupport["tagparfile"]
         # If its directly a visible file, then use it, else try to locate
         # it in TreeTagger library directory.
         maybefile = os.path.abspath(self.tagparfile)
-        if os.path.isfile(maybefile) :
+        if os.path.isfile(maybefile):
             self.tagparfile = maybefile
-        else :
-            maybefile = os.path.join(self.taglibdir,self.tagparfile)
-            if os.path.isfile(maybefile) :
+        else:
+            maybefile = os.path.join(self.taglibdir, self.tagparfile)
+            if os.path.isfile(maybefile):
                 self.tagparfile = maybefile
-            else :
+            else:
                 logger.error("TreeTagger parameter file invalid: %s",
-                                                        self.tagparfile)
-                raise TreeTaggerError,"TreeTagger parameter file invalid: "+\
-                                      self.tagparfile
-        logger.info("tagparfile=%s",self.tagparfile)
+                             self.tagparfile)
+                raise TreeTaggerError, "TreeTagger parameter file invalid: " +\
+                    self.tagparfile
+        logger.info("tagparfile=%s", self.tagparfile)
 
         #----- Store encoding/decoding parameters.
-        if kargs.has_key("TAGINENC") :
+        if kargs.has_key("TAGINENC"):
             self.taginencoding = kargs["TAGINENC"]
-        elif os.environ.has_key("TAGINENC") :
+        elif os.environ.has_key("TAGINENC"):
             self.taginencoding = os.environ["TAGINENC"]
-        else :
+        else:
             self.taginencoding = TREETAGGER_ENCODING
-        if kargs.has_key("TAGOUTENC") :
+        if kargs.has_key("TAGOUTENC"):
             self.tagoutencoding = kargs["TAGOUTENC"]
-        elif os.environ.has_key("TAGOUTENC") :
+        elif os.environ.has_key("TAGOUTENC"):
             self.tagoutencoding = os.environ["TAGOUTENC"]
-        else :
+        else:
             self.tagoutencoding = TREETAGGER_ENCODING
-        if kargs.has_key("TAGINENCERR") :
+        if kargs.has_key("TAGINENCERR"):
             self.taginencerr = kargs["TAGINENCERR"]
-        elif os.environ.has_key("TAGINENCERR") :
+        elif os.environ.has_key("TAGINENCERR"):
             self.taginencerr = os.environ["TAGINENCERR"]
-        else :
+        else:
             self.taginencerr = TREETAGGER_INENCERR
-        if kargs.has_key("TAGOUTENCERR") :
+        if kargs.has_key("TAGOUTENCERR"):
             self.tagoutencerr = kargs["TAGOUTENCERR"]
-        elif os.environ.has_key("TAGOUTENCERR") :
+        elif os.environ.has_key("TAGOUTENCERR"):
             self.tagoutencerr = os.environ["TAGOUTENCERR"]
-        else :
+        else:
             self.tagoutencerr = TREETAGGER_OUTENCERR
 
-        logger.info("taginencoding=%s",self.taginencoding)
-        logger.info("tagoutencoding=%s",self.tagoutencoding)
-        logger.info("taginencerr=%s",self.taginencerr)
-        logger.info("tagoutencerr=%s",self.tagoutencerr)
+        logger.info("taginencoding=%s", self.taginencoding)
+        logger.info("tagoutencoding=%s", self.tagoutencoding)
+        logger.info("taginencerr=%s", self.taginencerr)
+        logger.info("tagoutencerr=%s", self.tagoutencerr)
 
         # TreeTagger is started later (when needed).
         self.tagpopen = None
@@ -827,92 +833,94 @@ class TreeTagger (object) :
         self.tagoutput = None
 
     #-------------------------------------------------------------------------
-    def SetPreprocessor(self,kargs) :
+    def SetPreprocessor(self, kargs):
         """Set preprocessing files, and options.
 
         Internal use.
         """
         #----- Find abbreviations file.
-        if kargs.has_key("TAGABBREV") :
+        if kargs.has_key("TAGABBREV"):
             self.abbrevfile = kargs["TAGABBREV"]
-        elif os.environ.has_key("TAGABBREV") :
+        elif os.environ.has_key("TAGABBREV"):
             self.abbrevfile = os.environ["TAGABBREV"]
-        else :
+        else:
             self.abbrevfile = None
         # Not in previous else to manage None parameter in kargs.
-        if self.abbrevfile is None :
+        if self.abbrevfile is None:
             self.abbrevfile = self.langsupport["abbrevfile"]
         # If its directly a visible file, then use it, else try to locate
         # it in TreeTagger library directory.
         maybefile = os.path.abspath(self.abbrevfile)
-        if os.path.isfile(maybefile) :
+        if os.path.isfile(maybefile):
             self.abbrevfile = maybefile
-        else :
-            maybefile = os.path.join(self.taglibdir,self.abbrevfile)
-            if os.path.isfile(maybefile) :
+        else:
+            maybefile = os.path.join(self.taglibdir, self.abbrevfile)
+            if os.path.isfile(maybefile):
                 self.abbrevfile = maybefile
-            else :
-                logger.error("Abbreviation file invalid: %s",self.abbrevfile)
-                raise TreeTaggerError,"Abbreviation file invalid: "+\
-                                      self.abbrevfile
-        logger.info("abbrevfile=%s",self.abbrevfile)
+            else:
+                logger.error("Abbreviation file invalid: %s", self.abbrevfile)
+                raise TreeTaggerError, "Abbreviation file invalid: " +\
+                    self.abbrevfile
+        logger.info("abbrevfile=%s", self.abbrevfile)
 
         #----- Read file containing list of abbrevitations.
         self.abbterms = {}
-        try :
-            f = open(self.abbrevfile,"rU")
-            try :
-                for line in f :
-                    line = line.strip() # Remove blanks after and before.
-                    if not line : continue  # Ignore empty lines
-                    if line[0]=='#' : continue  # Ignore comment lines.
+        try:
+            f = open(self.abbrevfile, "rU")
+            try:
+                for line in f:
+                    line = line.strip()  # Remove blanks after and before.
+                    if not line:
+                        continue  # Ignore empty lines
+                    if line[0] == '#':
+                        continue  # Ignore comment lines.
                     self.abbterms[line.lower()] = line  # Store as a dict keys.
-            finally :
+            finally:
                 f.close()
             logger.info("Read %d abbreviations from file: %s",
-                                len(self.abbterms),self.abbrevfile)
-        except :
-            logger.error("Failure to read abbreviations file: %s",\
-                                self.abbrevfile,exc_info=True)
+                        len(self.abbterms), self.abbrevfile)
+        except:
+            logger.error("Failure to read abbreviations file: %s",
+                         self.abbrevfile, exc_info=True)
             raise
 
         #----- Prefix chars at begining of string.
         self.pchar = self.langsupport["pchar"]
-        if self.pchar :
-            self.pchar_re = re.compile("^(["+self.pchar+"])(.*)$",
-                                        re.IGNORECASE|re.VERBOSE)
-        else :
+        if self.pchar:
+            self.pchar_re = re.compile("^([" + self.pchar + "])(.*)$",
+                                       re.IGNORECASE | re.VERBOSE)
+        else:
             self.pchar_re = None
 
         #----- Suffix chars at end of string.
         self.fchar = self.langsupport["fchar"]
-        if self.fchar :
-            self.fchar_re = re.compile("^(.*)(["+self.fchar+"])$",
-                                        re.IGNORECASE|re.VERBOSE)
-            self.fcharandperiod_re = re.compile("(.*)(["+self.fchar+".])\\.$")
-        else :
+        if self.fchar:
+            self.fchar_re = re.compile("^(.*)([" + self.fchar + "])$",
+                                       re.IGNORECASE | re.VERBOSE)
+            self.fcharandperiod_re = re.compile("(.*)([" + self.fchar + ".])\\.$")
+        else:
             self.fchar_re = None
             self.fcharandperiod_re = None
 
         #----- Character sequences to cut-off at begining of words.
         self.pclictic = self.langsupport["pclictic"]
-        if self.pclictic :
-            self.pclictic_re = re.compile("^("+self.pclictic+")(.*)",
-                                            re.IGNORECASE|re.VERBOSE)
+        if self.pclictic:
+            self.pclictic_re = re.compile("^(" + self.pclictic + ")(.*)",
+                                          re.IGNORECASE | re.VERBOSE)
         else:
             self.pclictic_re = None
 
         #----- Character sequences to cut-off at end of words.
         self.fclictic = self.langsupport["fclictic"]
-        if self.fclictic :
-            self.fclictic_re = re.compile("(.*)("+self.fclictic+")$",
-                                            re.IGNORECASE|re.VERBOSE)
-        else :
+        if self.fclictic:
+            self.fclictic_re = re.compile("(.*)(" + self.fclictic + ")$",
+                                          re.IGNORECASE | re.VERBOSE)
+        else:
             self.fclictic_re = None
 
         #----- Numbers recognition.
         self.number = self.langsupport["number"]
-        self.number_re = re.compile(self.number,re.IGNORECASE|re.VERBOSE)
+        self.number_re = re.compile(self.number, re.IGNORECASE | re.VERBOSE)
 
         #----- Dummy string to flush
         sentence = self.langsupport["dummysentence"]
@@ -925,61 +933,61 @@ class TreeTagger (object) :
         self.repldnsexp = self.langsupport["repldnsexp"]
 
     #--------------------------------------------------------------------------
-    def StartProcess(self) :
+    def StartProcess(self):
         """Start TreeTagger processing chain.
 
         Internal use.
         """
         #----- Start the TreeTagger.
-        tagcmdlist = [ self.tagbin ]
+        tagcmdlist = [self.tagbin]
         tagcmdlist.extend(shlex.split(self.tagopt))
         tagcmdlist.append(self.tagparfile)
-        try :
+        try:
             #self.taginput,self.tagoutput = os.popen2(tagcmd)
             self.tagpopen = subprocess.Popen(
-                            tagcmdlist,     # Use a list of params in place of a string.
-                            bufsize=0,      # Not buffered to retrieve data asap from TreeTagger
-                            executable=self.tagbin, # As we have it, specify it
-                            stdin=subprocess.PIPE,  # Get a pipe to write input data to TreeTagger process
-                            stdout=subprocess.PIPE, # Get a pipe to read processing results from TreeTagger
-                            #stderr=None,     unused
-                            #preexec_fn=None, unused
-                            #close_fds=False, And cannot be set to true and use pipes simultaneously on windows
-                            #shell=False,     We specify full path to treetagger binary, no reason to use shell
-                            #cwd=None,        Normally files are specified with full path, so dont set cwd
-                            #env=None,        Let inherit from current environment
-                            #universal_newlines=False,  Keep no universal newlines, manage myself
-                            #startupinfo=None, unused
-                            #creationflags=0   unused
-                            )
-            self.taginput,self.tagoutput = self.tagpopen.stdin,self.tagpopen.stdout
-            logger.info("Started TreeTagger from command: %r",tagcmdlist)
-        except :
-            logger.error("Failure to start TreeTagger with: %r",\
-                                tagcmd,exc_info=True)
+                tagcmdlist,     # Use a list of params in place of a string.
+                bufsize=0,      # Not buffered to retrieve data asap from TreeTagger
+                executable=self.tagbin,  # As we have it, specify it
+                stdin=subprocess.PIPE,  # Get a pipe to write input data to TreeTagger process
+                stdout=subprocess.PIPE,  # Get a pipe to read processing results from TreeTagger
+                #stderr=None,     unused
+                #preexec_fn=None, unused
+                # close_fds=False, And cannot be set to true and use pipes simultaneously on windows
+                # shell=False,     We specify full path to treetagger binary, no reason to use shell
+                # cwd=None,        Normally files are specified with full path, so dont set cwd
+                # env=None,        Let inherit from current environment
+                # universal_newlines=False,  Keep no universal newlines, manage myself
+                #startupinfo=None, unused
+                # creationflags=0   unused
+            )
+            self.taginput, self.tagoutput = self.tagpopen.stdin, self.tagpopen.stdout
+            logger.info("Started TreeTagger from command: %r", tagcmdlist)
+        except:
+            logger.error("Failure to start TreeTagger with: %r",
+                         tagcmd, exc_info=True)
             raise
 
     #--------------------------------------------------------------------------
-    def __del__ (self) :
+    def __del__(self):
         """Wrapper to be deleted.
 
         Cut links with TreeTagger process.
         """
-        if self.taginput :
+        if self.taginput:
             self.taginput.close()
             self.taginput = None
-        if self.tagoutput :
+        if self.tagoutput:
             self.tagoutput.close()
             self.tagoutput = None
-        if self.tagpopen :
+        if self.tagpopen:
             self.tagpopen = None
             # There are terminate() and kill() methods, but only from Python 2.6.
 
     #--------------------------------------------------------------------------
-    def TagText(self,text,numlines=False,tagonly=False,
-                prepronly=False,tagblanks=False,notagurl=False,
-                notagemail=False,notagip=False,notagdns=False,
-                encoding=None,errors=DEFAULT_ENCERRORS) :
+    def TagText(self, text, numlines=False, tagonly=False,
+                prepronly=False, tagblanks=False, notagurl=False,
+                notagemail=False, notagip=False, notagdns=False,
+                encoding=None, errors=DEFAULT_ENCERRORS):
         """Tag a text and return corresponding lines.
 
         This is normally the method you use on this class. Other methods
@@ -1026,31 +1034,33 @@ class TreeTagger (object) :
         :rtype:  [ string ]
         """
         # Check for incompatible options.
-        if (tagblanks or numlines) and self.removesgml :
-            logger.error("Line numbering/blanks tagging need use of -sgml "+\
+        if (tagblanks or numlines) and self.removesgml:
+            logger.error("Line numbering/blanks tagging need use of -sgml " +
                          "option for TreeTagger.")
-            raise TreeTaggerError,"Line numbering/blanks tagging need use "+\
-                                  "of -sgml option for TreeTagger."
+            raise TreeTaggerError, "Line numbering/blanks tagging need use " +\
+                "of -sgml option for TreeTagger."
 
         # Manage encoding.
-        use_unicode = isinstance(text,unicode) or (encoding in(unicode,"unicode"))
+        use_unicode = isinstance(text, unicode) or (encoding in(unicode, "unicode"))
 
-        if (isinstance(text,list) or isinstance(text,tuple)) and encoding is None :
-            raise TreeTaggerError,"Must provide an encoding to TagText when using list/tuple as input."
-        if encoding is None : encoding = USER_ENCODING
+        if (isinstance(text, list) or isinstance(text, tuple)) and encoding is None:
+            raise TreeTaggerError, "Must provide an encoding to TagText when using list/tuple as input."
+        if encoding is None:
+            encoding = USER_ENCODING
 
-        if isinstance(text,basestring) : text = [ text ]
-        for i,t in enumerate(text) :
-            if not isinstance(t,unicode) :
-                text[i] = t.decode(encoding,errors)
+        if isinstance(text, basestring):
+            text = [text]
+        for i, t in enumerate(text):
+            if not isinstance(t, unicode):
+                text[i] = t.decode(encoding, errors)
 
         # Preprocess text (prepare for TreeTagger).
-        if not tagonly :
+        if not tagonly:
             logger.debug("Pre-processing text.")
-            lines = self.PrepareText(text,tagblanks=tagblanks,numlines=numlines,
-                                notagurl=notagurl,notagemail=notagemail,
-                                notagip=notagip,notagdns=notagdns)
-        else :
+            lines = self.PrepareText(text, tagblanks=tagblanks, numlines=numlines,
+                                     notagurl=notagurl, notagemail=notagemail,
+                                     notagip=notagip, notagdns=notagdns)
+        else:
             # Katie Bell bug fix (2008-06-01)
             #lines = text[0].split()
             # Adapted to support list of lines.
@@ -1058,59 +1068,60 @@ class TreeTagger (object) :
             # text, we can consider that it has been prepared elsewhere by caller,
             # and that there is only one token item by line for TreeTagger).
             lines = []
-            for l in text :
+            for l in text:
                 lines.extend(l.splitlines())
 
-        if prepronly :
-            if not use_unicode :
-                lines = [ l.encode(encoding,errors) for l in lines ]
+        if prepronly:
+            if not use_unicode:
+                lines = [l.encode(encoding, errors) for l in lines]
             return lines
 
         # TreeTagger process is started at first need.
-        if self.taginput is None :
+        if self.taginput is None:
             self.StartProcess()
 
         # Send text to TreeTagger, get result.
         logger.debug("Tagging text.")
-        t = threading.Thread(target=PipeWriter,args=(self.taginput,
-                                        lines,self.dummysequence,
-                                        self.taginencoding,self.taginencerr))
+        t = threading.Thread(target=PipeWriter, args=(self.taginput,
+                                                      lines, self.dummysequence,
+                                                      self.taginencoding, self.taginencerr))
         t.start()
-        time.sleep(1) # Leave thread and tagger time to start communicating.
+        time.sleep(1)  # Leave thread and tagger time to start communicating.
 
         result = []
         intext = False
-        while True :
+        while True:
             line = self.tagoutput.readline()
-            if DEBUG : logger.debug("Read from TreeTagger: %r",line)
-            if not line :
+            if DEBUG:
+                logger.debug("Read from TreeTagger: %r", line)
+            if not line:
                 # We process too much quickly, leave time for tagger and writer
                 # thread to worl.
                 time.sleep(0.1)
 
-            line = line.decode(self.tagoutencoding,self.tagoutencerr)
+            line = line.decode(self.tagoutencoding, self.tagoutencerr)
             line = line.strip()
-            if line == STARTOFTEXT :
+            if line == STARTOFTEXT:
                 intext = True
                 continue
-            if line == ENDOFTEXT :  # The flag we sent to identify texts.
+            if line == ENDOFTEXT:  # The flag we sent to identify texts.
                 intext = False
                 break
-            if intext and line :
-                if not (self.removesgml and IsSGMLTag(line)) :
+            if intext and line:
+                if not (self.removesgml and IsSGMLTag(line)):
                     result.append(line)
 
         # Synchronize to avoid possible problems.
         t.join()
 
-        if not use_unicode :
-            result = [ l.encode(encoding,errors) for l in result ]
+        if not use_unicode:
+            result = [l.encode(encoding, errors) for l in result]
 
         return result
 
     #--------------------------------------------------------------------------
-    def PrepareText(self,text,tagblanks,numlines,notagurl,\
-                notagemail,notagip,notagdns) :
+    def PrepareText(self, text, tagblanks, numlines, notagurl,
+                    notagemail, notagip, notagdns):
         """Prepare a text for processing by TreeTagger.
 
         :param  text: the text to split into base elements.
@@ -1133,31 +1144,31 @@ class TreeTagger (object) :
         :return: List of lines to process as TreeTagger input (no \\n at end of line).
         :rtype: [ unicode ]
         """
-        logger.debug("Preparing text for tagger (tagblanks=%d, "\
-                    "numlines=%d).",tagblanks,numlines)
+        logger.debug("Preparing text for tagger (tagblanks=%d, "
+                     "numlines=%d).", tagblanks, numlines)
 
         # If necessary, add line numbering SGML tags (which will
         # be passed out as is by TreeTagger and which could be
         # used to identify lines in the flow of tags).
-        if numlines :
+        if numlines:
             logger.debug("Numbering lines.")
-            if isinstance(text,basestring) :
+            if isinstance(text, basestring):
                 lines = text.splitlines()
-            else :
+            else:
                 lines = text
             newlines = []
-            for num,line in enumerate(lines) :
-                newlines.append(NUMBEROFLINE%(num+1,))
+            for num, line in enumerate(lines):
+                newlines.append(NUMBEROFLINE % (num + 1,))
                 newlines.append(line)
             s = " ".join(newlines)
             # Remove temporary storage.
             del lines
             del newlines
             logger.debug("Inserted line numbers as SGML tags between lines.")
-        else :
-            if not isinstance(text,basestring) :
+        else:
+            if not isinstance(text, basestring):
                 s = " ".join(text)
-            else :
+            else:
                 s = text
 
         # First, we split the text between SGML tags and non SGML
@@ -1170,64 +1181,64 @@ class TreeTagger (object) :
         if tagblanks:
             # If requested, replace internal blanks by other SGML tags.
             logger.debug("Replacing blanks by corresponding SGML tags.")
-            for part in parts :
-                if IsSGMLTag(part) :
+            for part in parts:
+                if IsSGMLTag(part):
                     newparts.append(part)
-                else :
+                else:
                     part = BlankToTag(part)
                     newparts.extend(SplitSGML(part))
-        else :
+        else:
             # Else, replace cr, lf, vt, ff, and tab characters with blanks.
             logger.debug("Replacing blanks by spaces.")
-            for part in parts :
+            for part in parts:
                 newparts.append(BlankToSpace(part))
         parts = newparts
         logger.debug("Blanks replacement done.")
 
-        if not notagurl :
+        if not notagurl:
             logger.debug("Replacing URLs.")
             newparts = []
-            for part in parts :
-                if IsSGMLTag(part) :
+            for part in parts:
+                if IsSGMLTag(part):
                     newparts.append(part)
-                else :
-                    part = UrlMatch_re.sub(self.replurlexp,part)
+                else:
+                    part = UrlMatch_re.sub(self.replurlexp, part)
                     newparts.extend(SplitSGML(part))
             parts = newparts
             logger.debug("URLs replacement done.")
 
-        if not notagemail :
+        if not notagemail:
             logger.debug("Replacing Emails.")
             newparts = []
-            for part in parts :
-                if IsSGMLTag(part) :
+            for part in parts:
+                if IsSGMLTag(part):
                     newparts.append(part)
-                else :
-                    part = EmailMatch_re.sub(self.replemailexp,part)
+                else:
+                    part = EmailMatch_re.sub(self.replemailexp, part)
                     newparts.extend(SplitSGML(part))
             parts = newparts
             logger.debug("Emails replacement done.")
 
-        if not notagip :
+        if not notagip:
             logger.debug("Replacing IP addresses.")
             newparts = []
-            for part in parts :
-                if IsSGMLTag(part) :
+            for part in parts:
+                if IsSGMLTag(part):
                     newparts.append(part)
-                else :
-                    part = IpMatch_re.sub(self.replipexp,part)
+                else:
+                    part = IpMatch_re.sub(self.replipexp, part)
                     newparts.extend(SplitSGML(part))
             parts = newparts
             logger.debug("IP adresses replacement done.")
 
-        if not notagdns :
+        if not notagdns:
             logger.debug("Replacing DNS names.")
             newparts = []
-            for part in parts :
-                if IsSGMLTag(part) :
+            for part in parts:
+                if IsSGMLTag(part):
                     newparts.append(part)
-                else :
-                    part = DnsHostMatch_re.sub(self.repldnsexp,part)
+                else:
+                    part = DnsHostMatch_re.sub(self.repldnsexp, part)
                     newparts.extend(SplitSGML(part))
             parts = newparts
             logger.debug("DNS names replacement done.")
@@ -1235,14 +1246,15 @@ class TreeTagger (object) :
         # Process part by part, some parts wille be SGML tags, other dont.
         logger.debug("Splittint parts of text.")
         newparts = []
-        for part in parts :
-            if IsSGMLTag(part) :
+        for part in parts:
+            if IsSGMLTag(part):
                 # TreeTagger process by line... a tag cannot be on multiple
                 # lines (in case it occured in source text).
-                part = part.replace("\n"," ")
-                if DEBUG_PREPROCESS : logger.debug("Seen TAG: %r",part)
+                part = part.replace("\n", " ")
+                if DEBUG_PREPROCESS:
+                    logger.debug("Seen TAG: %r", part)
                 newparts.append(part)
-            else :
+            else:
                 # This is another part which need more analysis.
                 newparts.extend(self.PreparePart(part))
         parts = newparts
@@ -1252,7 +1264,7 @@ class TreeTagger (object) :
         return parts
 
     #--------------------------------------------------------------------------
-    def PreparePart(self,text) :
+    def PreparePart(self, text):
         """Prepare a basic text.
 
         Prepare non-SGML text parts.
@@ -1264,75 +1276,78 @@ class TreeTagger (object) :
         """
         # May occur when recursively calling after splitting on dot, if there
         # are two consecutive dots.
-        if not text : return []
+        if not text:
+            return []
 
-        text = u" "+text+" "
+        text = u" " + text + " "
 
         # Put blanks before and after '...' (extract ellipsis).
-        text = ellipfind_re.sub(ellipfind_subst,text)
+        text = ellipfind_re.sub(ellipfind_subst, text)
 
         # Put space between punctuation ;!?:, and following text if space missing.
-        text = punct1find_re.sub(punct1find_subst,text)
+        text = punct1find_re.sub(punct1find_subst, text)
 
         # Put space between text and punctuation ;!?:, if space missing.
-        text = punct2find_re.sub(punct2find_subst,text)
-
+        text = punct2find_re.sub(punct2find_subst, text)
 
         # Here some script put blanks after dots (while processing : and , too).
         # This break recognition of texts like U.S.A later.
-
         # Cut on whitespace, and find subpart by subpart.
         # We put prefix subparts in the prefix list, and suffix subparts in the
         # suffix list, at the end prefix + part + suffix are added to newparts.
         parts = text.split()
         newparts = []
-        for part in parts :
-            if DEBUG_PREPROCESS : logger.debug("Processing part: %r",part)
+        for part in parts:
+            if DEBUG_PREPROCESS:
+                logger.debug("Processing part: %r", part)
             # For single characters or ellipsis, no more processing.
-            if len(part)==1 or part == "..." :
+            if len(part) == 1 or part == "...":
                 newparts.append(part)
                 continue
             prefix = []
             suffix = []
             # Separate punctuation and parentheses from words.
-            while True :
+            while True:
                 finished = True         # Exit at end if no match.
                 # cut off preceding punctuation
-                if self.pchar_re != None :
+                if self.pchar_re != None:
                     matchobj = self.pchar_re.match(part)
-                    if matchobj != None :
-                        if DEBUG_PREPROCESS :
-                            logger.debug("Splitting preceding punct: %r",matchobj.group(1))
+                    if matchobj != None:
+                        if DEBUG_PREPROCESS:
+                            logger.debug("Splitting preceding punct: %r", matchobj.group(1))
                         prefix.append(matchobj.group(1))    # First pchar.
                         part = matchobj.group(2)            # Rest of text.
                         finished = False
                 # cut off trailing punctuation
-                if self.fchar_re != None :
+                if self.fchar_re != None:
                     matchobj = self.fchar_re.match(part)
-                    if matchobj != None :
-                        if DEBUG_PREPROCESS :
-                            logger.debug("Splitting following punct: %r",matchobj.group(2))
-                        suffix.insert(0,matchobj.group(2))
+                    if matchobj != None:
+                        if DEBUG_PREPROCESS:
+                            logger.debug("Splitting following punct: %r", matchobj.group(2))
+                        suffix.insert(0, matchobj.group(2))
                         part = matchobj.group(1)
                         finished = False
                 # cut off trailing periods if punctuation precedes
-                if self.fcharandperiod_re != None :
+                if self.fcharandperiod_re != None:
                     matchobj = self.fcharandperiod_re.match(part)
-                    if matchobj != None :
-                        if DEBUG_PREPROCESS :
+                    if matchobj != None:
+                        if DEBUG_PREPROCESS:
                             logger.debug("Splitting dot after following punct: .")
-                        suffix.insert(0,".")                        # Last dot.
-                        part = matchobj.group(1)+matchobj.group(2)  # Other.
+                        suffix.insert(0, ".")                        # Last dot.
+                        part = matchobj.group(1) + matchobj.group(2)  # Other.
                         finished = False
                 # Exit while loop if no match in regular expressions.
-                if finished : break
+                if finished:
+                    break
 
             # Process with the dot problem...
             # Look for acronyms of the form U.S.A. or U.S.A
-            if acronymexpr_re.match(part) :
-                if DEBUG_PREPROCESS : logger.debug("Found acronym: %r",part)
+            if acronymexpr_re.match(part):
+                if DEBUG_PREPROCESS:
+                    logger.debug("Found acronym: %r", part)
                 # Force final dot to have homogeneous acronyms.
-                if part[-1] != '.' : part += '.'
+                if part[-1] != '.':
+                    part += '.'
                 newparts.extend(prefix)
                 newparts.append(part)
                 newparts.extend(suffix)
@@ -1340,28 +1355,31 @@ class TreeTagger (object) :
 
             # identify numbers.
             matchobj = self.number_re.match(part)
-            if matchobj!=None :
+            if matchobj != None:
                 # If there is only a dot after the number which is not
                 # recognized, then split it and take the number.
-                if matchobj.group()==part[:-1] and part[-1]=="." :
+                if matchobj.group() == part[:-1] and part[-1] == ".":
                     part = part[:-1]    # Validate next if... process number.
-                    suffix.insert(0,".")
-                if matchobj.group()==part : # Its a *full* number.
-                    if DEBUG_PREPROCESS : logger.debug("Found number: %r",part)
+                    suffix.insert(0, ".")
+                if matchobj.group() == part:  # Its a *full* number.
+                    if DEBUG_PREPROCESS:
+                        logger.debug("Found number: %r", part)
                     newparts.extend(prefix)
                     newparts.append(part)
                     newparts.extend(suffix)
                     continue
 
             # Remove possible trailing dots.
-            while part and part[-1]=='.' :
-                if DEBUG_PREPROCESS : logger.debug("Found trailing dot: .")
-                suffix.insert(0,".")
+            while part and part[-1] == '.':
+                if DEBUG_PREPROCESS:
+                    logger.debug("Found trailing dot: .")
+                suffix.insert(0, ".")
                 part = part[:-1]
 
             # handle explicitly listed tokens
-            if self.abbterms.has_key(part.lower()) :
-                if DEBUG_PREPROCESS : logger.debug("Found explicit token: %r",part)
+            if self.abbterms.has_key(part.lower()):
+                if DEBUG_PREPROCESS:
+                    logger.debug("Found explicit token: %r", part)
                 newparts.extend(prefix)
                 newparts.append(part)
                 newparts.extend(suffix)
@@ -1374,7 +1392,7 @@ class TreeTagger (object) :
             # longer be things like www.limsi.fr, remaining dots may be parts
             # of names as in J.S.Bach.
             # So commented the code out (keep it here).
-            #if "." in part :
+            # if "." in part :
             #    if DEBUG_PREPROCESS :
             #        print "Splitting around remaining dots:",part
             #    newparts.extend(prefix)
@@ -1387,30 +1405,30 @@ class TreeTagger (object) :
             #    continue
 
             # cut off clictics
-            if self.pclictic_re != None :
+            if self.pclictic_re != None:
                 retry = True
-                while retry :
+                while retry:
                     matchobj = self.pclictic_re.match(part)
-                    if matchobj != None :
-                        if DEBUG_PREPROCESS :
-                            logger.debug("Splitting begin clictic: %r %r",matchobj.group(1),\
-                                                             matchobj.group(2))
+                    if matchobj != None:
+                        if DEBUG_PREPROCESS:
+                            logger.debug("Splitting begin clictic: %r %r", matchobj.group(1),
+                                         matchobj.group(2))
                         prefix.append(matchobj.group(1))
                         part = matchobj.group(2)
-                    else :
+                    else:
                         retry = False
 
-            if self.fclictic_re != None :
+            if self.fclictic_re != None:
                 retry = True
-                while retry :
+                while retry:
                     matchobj = self.fclictic_re.match(part)
-                    if matchobj != None :
-                        if DEBUG_PREPROCESS :
-                            logger.debug("Splitting end clictic: %r %r",matchobj.group(1),\
-                                                           matchobj.group(2))
+                    if matchobj != None:
+                        if DEBUG_PREPROCESS:
+                            logger.debug("Splitting end clictic: %r %r", matchobj.group(1),
+                                         matchobj.group(2))
                         suffix.append(matchobj.group(2))
                         part = matchobj.group(1)
-                    else :
+                    else:
                         retry = False
 
             newparts.extend(prefix)
@@ -1428,12 +1446,14 @@ SGML_tag = r"""
         (
         <!-- .*? -->                # XML/SGML comment
             |                           # -- OR --
-        <[!?/]?"""+SGML_name+"""    # Start of tag/directive
+        <[!?/]?""" + SGML_name + """    # Start of tag/directive
             [^>]*                   # +Process all up to the first >
             >                       # +End of tag/directive
         )"""
-SGML_tag_re = re.compile(SGML_tag,re.IGNORECASE|re.VERBOSE|re.DOTALL)
-def IsSGMLTag(text) :
+SGML_tag_re = re.compile(SGML_tag, re.IGNORECASE | re.VERBOSE | re.DOTALL)
+
+
+def IsSGMLTag(text):
     """Test if a text is - completly - a SGML tag.
 
     :param  text: the text to test.
@@ -1445,7 +1465,7 @@ def IsSGMLTag(text) :
 
 
 #==============================================================================
-def SplitSGML(text) :
+def SplitSGML(text):
     """Split a text between SGML-tags and non-SGML-tags parts.
 
     :param  text: the text to split.
@@ -1458,9 +1478,11 @@ def SplitSGML(text) :
 
 
 #==============================================================================
-BlankToTag_tags = [(u' ',TAGSPACE),(u'\t',TAGTAB),(u'\n',TAGLF),
-                   (u'\r',TAGCR),(u'\v',TAGVT),(u'\f',TAGFF)]
-def BlankToTag(text) :
+BlankToTag_tags = [(u' ', TAGSPACE), (u'\t', TAGTAB), (u'\n', TAGLF),
+                   (u'\r', TAGCR), (u'\v', TAGVT), (u'\f', TAGFF)]
+
+
+def BlankToTag(text):
     """Replace blanks characters by corresponding SGML tags.
 
     :param  text: the text to transform from blanks.
@@ -1468,8 +1490,8 @@ def BlankToTag(text) :
     :return: Text with replacement done.
     :rtype: string.
     """
-    for c,r in BlankToTag_tags :
-        text = text.replace(c,r)
+    for c, r in BlankToTag_tags:
+        text = text.replace(c, r)
     return text
 
 
@@ -1487,15 +1509,17 @@ def maketransU(s1, s2, todel=u""):
     :rtype: dict
     """
     # We go unicode internally - ensure callers are ok with that.
-    assert (isinstance(s1,unicode))
-    assert (isinstance(s2,unicode))
-    trans_tab = dict( zip( map(ord, s1), map(ord, s2) ) )
-    trans_tab.update( (ord(c),None) for c in todel )
+    assert (isinstance(s1, unicode))
+    assert (isinstance(s2, unicode))
+    trans_tab = dict(zip(map(ord, s1), map(ord, s2)))
+    trans_tab.update((ord(c), None) for c in todel)
     return trans_tab
 
 #BlankToSpace_table = string.maketrans (u"\r\n\t\v\f",u"     ")
-BlankToSpace_table = maketransU (u"\r\n\t\v\f",u"     ")
-def BlankToSpace(text) :
+BlankToSpace_table = maketransU(u"\r\n\t\v\f", u"     ")
+
+
+def BlankToSpace(text):
     """Replace blanks characters by real spaces.
 
     May be good to prepare for regular expressions & Co based on whitespaces.
@@ -1512,24 +1536,24 @@ def BlankToSpace(text) :
 # Not perfect, but work mostly.
 # From http://www.faqs.org/rfcs/rfc1884.html
 # Ip_expression = r"""
-#     (?:                         # ----- Classic dotted IP V4 address -----
+# (?:                         # ----- Classic dotted IP V4 address -----
 #         (?:[0-9]{1,3}\.){3}[0-9]{1,3}
 #     )
 #             |
-#     (?:                         # ----- IPV6 format. -----
-#       (?:[0-9A-F]{1,4}:){1,6}(?::[0-9A-F]{1,4}){1,6}        # :: inside
+# (?:                         # ----- IPV6 format. -----
+# (?:[0-9A-F]{1,4}:){1,6}(?::[0-9A-F]{1,4}){1,6}        # :: inside
 #                 |
-#       (?:[0-9A-F]{1,4}:){1,6}:                              # :: at end
+# (?:[0-9A-F]{1,4}:){1,6}:                              # :: at end
 #                 |
-#       :(?::[0-9A-F]{1,4}){1,6}                              # :: at begining
+# :(?::[0-9A-F]{1,4}){1,6}                              # :: at begining
 #                 |
-#       (?:[0-9A-F]{1,4}:){7}[0-9A-F]{1,4}                    # Full IPV6
+# (?:[0-9A-F]{1,4}:){7}[0-9A-F]{1,4}                    # Full IPV6
 #                 |
-#                 ::                                          # Empty IPV6
+# ::                                          # Empty IPV6
 #     )
-#         (?:(?:\.[0-9]{1,3}){3})?    # Followed by a classic IPV4.
-#                                     # (first number matched by previous rule...
-#                                     #  which may match hexa number too (bad) )
+# (?:(?:\.[0-9]{1,3}){3})?    # Followed by a classic IPV4.
+# (first number matched by previous rule...
+# which may match hexa number too (bad) )
 # """
 # 2004-08-30 - LP
 # As IP V6 can interfer with :: in copy/past code, and as its (currently)
@@ -1539,8 +1563,8 @@ Ip_expression = r"""
         (?:[0-9]{1,3}\.){3}[0-9]{1,3}
     )
     """
-IpMatch_re = re.compile(ur"("+Ip_expression+")",
-                re.VERBOSE|re.IGNORECASE)
+IpMatch_re = re.compile(ur"(" + Ip_expression + ")",
+                        re.VERBOSE | re.IGNORECASE)
 
 
 #==============================================================================
@@ -1591,8 +1615,8 @@ DnsHost_expression = ur"""
                 |
         localhost
         )"""
-DnsHostMatch_re = re.compile(ur"("+DnsHost_expression+r")",
-        re.VERBOSE|re.IGNORECASE)
+DnsHostMatch_re = re.compile(ur"(" + DnsHost_expression + r")",
+                             re.VERBOSE | re.IGNORECASE)
 
 #==============================================================================
 # See http://www.ietf.org/rfc/rfc1738.txt?number=1738
@@ -1601,30 +1625,31 @@ UrlMatch_expression = ur"""(
         (?:ftp|https?|gopher|mailto|news|nntp|telnet|wais|file|prospero):
                 # IP Host specification (optionnal)
         (?:// (?:[-a-z0-9_;?&=](?::[-a-z0-9_;?&=]*)?@)?   # User authentication.
-             (?:(?:"""+DnsHost_expression+r""")
+             (?:(?:""" + DnsHost_expression + r""")
                         |
-                (?:"""+Ip_expression+""")
+                (?:""" + Ip_expression + """)
               )
               (?::[0-9]+)?      # Port specification
         /)?
                 # Scheme specific extension.
         (?:[-a-z0-9;/?:@=&\$_.+!*'(~#%,]+)*
         )"""
-UrlMatch_re = re.compile(UrlMatch_expression, re.VERBOSE|re.IGNORECASE)
+UrlMatch_re = re.compile(UrlMatch_expression, re.VERBOSE | re.IGNORECASE)
 
 
 #==============================================================================
 EmailMatch_expression = ur"""(
             [-a-z0-9._']+@
-            """+DnsHost_expression+r"""
+            """ + DnsHost_expression + r"""
             )"""
-EmailMatch_re = re.compile(EmailMatch_expression,re.VERBOSE|re.IGNORECASE)
-
+EmailMatch_re = re.compile(EmailMatch_expression, re.VERBOSE | re.IGNORECASE)
 
 
 #==============================================================================
 debugging_log_enabled = False
-def enable_debugging_log() :
+
+
+def enable_debugging_log():
     """Setup logging module output.
 
     This setup a log file which register logs, and also dump logs to stdout.
@@ -1634,15 +1659,16 @@ def enable_debugging_log() :
     # If debug is active, we log to a treetaggerwrapper.log file, and to
     # stdout too. If you wants to log for long time process, you may
     # take a look at RotatingFileHandler.
-    global logger,debugging_log_enabled
+    global logger, debugging_log_enabled
 
-    if debugging_log_enabled : return
+    if debugging_log_enabled:
+        return
     debugging_log_enabled = True
 
     hdlr = logging.FileHandler('treetaggerwrapper.log')
     hdlr2 = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter(
-                        'T%(thread)d %(asctime)s %(levelname)s %(message)s')
+        'T%(thread)d %(asctime)s %(levelname)s %(message)s')
     hdlr.setFormatter(formatter)
     hdlr2.setFormatter(formatter)
     logger.addHandler(hdlr)
@@ -1656,7 +1682,7 @@ Usage:
     python treetaggerwrapper.py [options] input_file
 
 Read data from specified files, process them one by one, sending data to
-TreeTagger, and write TreeTagger output to files with ."""+RESEXT+""" extension.
+TreeTagger, and write TreeTagger output to files with .""" + RESEXT + """ extension.
 
     python treetaggerwrapper.py [options] --pipe < input_stream > output_stream
 
@@ -1670,7 +1696,7 @@ Options:
     -b          transform blanks into SGML tags
     -l lang     langage to tag (default to en)
     -d dir      TreeTagger base directory
-    -e enc      files encoding to use (default to """+USER_ENCODING+""")
+    -e enc      files encoding to use (default to """ + USER_ENCODING + """)
 
 Other options:
     --ttparamfile fic       file to use as TreeTagger parameter file.
@@ -1708,107 +1734,109 @@ your text tags... with bad result on tags recognition by regular expression).
 Written by Laurent Pointal <laurent.pointal@limsi.fr> for CNRS-LIMSI.
 Alternate email: <laurent.pointal@laposte.net>
 """
-def main(*args) :
+
+
+def main(*args):
     """Test/command line usage code.
     """
-    if args and args[0].lower() in ("-h","h","--help","-help","help",
-                                    "--aide","-aide","aide","?"):
+    if args and args[0].lower() in ("-h", "h", "--help", "-help", "help",
+                                    "--aide", "-aide", "aide", "?"):
         print help_string
         sys.exit(0)
 
     # Set default, then process options.
-    numlines=tagonly=prepronly=tagblanks=pipemode=False
+    numlines = tagonly = prepronly = tagblanks = pipemode = False
     filesencoding = USER_ENCODING
     encerrors = DEFAULT_ENCERRORS
     tagbuildopt = {}
-    optlist,args = getopt.getopt(args, 'ptnl:d:be:',["abbreviations=",
-                                "ttparamfile=","ttoptions=","pipe",
-                                "ttinencoding=","ttoutencoding=",
-                                "ttinencerr=","ttoutencerr=",
-                                "debug"])
-    for opt,val in optlist :
-        if opt=="--debug" :
+    optlist, args = getopt.getopt(args, 'ptnl:d:be:', ["abbreviations=",
+                                                       "ttparamfile=", "ttoptions=", "pipe",
+                                                       "ttinencoding=", "ttoutencoding=",
+                                                       "ttinencerr=", "ttoutencerr=",
+                                                       "debug"])
+    for opt, val in optlist:
+        if opt == "--debug":
             enable_debugging_log()
-        if opt=='-p' :
+        if opt == '-p':
             prepronly = True
-        elif opt=='-t' :
+        elif opt == '-t':
             tagonly = True
-        elif opt=='-n' :
+        elif opt == '-n':
             numlines = True
-        elif opt=='-l' :
+        elif opt == '-l':
             tagbuildopt["TAGLANG"] = val
-        elif opt=='-b' :
+        elif opt == '-b':
             tagblanks = True
-        elif opt=='-d' :
+        elif opt == '-d':
             tagbuildopt["TAGDIR"] = val
-        elif opt=='-e' :
+        elif opt == '-e':
             filesencoding = val
-        elif opt=="--ttparamfile" :
+        elif opt == "--ttparamfile":
             tagbuildopt["TAGPARFILE"] = val
-        elif opt=="--ttoptions" :
-            tagbuildopt["TAGOPT"] = tagbuildopt.get("TAGOPT","")+" "+val
-        elif opt=="--abbreviations" :
+        elif opt == "--ttoptions":
+            tagbuildopt["TAGOPT"] = tagbuildopt.get("TAGOPT", "") + " " + val
+        elif opt == "--abbreviations":
             tagbuildopt["TAGABBREV"] = val
-        elif opt=="--pipe" :
+        elif opt == "--pipe":
             pipemode = True
-        elif opt=="--ttinencoding" :
+        elif opt == "--ttinencoding":
             tagbuildopt["TAGINENC"] = val
-        elif opt=="--ttoutencoding" :
+        elif opt == "--ttoutencoding":
             tagbuildopt["TAGOUTENC"] = val
-        elif opt=="--ttinencerr" :
+        elif opt == "--ttinencerr":
             tagbuildopt["TAGINENCERR"] = val
-        elif opt=="--ttoutencerr" :
+        elif opt == "--ttoutencerr":
             tagbuildopt["TAGOUTENCERR"] = val
 
     # Find files to process.
     files = []
-    for f in args :
+    for f in args:
         files.extend(glob.glob(f))
 
-    if pipemode and files :
+    if pipemode and files:
         enable_debugging_log()
         logger.error("Cannot use pipe mode with files.")
         logger.info("See online help with --help.")
         return -1
 
-    if DEBUG : logger.info("files to process: %r",files)
-    logger.info("filesencoding=%s",filesencoding)
-    tagger = TreeTagger (**tagbuildopt)
+    if DEBUG:
+        logger.info("files to process: %r", files)
+    logger.info("filesencoding=%s", filesencoding)
+    tagger = TreeTagger(**tagbuildopt)
 
-    if pipemode :
+    if pipemode:
         logger.info("Processing with stdin/stdout, reading input.")
         text = sys.stdin.read()
         logger.info("Processing with stdin/stdout, tagging.")
-        res = tagger.TagText(text,numlines,tagonly,prepronly,tagblanks)
+        res = tagger.TagText(text, numlines, tagonly, prepronly, tagblanks)
         logger.info("Processing with stdin/stdout, writing to stdout.")
         sys.stdout.write("\n".join(res))
         logger.info("Processing with stdin/stdout, finished.")
-    else :
-        for f in files :
-            logger.info("Processing with file %s, reading input.",f)
-            fread = codecs.open(f,"rU",encoding=filesencoding,errors=encerrors)
-            try :
+    else:
+        for f in files:
+            logger.info("Processing with file %s, reading input.", f)
+            fread = codecs.open(f, "rU", encoding=filesencoding, errors=encerrors)
+            try:
                 text = fread.read()
-            finally :
+            finally:
                 fread.close()
-            logger.info("Processing with file %s, tagging.",f)
+            logger.info("Processing with file %s, tagging.", f)
             # Note: as we provide Unicode, we dont care about encoding in TegText().
-            res = tagger.TagText(text,numlines,tagonly,prepronly,tagblanks)
-            logger.info("Processing with file %s, writing to %s.%s.",f,f,RESEXT)
+            res = tagger.TagText(text, numlines, tagonly, prepronly, tagblanks)
+            logger.info("Processing with file %s, writing to %s.%s.", f, f, RESEXT)
             res = u"\n".join(res)
-            fwrite = codecs.open(f+"."+RESEXT,"w",encoding=filesencoding,errors=encerrors)
-            try :
+            fwrite = codecs.open(f + "." + RESEXT, "w", encoding=filesencoding, errors=encerrors)
+            try:
                 fwrite.write(res)
-            finally :
+            finally:
                 fwrite.close()
-            logger.info("Processing with file %s, finished.",f)
+            logger.info("Processing with file %s, finished.", f)
 
     logger.info("treetaggerwrapper.py - process terminate normally.")
     return 0
 
 #==============================================================================
-if __name__ == "__main__" :
-    if DEBUG : enable_debugging_log()
+if __name__ == "__main__":
+    if DEBUG:
+        enable_debugging_log()
     sys.exit(main(*(sys.argv[1:])))
-
-

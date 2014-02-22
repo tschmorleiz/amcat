@@ -31,15 +31,19 @@ from amcat.scraping.pdf import PDFScraper
 from amcat.models.article import Article
 from amcat.models.medium import Medium
 
+
 class RawPDFForm(UploadForm):
-    pdf_password = forms.CharField(required = False)
+    pdf_password = forms.CharField(required=False)
     medium = forms.ModelChoiceField(queryset=Medium.objects.all())
-    headline = forms.CharField(required=False, help_text='If left blank, use filename (without extension and optional date prefix) as headline')
+    headline = forms.CharField(
+        required=False, help_text='If left blank, use filename (without extension and optional date prefix) as headline')
     date = forms.DateField(required=False, help_text='If left blank, use current date')
     section = forms.CharField(required=False)
 
+
 class RawPDFScraper(UploadScript, PDFScraper):
     options_form = RawPDFForm
+
     def _scrape_unit(self, _file):
         """unit: a pdf document"""
         res = ""
@@ -49,7 +53,7 @@ class RawPDFScraper(UploadScript, PDFScraper):
             for line in self.get_textlines(page):
                 page_txt += line.get_text() + "\n"
             res += page_txt + "\n\n"
-        article = Article(text = res)
+        article = Article(text=res)
         article.headline = self.getheadline(_file)
         article.medium = self.options['medium']
         article.section = self.options['section']
@@ -61,11 +65,12 @@ class RawPDFScraper(UploadScript, PDFScraper):
 
     def getheadline(self, _file):
         hl = _file.name
-        if hl.endswith(".pdf"): hl = hl[:-len(".pdf")]
+        if hl.endswith(".pdf"):
+            hl = hl[:-len(".pdf")]
         windows = hl.split("\\")
         other = hl.split("/")
         if len(windows) > len(other):
-            #probably a windows path
+            # probably a windows path
             hl = windows[-1]
         else:
             hl = other[-1]
@@ -76,5 +81,3 @@ if __name__ == "__main__":
     amcatlogging.info_module("amcat.scraping")
     from amcat.scripts.tools import cli
     cli.run_cli(RawPDFScraper)
-        
-            

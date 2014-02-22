@@ -35,24 +35,30 @@ filterset.FILTER_FOR_DBFIELD_DEFAULTS[models.AutoField] = dict(filter_class=Numb
 
 from django.forms import ValidationError
 
-import logging; log = logging.getLogger(__name__) 
+import logging
+log = logging.getLogger(__name__)
 
 ORDER_BY_FIELD = "order_by"
 
+
 class InFilter(filterset.ModelMultipleChoiceFilter):
+
     """Filter for {'pk':[1,2,3]} / pk=1&pk=2 queries"""
 
     def filter(self, qs, value):
-        if not value: return qs
+        if not value:
+            return qs
         values = [obj.id for obj in value]
         return qs.filter(**{'%s__in' % (self.name): value})
 
+
 class AmCATFilterSet(filterset.FilterSet):
+
     """
     - Allow descending /  ascending order
     - Allow filtering on pk and ordering by default
     """
-    
+
     pk = InFilter(name='id', queryset=None)
 
     # This overrides the default FilterSet value
@@ -61,7 +67,7 @@ class AmCATFilterSet(filterset.FilterSet):
     def __init__(self, *args, **kargs):
         super(AmCATFilterSet, self).__init__(*args, **kargs)
         self.filters["pk"].field.queryset = self.queryset
-    
+
     def __len__(self):
         """Default implementation does len(self.qs)  which runs the whole query..."""
         return count.count(self.qs)
@@ -74,7 +80,7 @@ class AmCATFilterSet(filterset.FilterSet):
         """
         field = super(AmCATFilterSet, self).get_ordering_field()
         if field:
-            choices = field.choices + [("-"+key, label + " (Desc)") for (key, label) in field.choices]
+            choices = field.choices + [("-" + key, label + " (Desc)") for (key, label) in field.choices]
             return forms.MultipleChoiceField(label=field.label, required=field.required, choices=choices)
         return field
 
@@ -92,12 +98,12 @@ class AmCATFilterSet(filterset.FilterSet):
                     else:
                         data = self.form.initial.get(
                             name, self.form[name].field.initial)
-                    # change    
+                    # change
                     val = None if data == 'null' else self.form.fields[name].clean(data)
                     # end of change
                     qs = filter_.filter(qs, val)
                 except forms.ValidationError:
-                    raise# was: pass
+                    raise  # was: pass
             if self._meta.order_by:
                 try:
                     order_field = self.form.fields[self.order_by_field]
@@ -109,15 +115,16 @@ class AmCATFilterSet(filterset.FilterSet):
                             qs = qs.order_by(*value)
                     # end of changes
                 except forms.ValidationError:
-                    raise# was:pass
+                    raise  # was:pass
             self._qs = qs
         return self._qs
 
 
-class AmCATFilterBackend(filters.DjangoFilterBackend):    
+class AmCATFilterBackend(filters.DjangoFilterBackend):
     default_filter_set = AmCATFilterSet
+
     def get_filter_class(self, view, *args, **kargs):
-        
+
         filter_class = super(AmCATFilterBackend, self).get_filter_class(view, *args, **kargs)
         filter_class._meta.order_by = True
         return filter_class
@@ -130,7 +137,9 @@ class AmCATFilterBackend(filters.DjangoFilterBackend):
 from amcat.tools import amcattest
 from api.rest.apitestcase import ApiTestCase
 
-class TestFilters(ApiTestCase):    
+
+class TestFilters(ApiTestCase):
+
     def _get_ids(self, resource, rtype=set, **filters):
         result = self.get(resource, **filters)
         return rtype(row['id'] for row in result['results'])
@@ -146,10 +155,9 @@ class TestFilters(ApiTestCase):
         as1.add(a1)
         as2.add(a1)
 
-        arts =  self._get_ids(ArticleResource, list, articlesets_set__id=[as1.id, as2.id])
+        arts = self._get_ids(ArticleResource, list, articlesets_set__id=[as1.id, as2.id])
 
         self.assertEquals(1, len(arts))
-
 
     def test_order_by(self):
         from api.rest.resources import ProjectResource
@@ -172,20 +180,20 @@ class TestFilters(ApiTestCase):
 
         res = self.get(ProjectResource, order_by=["active", "-name"])
         self.assertEqual([p["name"] for p in res['results']], ["c", "b", "a"])
-        
+
     def test_filter(self):
         from amcat.models import Role
         from api.rest.resources import ProjectResource
         r = Role.objects.get(label='admin', projectlevel=True)
-        
+
         p = amcattest.create_test_project(name="test")
         p2 = amcattest.create_test_project(name="not a test", guest_role=r)
         p3 = amcattest.create_test_project(name="anothertest")
 
         # no filter
         self.assertEqual(self._get_ids(ProjectResource), {p.id, p2.id, p3.id})
-        
-        # Filter on simple fields: id, pk, and name 
+
+        # Filter on simple fields: id, pk, and name
         self.assertEqual(self._get_ids(ProjectResource, id=p2.id), {p2.id})
         self.assertEqual(self._get_ids(ProjectResource, name=p.name), {p.id})
         self.assertEqual(self._get_ids(ProjectResource, pk=p.id), {p.id})
@@ -196,11 +204,11 @@ class TestFilters(ApiTestCase):
         # Filter on 1-to-many field
         #aset = amcattest.create_test_set(project=p)
         #self.assertEqual(self._get_ids(ProjectResource, articlesets_set__id=aset.id), {p.id})
-        
+
         # Filter on more n-on-m field: project roles
         u = amcattest.create_test_user()
         self.assertEqual(self._get_ids(ProjectResource, projectrole__user__id=u.id), set())
-        
+
         from amcat.models import ProjectRole
         ProjectRole.objects.create(project=p3, user=u, role=r)
         self.assertEqual(self._get_ids(ProjectResource, projectrole__user__id=u.id), {p3.id})
@@ -217,7 +225,6 @@ class TestFilters(ApiTestCase):
         a3 = amcattest.create_test_article(project=p, date="2012-03-01")
         from api.rest.resources import ArticleMetaResource
 
-
         # filter on article set
         s = amcattest.create_test_set(articles=[a1, a2])
         self.assertEqual(self._get_ids(ArticleMetaResource, articleset=s.id), {a1.id, a2.id})
@@ -231,7 +238,7 @@ class TestFilters(ApiTestCase):
         # Filter on multiple pk values
         #self.assertEqual(self._get_ids(ArticleMetaResource, pk_in=",".join(map(str, [a1.id, a2.id]))), {a1.id, a2.id})
         self.assertEqual(self._get_ids(ArticleMetaResource, pk=[a1.id, a2.id]), {a1.id, a2.id})
-        
+
     def _assertEqualIDs(self, resource, ids, **filters):
         self.assertEqual(self._get_ids(resource, **filters), ids)
 
@@ -251,8 +258,8 @@ class TestFilters(ApiTestCase):
         p2 = amcattest.create_test_project(name="not a test")
 
         self._assertEqualIDs(
-                ProjectResource, {p2.id},
-                datatables_options='{"sSearch":"not"}'
+            ProjectResource, {p2.id},
+            datatables_options='{"sSearch":"not"}'
         )
 
         # Test totals
@@ -263,5 +270,3 @@ class TestFilters(ApiTestCase):
         res = self.get(ProjectResource, datatables_options='{"sSearch":"not"}')
         self.assertEqual(res['total'], 2)
         self.assertEqual(res['subtotal'], 1)
-
-        

@@ -24,6 +24,7 @@ from django.db import models
 from amcat.models.language import Language
 from amcat.models.word import Lemma
 
+
 class SentimentLexicon(AmcatModel):
     id = models.AutoField(primary_key=True, db_column='lexicon_id')
     language = models.ForeignKey(Language)
@@ -32,6 +33,7 @@ class SentimentLexicon(AmcatModel):
     class Meta():
         db_table = 'sentimentlexica'
         app_label = 'amcat'
+
 
 class SentimentLemma(AmcatModel):
     id = models.AutoField(primary_key=True)
@@ -42,6 +44,5 @@ class SentimentLemma(AmcatModel):
     intensifier = models.FloatField()
 
     class Meta():
-	db_table = 'sentiment_lemmata'
+        db_table = 'sentiment_lemmata'
         app_label = 'amcat'
-

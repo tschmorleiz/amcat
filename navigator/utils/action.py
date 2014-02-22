@@ -26,11 +26,13 @@ This module contains helpful code for calling these actions from the website
 
 
 class ActionHandler(object):
+
     """
     An action handler handles creating the form and possibly running the action.
     Uses an object rather than a simple function because the return type is
     complex: what is the form? did the action run? what is the result?
     """
+
     def __init__(self, action, **context):
         self.action = action
         self.context = context
@@ -47,7 +49,7 @@ class ActionHandler(object):
             if not self.form.is_valid():
                 return False
 
-            self.result =  self.action(self.form).run()
+            self.result = self.action(self.form).run()
             return True
         else:
             self.form = self.action.get_empty_form(**self.context)

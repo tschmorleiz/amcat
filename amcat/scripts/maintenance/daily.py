@@ -23,36 +23,40 @@ Script to be run daily for data input (scraping, preprocessing etc.
 
 import datetime
 from django import forms
-import logging;log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from amcat.scraping.controller import Controller, ThreadedAPIController, ThreadedController
 from amcat.scripts.script import Script
-from amcat.models.project import Project    
+from amcat.models.project import Project
 from amcat.models.articleset import ArticleSet
 from amcat.models.scraper import Scraper
 from amcat.models.medium import Medium
 
+
 class DailyForm(forms.Form):
     date = forms.DateField()
-    deduplicate = forms.BooleanField(required = False)
+    deduplicate = forms.BooleanField(required=False)
+
 
 class DailyScript(Script):
     options_form = DailyForm
 
     def run(self, _input):
         log.info("Getting scrapers...")
-        scrapers = list(self.get_scrapers(date = self.options['date']))
+        scrapers = list(self.get_scrapers(date=self.options['date']))
         log.info("Starting scraping with {n} scrapers: {classnames}".format(
-                n = len(scrapers),
-                classnames = [s.__class__.__name__ for s in scrapers]))
+            n=len(scrapers),
+            classnames=[s.__class__.__name__ for s in scrapers]))
         self.scrape(Controller(), scrapers)
 
-    def scrape(self, controller, scrapers, deduplicate = False):
+    def scrape(self, controller, scrapers, deduplicate=False):
         """Use the controller to scrape the given scrapers."""
         if isinstance(controller, ThreadedController):
             controller.run(scrapers)
         else:
-            for a in controller.run(scrapers): pass
+            for a in controller.run(scrapers):
+                pass
 
     def get_scrapers(self, date=None, days_back=7, **options):
         """
@@ -61,13 +65,14 @@ class DailyScript(Script):
         are instantiated with the date, the given options, and information
         from the database
         """
-        if date is None: date = datetime.date.today()
+        if date is None:
+            date = datetime.date.today()
         dates = [date - datetime.timedelta(days=n) for n in range(days_back)]
         for s in Scraper.objects.filter(run_daily=True, active=True):
             for day in dates:
                 if not self.satisfied(s, day):
                     try:
-                        s_instance = s.get_scraper(date = day, **options)
+                        s_instance = s.get_scraper(date=day, **options)
                     except Exception as e:
                         import traceback
                         traceback.print_exc()
@@ -77,18 +82,19 @@ class DailyScript(Script):
     def satisfied(self, scraper, day):
         """Has the scraper successfully run for the given date?"""
         medium = Medium.get_or_create(scraper.get_scraper_class().medium_name)
-        n_scraped = scraper.n_scraped_articles(from_date = day, to_date = day, medium = medium)
+        n_scraped = scraper.n_scraped_articles(from_date=day, to_date=day, medium=medium)
         if not n_scraped:
-            return False #no articles
+            return False  # no articles
         elif scraper.statistics == None:
-            return False #don't know if enough articles, playing it safe
+            return False  # don't know if enough articles, playing it safe
         elif n_scraped[day] <= scraper.statistics[day.weekday()][0]:
-            return False #not enough articles
+            return False  # not enough articles
         else:
             return True
 
 from amcat.tools.amcatlogging import AmcatFormatter
 import sys
+
 
 def setup_logging():
     loggers = (logging.getLogger("amcat"), logging.getLogger("scrapers"),
@@ -96,9 +102,9 @@ def setup_logging():
     d = datetime.date.today()
     filename = "/home/amcat/log/daily_{d.year:04d}-{d.month:02d}-{d.day:02d}.txt".format(**locals())
     #sys.stderr = open(filename, 'a')
-    #TODO: Point sys.stderr to both console and file
-    handlers = (logging.StreamHandler(sys.stdout),logging.FileHandler(filename))
-    formatter = AmcatFormatter(date = True)
+    # TODO: Point sys.stderr to both console and file
+    handlers = (logging.StreamHandler(sys.stdout), logging.FileHandler(filename))
+    formatter = AmcatFormatter(date=True)
 
     for handler in handlers:
         handler.setLevel(logging.INFO)
@@ -107,7 +113,7 @@ def setup_logging():
     for logger in loggers:
         logger.propagate = False
         logger.setLevel(logging.INFO)
-        for handler in handlers:        
+        for handler in handlers:
             logger.addHandler(handler)
     logging.getLogger().handlers = []
 

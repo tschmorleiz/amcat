@@ -28,4 +28,3 @@ or a special module in the amcat.tests package.
 from amcat.tools.amcattest import get_test_classes
 for cls in get_test_classes("api"):
     locals()[cls.__name__] = cls
-

@@ -26,8 +26,10 @@ from amcat.scripts.processors.articlelist_to_table import ArticleListToTable
 import zipfile
 import io
 
+
 def table_to_xlsx(table):
     return table.export(format='xlsx')
+
 
 class TableToXlsx(script.Script):
     input_type = table3.Table
@@ -36,7 +38,8 @@ class TableToXlsx(script.Script):
 
     def run(self, tableObj):
         return tableObj.export(format='xlsx')
-       
+
+
 class ArticleListToXlsx(script.Script):
     input_type = types.ArticleIterator
     options_form = amcat.scripts.forms.ArticleColumnsForm
@@ -45,4 +48,3 @@ class ArticleListToXlsx(script.Script):
     def run(self, articleList):
         tableObj = ArticleListToTable(self.options).run(articleList)
         return tableObj.export(format='xlsx')
-        

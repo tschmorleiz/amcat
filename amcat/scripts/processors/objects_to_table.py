@@ -29,10 +29,11 @@ import amcat.scripts.forms
 import logging
 log = logging.getLogger(__name__)
 
+
 class ObjectsToTableForm(amcat.scripts.forms.GeneralColumnsForm):
     pass
 
-        
+
 def getAttribute(object, column):
     if '.' in column:
         firstpart = column.split('.')[0]
@@ -42,24 +43,22 @@ def getAttribute(object, column):
     result = getattr(object, column)
     #log.info('attr %s' % result)
     return result
-        
+
+
 def columnFunctionFactory(column):
     return lambda o: getAttribute(o, column)
-        
+
 
 class ObjectsToTable(script.Script):
     input_type = types.ObjectIterator
     options_form = ObjectsToTableForm
     output_type = table.table3.Table
 
-
     def run(self, objects):
         columns = []
         for column in self.options['columns']:
             columns.append(table.table3.ObjectColumn(column, columnFunctionFactory(column)))
-        
+
         tableObj = table.table3.ObjectTable(objects, columns)
-        
+
         return tableObj
-        
-        

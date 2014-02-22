@@ -44,22 +44,22 @@ from amcat.models.coding import codingruletoolkit
 from navigator.utils.misc import session_pop
 
 
-class CodingSchemaListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin, ListView):
+class CodingSchemaListView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, ListView):
     model = CodingSchema
     parent = ProjectDetailsView
     context_category = 'Coding'
 
     def get_context_data(self, **kwargs):
         ctx = super(CodingSchemaListView, self).get_context_data(**kwargs)
-        schemas = Datatable(CodingSchemaViewSet, rowlink="./{id}", url_kwargs=dict(project=self.project.id)).hide("highlighters")
+        schemas = Datatable(CodingSchemaViewSet, rowlink="./{id}",
+                            url_kwargs=dict(project=self.project.id)).hide("highlighters")
         owned_schemas = schemas.filter(project=self.project)
         linked_schemas = schemas.filter(projects_set=self.project)
         ctx.update(locals())
         return ctx
 
 
-
-class CodingSchemaDetailsView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin, DatatableMixin, DetailView):
+class CodingSchemaDetailsView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, DatatableMixin, DetailView):
     model = CodingSchema
     parent = CodingSchemaListView
     context_category = 'Coding'
@@ -68,8 +68,8 @@ class CodingSchemaDetailsView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumb
     def get_context_data(self, **kwargs):
         ctx = super(CodingSchemaDetailsView, self).get_context_data(**kwargs)
         object = self.get_object()
-        is_new=session_pop(self.request.session, "schema_{}_is_new".format(object.id), False)
-        is_edited=session_pop(self.request.session, "schema_{}_edited".format(object.id), False)
+        is_new = session_pop(self.request.session, "schema_{}_is_new".format(object.id), False)
+        is_edited = session_pop(self.request.session, "schema_{}_edited".format(object.id), False)
         ctx.update(locals())
         return ctx
 
@@ -81,7 +81,8 @@ class CodingSchemaDetailsView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumb
     def filter_table(self, table):
         return table.hide("codingschema")
 
-class CodingSchemaNameView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin, TemplateView):
+
+class CodingSchemaNameView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, TemplateView):
     model = CodingSchema
     parent = CodingSchemaDetailsView
     context_category = 'Coding'
@@ -117,7 +118,7 @@ class CodingSchemaNameView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMix
         return redirect("coding schema-details", self.project.id, new_schema.id)
 
 
-class CodingSchemaCopyView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin, TemplateView):
+class CodingSchemaCopyView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, TemplateView):
     model = CodingSchema
     parent = CodingSchemaDetailsView
     context_category = 'Coding'
@@ -132,26 +133,28 @@ class CodingSchemaCopyView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMix
         redirect_class = CodingSchemaNameView if do_copy else CodingSchemaDetailsView
         return redirect(redirect_class, self.project.id, self.get_object().id)
 
+
 class CodingSchemaDeleteView(ProjectViewMixin, HierarchicalViewMixin, RedirectView):
     required_project_permission = authorisation.ROLE_PROJECT_WRITER
     parent = CodingSchemaDetailsView
     url_fragment = "delete"
     model = CodingSchema
-    
+
     def get_redirect_url(self, project_id, codingschema_id):
         schema = self.get_object()
         schema.project_id = LITTER_PROJECT_ID
         schema.save()
         self.request.session['deleted_schema'] = codingschema_id
-        
+
         return reverse("coding schema-list", args=(project_id, ))
+
 
 class CodingSchemaCreateView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, CreateView):
     required_project_permission = authorisation.ROLE_PROJECT_WRITER
     parent = CodingSchemaListView
     url_fragment = "new"
     model = CodingSchema
-        
+
     def get_form(self, form_class):
         form = super(CodingSchemaCreateView, self).get_form(form_class)
         form.fields["project"].widget = HiddenInput()
@@ -159,11 +162,9 @@ class CodingSchemaCreateView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumb
         form.fields["highlighters"].required = False
         return form
 
-
-
-
     def get_success_url(self):
         return reverse("coding schema-details", args=(self.project.id, self.object.id))
+
 
 class CodingSchemaEditView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, UpdateView):
     required_project_permission = authorisation.ROLE_PROJECT_WRITER
@@ -184,18 +185,17 @@ class CodingSchemaEditFieldsView(HierarchicalViewMixin, ProjectViewMixin, BreadC
     parent = CodingSchemaDetailsView
     url_fragment = "fields"
 
-
     def get_context_data(self, **kwargs):
         ctx = super(CodingSchemaEditFieldsView, self).get_context_data(**kwargs)
         fields_null = dict([(f.name, f.null) for f in CodingSchemaField._meta.fields])
-        rules_valid=json.dumps(codingruletoolkit.schemarules_valid(self.get_object()))
+        rules_valid = json.dumps(codingruletoolkit.schemarules_valid(self.get_object()))
         ctx.update(locals())
         return ctx
-    
+
     def get(self, *args, **kargs):
         if self.get_object().project != self.project:
             # Offer to copy it to currect project
-            pass#return redirect(copy_schema, project.id, schema.id)
+            pass  # return redirect(copy_schema, project.id, schema.id)
         return super(CodingSchemaEditFieldsView, self).get(*args, **kargs)
 
     def post(self, *args, **kargs):
@@ -210,22 +210,22 @@ class CodingSchemaEditFieldsView(HierarchicalViewMixin, ProjectViewMixin, BreadC
             fields = [form.save(commit=False) for form in forms]
 
             for i, field in enumerate(fields):
-                field.fieldnr = (i+1) * 10
+                field.fieldnr = (i + 1) * 10
                 field.save()
 
             for field in set(schema.fields.all()) - set(fields):
                 # Remove deleted fields
                 field.delete()
 
-            self.request.session["schema_{}_edited".format(schema.id)] = True 
+            self.request.session["schema_{}_edited".format(schema.id)] = True
 
         # Always send response (don't throw an error)
         schema_url = reverse("coding schema-details", args=[self.project.id, schema.id])
 
         return HttpResponse(
             json.dumps({
-                "fields" : errors, "schema_url" : schema_url,
-                "rules_valid" : codingruletoolkit.schemarules_valid(schema)
+                "fields": errors, "schema_url": schema_url,
+                "rules_valid": codingruletoolkit.schemarules_valid(schema)
             }),
             mimetype='application/json'
         )
@@ -236,6 +236,7 @@ class CodingSchemaEditFieldsView(HierarchicalViewMixin, ProjectViewMixin, BreadC
             field["codingschema"] = schema.id
             instance = CodingSchemaFieldForm._meta.model.objects.get(id=field["id"]) if "id" in field else None
             yield CodingSchemaFieldForm(schema, data=field, instance=instance)
+
 
 def _get_form_errors(forms):
     """
@@ -254,8 +255,10 @@ def _get_form(data, schema, form):
     instance = form._meta.model.objects.get(id=data["id"]) if "id" in data else None
     return form(schema, data=data, instance=instance)
 
+
 def _get_forms(datas, schema, form):
     return itertools.imap(partial(_get_form, form=form, schema=schema), datas)
+
 
 class CodingSchemaFieldForm(forms.ModelForm):
     label = forms.CharField()
@@ -284,7 +287,8 @@ class CodingSchemaFieldForm(forms.ModelForm):
             if not self.cleaned_data['codebook']:
                 raise ValidationError("Codebook must be set when fieldtype is '{}'".format(db_type))
         elif self.cleaned_data['codebook']:
-            raise ValidationError("Codebook must not be set when fieldtype is '{}'".format(self.cleaned_data['fieldtype']))
+            raise ValidationError(
+                "Codebook must not be set when fieldtype is '{}'".format(self.cleaned_data['fieldtype']))
 
         return self.cleaned_data['codebook']
 
@@ -306,7 +310,7 @@ class CodingSchemaFieldForm(forms.ModelForm):
             if value is None:
                 raise ValidationError(
                     ("When fieldtype is of type {}, default needs " +
-                    "to be empty, true or false.").format(fieldtype))
+                     "to be empty, true or false.").format(fieldtype))
 
         serialiser = fieldtype.serialiserclass(CodingSchemaField(**self.cleaned_data))
 
@@ -340,7 +344,9 @@ class CodingSchemaFieldForm(forms.ModelForm):
     class Meta:
         model = CodingSchemaField
 
+
 class CodingRuleForm(forms.ModelForm):
+
     def __init__(self, codingschema, *args, **kwargs):
         super(CodingRuleForm, self).__init__(*args, **kwargs)
         self.fields["action"].required = False
@@ -371,6 +377,7 @@ class CodingRuleForm(forms.ModelForm):
 _get_schemafield_forms = partial(_get_forms, form=CodingSchemaFieldForm)
 _get_codingrule_forms = partial(_get_forms, form=CodingRuleForm)
 
+
 class CodingSchemaEditRulesView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, TemplateView):
     required_project_permission = authorisation.ROLE_PROJECT_WRITER
     parent = CodingSchemaDetailsView
@@ -384,7 +391,7 @@ class CodingSchemaEditRulesView(HierarchicalViewMixin, ProjectViewMixin, BreadCr
     def get(self, *args, **kargs):
         if self.get_object().project != self.project:
             # Offer to copy it to currect project
-            pass#return redirect(copy_schema, project.id, schema.id)
+            pass  # return redirect(copy_schema, project.id, schema.id)
         return super(CodingSchemaEditRulesView, self).get(*args, **kargs)
 
     def post(self, commit, *args, **kwargs):
@@ -412,7 +419,6 @@ class CodingSchemaEditRulesView(HierarchicalViewMixin, ProjectViewMixin, BreadCr
         )
 
 
-
 class CodingSchemaLinkView(ProjectFormView):
     parent = CodingSchemaListView
     url_fragment = 'link'
@@ -433,6 +439,7 @@ class CodingSchemaLinkView(ProjectFormView):
         self.request.session['notification'] = "Linked {n} codebook(s)".format(n=len(schemas))
         return super(CodingSchemaLinkView, self).form_valid(form)
 
+
 class CodingSchemaUnlinkView(ProjectActionRedirectView):
     parent = CodingSchemaDetailsView
     url_fragment = "unlink"
@@ -444,4 +451,3 @@ class CodingSchemaUnlinkView(ProjectActionRedirectView):
 
     def get_redirect_url(self, **kwargs):
         return CodingSchemaListView._get_breadcrumb_url(kwargs, self)
-        

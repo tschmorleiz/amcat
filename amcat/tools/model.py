@@ -21,13 +21,15 @@ from django.db import models
 
 __all__ = ['AmcatModel']
 
+
 class AmcatModel(models.Model):
+
     """Replacement for standard Django-model, extending it with
     amcat-specific features."""
     __label__ = 'label'
 
     class Meta():
-        abstract=True
+        abstract = True
         app_label = "model"
 
     def __unicode__(self):
@@ -43,16 +45,18 @@ class AmcatModel(models.Model):
         except cls.DoesNotExist:
             return cls.objects.create(**attributes)
 
-    
 
 from django_extensions.db.fields import UUIDField
 
+
 class PostgresNativeUUIDField(UUIDField):
+
     """
     Improvement to django_extensions.db.fields.UUIDField to use postgres
     internal UUID field type rather than char for storage.
     
     """
+
     def db_type(self, connection=None):
         if connection and connection.vendor in ("postgresql",):
             return "UUID"

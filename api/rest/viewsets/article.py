@@ -24,9 +24,11 @@ from api.rest.viewset import AmCATViewSetMixin
 
 __all__ = ("ArticleSerializer", "ArticleViewSet")
 
+
 class ArticleViewSetMixin(AmCATViewSetMixin):
     model_key = "article"
     model = Article
+
 
 class ArticleSerializer(AmCATModelSerializer):
 
@@ -36,7 +38,7 @@ class ArticleSerializer(AmCATModelSerializer):
 
     def restore_fields(self, data, files):
         # convert media from name to id, if needed
-        data = data.copy() # make data mutable
+        data = data.copy()  # make data mutable
         if 'medium' in data:
             try:
                 int(data['medium'])
@@ -61,13 +63,14 @@ class ArticleSerializer(AmCATModelSerializer):
         result = super(ArticleSerializer, self).from_native(data, files)
 
         # deserialize children (if needed)
-        children = data.get('children')# TODO: children can be a multi-value GET param as well, e.g. handle getlist
+        children = data.get('children')  # TODO: children can be a multi-value GET param as well, e.g. handle getlist
 
         if isinstance(children, (str, unicode)):
             children = json.loads(children)
 
         if children:
             self.many = True
+
             def get_child(obj):
                 child = self.from_native(obj, None)
                 child.parent = result
@@ -78,6 +81,7 @@ class ArticleSerializer(AmCATModelSerializer):
 
     def save(self, **kwargs):
         import collections
+
         def _flatten(l):
             """Turn either an object or a (recursive/irregular/jagged) list-of-lists into a flat list"""
             # inspired by http://stackoverflow.com/questions/2158395/flatten-an-irregular-list-of-lists-in-python
@@ -96,23 +100,25 @@ class ArticleSerializer(AmCATModelSerializer):
         # make sure that self.many is True for serializing result
         self.many = True
         return self.object
-        
+
 from api.rest.viewsets.articleset import ArticleSetViewSetMixin
 from rest_framework.viewsets import ModelViewSet
 from api.rest.viewsets.project import ProjectViewSetMixin
 from amcat.models import Article, ArticleSet, ROLE_PROJECT_READER
 from api.rest.viewsets.project import CannotEditLinkedResource, NotFoundInProject
 
+
 class ArticleViewSetMixin(AmCATViewSetMixin):
     model = Article
     model_key = "article"
 
+
 class ArticleViewSet(ProjectViewSetMixin, ArticleSetViewSetMixin, ArticleViewSetMixin, DatatablesMixin, ModelViewSet):
     model = Article
     model_key = "article"
-    permission_map = {'GET' : ROLE_PROJECT_READER}
+    permission_map = {'GET': ROLE_PROJECT_READER}
     model_serializer_class = ArticleSerializer
-    
+
     def check_permissions(self, request):
         # make sure that the requested set is available in the projec, raise 404 otherwiset
         # sets linked_set to indicate whether the current set is owned by the project
@@ -124,8 +130,7 @@ class ArticleViewSet(ProjectViewSetMixin, ArticleSetViewSetMixin, ArticleViewSet
         else:
             raise NotFoundInProject()
         return super(ArticleViewSet, self).check_permissions(request)
-    
-    
+
     @property
     def articleset(self):
         if not hasattr(self, '_articleset'):
@@ -144,8 +149,10 @@ class ArticleViewSet(ProjectViewSetMixin, ArticleSetViewSetMixin, ArticleViewSet
 
 from api.rest.apitestcase import ApiTestCase
 from amcat.tools import amcattest, toolkit
-        
+
+
 class TestArticleViewSet(ApiTestCase):
+
     def test_post(self):
         """Test whether posting and retrieving an article works correctly"""
         import datetime
@@ -186,7 +193,6 @@ class TestArticleViewSet(ApiTestCase):
 
         res = self.get(url)["results"]
 
-        headlines = {a['headline'] : a for a in res}
+        headlines = {a['headline']: a for a in res}
         self.assertEqual(set(headlines), {'Test parent', 'Test child'})
         self.assertEqual(headlines['Test child']['parent'], headlines['Test parent']['id'])
-        

@@ -42,27 +42,29 @@ from amcat.tools.toolkit import splitlist
 
 log = logging.getLogger(__name__)
 
-#if Project.objects.get(pk=1).name != "Recycle bin":
+# if Project.objects.get(pk=1).name != "Recycle bin":
 #    print "\nPlease run this with DJANGO_DB_HOST=amcatdb2\n"
 #    sys.exit(1)
 
-ARTICLE_FIELDS = ["date","section","pagenr","headline","byline","length","metastring","url",
-                  "externalid","author","text","medium_id","uuid"]
-    
+ARTICLE_FIELDS = ["date", "section", "pagenr", "headline", "byline", "length", "metastring", "url",
+                  "externalid", "author", "text", "medium_id", "uuid"]
+
+
 class CopyArticleSetScript(Script):
+
     class options_form(forms.Form):
         source_host = forms.CharField()
         source_db = forms.CharField(initial='amcat')
         source_set_id = forms.IntegerField()
         destination_project = forms.ModelChoiceField(queryset=Project.objects.all(), required=False)
         destination_set_id = forms.ModelChoiceField(queryset=ArticleSet.objects.all(), required=False)
-        
+
     def run(self, _input=None):
         self.source_set_id, self.source_host, self.source_db, self.dest_project, self.dest_set = [
             self.options.get(x) for x in ("source_set_id", "source_host", "source_db",
                                           "destination_project", "destination_set_id")]
         self.source_port = 5432
-        
+
         self.dest_host = settings.DATABASES['default']['HOST']
         self.dest_db = settings.DATABASES['default']['NAME']
         self.dest_port = settings.DATABASES['default']['PORT']
@@ -81,25 +83,24 @@ class CopyArticleSetScript(Script):
                  .format(**locals()))
 
         self._assign_uuids()
-        
+
         uuids, media = self._get_uuids()
         log.info("{n} articles in source set, UUIDs and media collected".format(n=len(uuids)))
 
         aids = list(self._check_uuids(uuids))
         log.info("{n} articles need to be copied to destionation".format(n=len(aids)))
-        
+
         self._check_media(media)
-        
 
         self._copy_articles(aids)
-
 
         # only needed if dest_set is None, but let's keep it out of the transaction as it involves a source db call
         name, provenance = self._get_index_details()
 
         with transaction.commit_on_success():
             if self.dest_set is None:
-                provenance = "Imported from {self.source_host} set {self.source_set_id}\n{provenance}".format(**locals())
+                provenance = "Imported from {self.source_host} set {self.source_set_id}\n{provenance}".format(
+                    **locals())
                 log.info("Creating destination article set {name!r} with provenance {provenance!r}".format(**locals()))
                 self.dest_set = ArticleSet.objects.create(project=self.dest_project, name=name, provenance=provenance)
                 log.info("Created destination article set {self.dest_set.id}:{self.dest_set.name!r} "
@@ -116,7 +117,6 @@ class CopyArticleSetScript(Script):
                ")".format(**locals()))
         result = self._execute_source_sql(sql)
         log.debug("SQL Result: {result}".format(**locals()))
-        
 
     def _check_uuids(self, uuids):
         """Check which articles are already present in the destination database
@@ -124,16 +124,15 @@ class CopyArticleSetScript(Script):
         for i, batch in enumerate(splitlist(uuids.keys(), itemsperbatch=10000)):
             log.info("({i}) Checking whether {n} uuids are present in destination database"
                      .format(n=len(batch), **locals()))
-            
+
             present = {uuid for (uuid,) in Article.objects.filter(uuid__in=batch).values_list("uuid")}
             for uuid in set(batch) - present:
                 yield uuids[uuid]
-            
 
     def _execute_source_sql(self, sql):
         cmd = ["psql", "-h", self.source_host, self.source_db, "-c", sql]
         return subprocess.check_output(cmd)
-                
+
     def _do_source_query(self, sql):
         # django db will be the dest database so a simple way to query to source db
         # I presume this is also possible with multiple databases, but no idea how to set that up
@@ -141,8 +140,7 @@ class CopyArticleSetScript(Script):
         sql = "COPY ({sql}) TO STDOUT WITH CSV".format(**locals())
         result = self._execute_source_sql(sql)
         return csv.reader(StringIO(result))
-            
-        
+
     def _get_uuids(self):
         sql = ("SELECT a.article_id, uuid, medium_id FROM articles a"
                " INNER JOIN articlesets_articles s ON a.article_id = s.article_id"
@@ -154,7 +152,7 @@ class CopyArticleSetScript(Script):
             uuids[uuid] = int(aid)
             media.add(int(medium_id))
         return uuids, media
-    
+
     @transaction.commit_on_success
     def _check_media(self, media):
         log.debug("Checking whether media {media!r} are present in the destination db".format(**locals()))
@@ -166,7 +164,7 @@ class CopyArticleSetScript(Script):
                    .format(media=",".join(map(str, missing))))
             for mid, name in self._do_source_query(sql):
                 Medium.objects.create(id=mid, name=name)
-    
+
     def _get_index_details(self):
         sql = ("SELECT name, provenance FROM articlesets"
                " WHERE articleset_id = {self.source_set_id}".format(**locals()))
@@ -176,7 +174,7 @@ class CopyArticleSetScript(Script):
     def _copy_articles(self, aids):
         for batch in splitlist(aids, itemsperbatch=1000):
             self._do_copy_articles(batch)
-    
+
     def _do_copy_articles(self, aids):
         # Create the article objects
         fields = ", ".join(ARTICLE_FIELDS)
@@ -190,12 +188,12 @@ class CopyArticleSetScript(Script):
         dest_host = "-h {self.dest_host}".format(**locals()) if self.dest_host else ""
         dest_port = "-p {self.dest_port}".format(**locals()) if self.dest_port else ""
         source_host = "-h {self.source_host}".format(**locals()) if self.source_host else ""
-        
+
         cmd = ('psql {source_host} {self.source_db} -c "{export_sql}" '
                '| psql {dest_port} {dest_host} {self.dest_db} -c "{import_sql}"').format(**locals())
 
         log.debug("Copying {n} articles...".format(n=len(aids)))
-        #log.debug(cmd)
+        # log.debug(cmd)
         subprocess.check_output(cmd, shell=True)
         log.debug("... Done!")
 
@@ -206,7 +204,7 @@ class CopyArticleSetScript(Script):
             raise Exception("|aids| != |uuids|, something went wrong importing...")
         self.dest_set.add_articles(aids, add_to_index=False)
         log.debug("... Done!")
-        
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     from amcat.tools import amcatlogging

@@ -30,4 +30,3 @@ class CodingRuleResource(AmCATResource):
         "codingschema__codingjobs_article__id",
         "codingschema__codingjobs_unit__id"
     ]
-

@@ -25,11 +25,13 @@ from amcat.models.scraper import Scraper
 #### MISC ####
 ##############
 
+
 def dictionary(func):
     """This decorator converts a generator yielding (key, value) to a dictionary."""
     def _dictionary(*args, **kwargs):
         return dict(tuple(func(*args, **kwargs)))
     return _dictionary
+
 
 def iterable(func):
     """This decorator converts a generator to a tuple."""
@@ -46,10 +48,11 @@ import inspect
 ########################
 
 def todate(date):
-  """Convert datetime object to date object. If `date` can't be converted, return
-  withouth modifying"""
-  return date.date() if hasattr(date, 'date') else date
-  
+    """Convert datetime object to date object. If `date` can't be converted, return
+    withouth modifying"""
+    return date.date() if hasattr(date, 'date') else date
+
+
 def filter_docs(docs, date):
     """Some websites do not provide an archive, but only 'previous' and 'next' links. By
     iterating over all pages descending, this function only returns the document with the
@@ -67,6 +70,7 @@ def filter_docs(docs, date):
         elif todate(doc.props.date) < date:
             break
 
+
 @dictionary
 def parse_form(form):
     """Turn a form in to a dictionary, including hidden fields.
@@ -76,10 +80,11 @@ def parse_form(form):
     for inp in form.cssselect('input'):
         yield (inp.get('name'), inp.get('value', '').encode('utf-8'))
 
+
 @iterable
 def parse_coord(coord):
     """Newspapers often create clickable articles using divs and styles. For example:
-    
+
     left:331px; top:495px; width:72px; height:86px
 
     This function returns a tuple containing (left, top, width, height).
@@ -89,10 +94,10 @@ def parse_coord(coord):
     coords = [x.strip() for x in coord.split(';')]
     return map(int, (x.split(':')[1][:-2] for x in coords))
 
+
 def parse_coords(elements):
     """Uses parse_coord to parse multiple lxml.html elements' style attributes"""
     return [parse_coord(el.get('style')) for el in elements]
-
 
 
 ########################
@@ -127,6 +132,7 @@ def get_scrapers():
                 if member not in PROCESSORS and issubclass(member, processors.Scraper):
                     yield member
 
+
 def get_scraper_model(scraper_class):
     """Return a model for `scraper_class`.
 
@@ -137,6 +143,3 @@ def get_scraper_model(scraper_class):
 
     @return amcat.models.scraping.Scraper object"""
     return Scraper.objects.get(class_name=scraper_class.__name__)
-
-
-    

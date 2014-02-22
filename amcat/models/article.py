@@ -33,23 +33,27 @@ from django.db import models, transaction
 from django.db.utils import IntegrityError, DatabaseError
 from django.core.exceptions import ValidationError
 
-import logging;
+import logging
 
 log = logging.getLogger(__name__)
 
 import re
 
-WORD_RE = re.compile('[{L}{N}]+') # {L} --> All (unicode) letters
+WORD_RE = re.compile('[{L}{N}]+')  # {L} --> All (unicode) letters
                                   # {N} --> All numbers
+
 
 def word_len(txt):
     """Count words in `txt`
 
     @type txt: str or unicode"""
-    if not txt: return 0 # Safe handling of txt=None
+    if not txt:
+        return 0  # Safe handling of txt=None
     return len(re.sub(WORD_RE, ' ', txt).split())
 
+
 class Article(AmcatModel):
+
     """
     Class representing a newspaper article
     """
@@ -69,7 +73,7 @@ class Article(AmcatModel):
     author = models.TextField(blank=True, null=True, max_length=100)
     addressee = models.TextField(blank=True, null=True, max_length=100)
     uuid = PostgresNativeUUIDField(db_index=True, unique=True)
-    
+
     #sets = models.ManyToManyField("amcat.Set", db_table="sets_articles")
 
     text = models.TextField()
@@ -80,7 +84,7 @@ class Article(AmcatModel):
     medium = models.ForeignKey(Medium, db_index=True)
 
     insertscript = models.CharField(blank=True, null=True, max_length=500)
-    insertdate = models.DateTimeField(blank=True,null=True,auto_now_add=True)
+    insertdate = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     class Meta():
         db_table = 'articles'
@@ -96,7 +100,6 @@ class Article(AmcatModel):
             self.length = word_len(self.text) + word_len(self.headline) + word_len(self.byline)
 
         super(Article, self).save(*args, **kwargs)
-
 
     def words(self):
         "@return: a generator yielding all words in all sentences"
@@ -156,17 +159,17 @@ class Article(AmcatModel):
 
         if check_duplicate:
             hashes = [a.es_dict['hash'] for a in articles]
-            results =es.query(filters={'hashes' : hashes}, fields=["hash", "sets"], score=False) 
-            dupes = {r.hash : r for r in results}
+            results = es.query(filters={'hashes': hashes}, fields=["hash", "sets"], score=False)
+            dupes = {r.hash: r for r in results}
         else:
             dupes = {}
 
-        # add all non-dupes to the db, needed actions        
-        add_to_set = set() # duplicate article ids to add to set
-        add_new_to_set = set() # new article ids to add to set
-        add_to_index = [] # es_dicts to add to index
-        result = [] # return result
-        errors = [] # return errors
+        # add all non-dupes to the db, needed actions
+        add_to_set = set()  # duplicate article ids to add to set
+        add_new_to_set = set()  # new article ids to add to set
+        add_to_index = []  # es_dicts to add to index
+        result = []  # return result
+        errors = []  # return errors
         for a in articles:
             dupe = dupes.get(a.es_dict['hash'], None)
             if dupe:
@@ -197,7 +200,7 @@ class Article(AmcatModel):
         # add to index
         if add_to_index:
             es.bulk_insert(add_to_index)
-                
+
         if articleset:
             # add to articleset (db and index)
             articleset.add_articles(add_to_set | add_new_to_set, add_to_index=False)
@@ -221,17 +224,16 @@ class Article(AmcatModel):
                     a.parent = b
                     a.save()
         return articles, errors
-            
-            
+
 
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-
 from amcat.tools import amcattest
 
+
 class TestArticle(amcattest.AmCATTestCase):
-    
+
     @amcattest.use_elastic
     def test_create(self):
         """Can we create/store/index an article object?"""
@@ -244,7 +246,6 @@ class TestArticle(amcattest.AmCATTestCase):
         self.assertEqual(a.headline, es_a.headline)
         self.assertEqual('2010-12-31T00:00:00', db_a.date.isoformat())
         self.assertEqual('2010-12-31T00:00:00', es_a.date.isoformat())
-        
 
     @amcattest.use_elastic
     def test_deduplication(self):
@@ -253,15 +254,16 @@ class TestArticle(amcattest.AmCATTestCase):
                    medium=amcattest.create_test_medium(),
                    project=amcattest.create_test_project(),
                    )
-        
+
         a1 = amcattest.create_test_article(**art)
+
         def q(**filters):
             amcates.ES().flush()
             return set(amcates.ES().query_ids(filters=filters))
         self.assertEqual(q(mediumid=art['medium']), {a1.id})
 
         # duplicate articles should not be added
-        a2 = amcattest.create_test_article(check_duplicate=True,**art)
+        a2 = amcattest.create_test_article(check_duplicate=True, **art)
         self.assertFalse(Article.objects.filter(pk=a2.id).exists())
         self.assertEqual(a2.duplicate_of, a1.id)
         self.assertEqual(q(mediumid=art['medium']), {a1.id})
@@ -269,8 +271,8 @@ class TestArticle(amcattest.AmCATTestCase):
         # however, if an articleset is given the 'existing' article
         # should be added to that set
         s1 = amcattest.create_test_set()
-        a3 = amcattest.create_test_article(check_duplicate=True,articleset=s1, **art)
-        
+        a3 = amcattest.create_test_article(check_duplicate=True, articleset=s1, **art)
+
         self.assertFalse(Article.objects.filter(pk=a2.id).exists())
         self.assertEqual(a3.duplicate_of, a1.id)
         self.assertEqual(q(mediumid=art['medium']), {a1.id})
@@ -282,8 +284,7 @@ class TestArticle(amcattest.AmCATTestCase):
         self.assertTrue(Article.objects.filter(pk=a4.id).exists())
         self.assertFalse(hasattr(a4, 'duplicate_of'))
         self.assertIn(a4.id, q(mediumid=art['medium']))
-        
-        
+
     def test_unicode_word_len(self):
         """Does the word counter eat unicode??"""
         u = u'Kim says: \u07c4\u07d0\u07f0\u07cb\u07f9'
@@ -291,7 +292,7 @@ class TestArticle(amcattest.AmCATTestCase):
 
         b = b'Kim did not say: \xe3\xe3k'
         self.assertEqual(word_len(b), 5)
-        
+
     @amcattest.use_elastic
     def test_unicode(self):
         """Test unicode headlines"""
@@ -305,6 +306,5 @@ class TestArticle(amcattest.AmCATTestCase):
     def test_medium_name(self):
         m = amcattest.create_test_medium(name="de testkrant")
         a = amcattest.create_test_article(medium=m)
-        r = amcates.ES().query(filters={"id" : a.id}, fields=["medium"])
+        r = amcates.ES().query(filters={"id": a.id}, fields=["medium"])
         print(r)
-                                                             

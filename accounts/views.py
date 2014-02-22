@@ -13,13 +13,15 @@ from amcat.models.user import Affiliation
 from amcat.models.authorisation import Role
 from amcat.models import AmCAT
 
+
 def _login(request, error, username, announcement):
     """
     Render shortcut
     """
     return render(request, "accounts/login.html",
-        dict(error=error, username=username, announcement=announcement)
-    )
+                  dict(error=error, username=username, announcement=announcement)
+                  )
+
 
 def _redirect_login(request):
     """
@@ -64,10 +66,12 @@ def login(request):
     # GET request, send empty form
     return _login(request, False, None, announcement)
 
+
 def logout(request):
     auth_logout(request)
     signals.user_logged_out.send(sender=request.user.__class__, request=request, user=request.user)
     return redirect(login)
+
 
 def register(request):
     """
@@ -94,6 +98,7 @@ def register(request):
 
     return render(request, "accounts/register.html", locals())
 
+
 def recover(request):
     """
     Reset password based on email address or username.
@@ -101,18 +106,20 @@ def recover(request):
     Send email to user.
     """
     return password_reset(request,
-            template_name="accounts/recover.html",
-            email_template_name="accounts/reset_email.html",
-            subject_template_name="accounts/reset_subject.txt",
-            password_reset_form=UserPasswordResetForm,
-            post_reset_redirect=reverse(recover_requested)
-    )
+                          template_name="accounts/recover.html",
+                          email_template_name="accounts/reset_email.html",
+                          subject_template_name="accounts/reset_subject.txt",
+                          password_reset_form=UserPasswordResetForm,
+                          post_reset_redirect=reverse(recover_requested)
+                          )
+
 
 def recover_requested(request):
     return render(request, "accounts/recover_requested.html")
 
+
 def recover_confirm(request, uidb64, token):
     return password_reset_confirm(request,
-            uidb64=uidb64, token=token,
-            template_name="accounts/recover_confirm.html",
-            post_reset_redirect=reverse(login))
+                                  uidb64=uidb64, token=token,
+                                  template_name="accounts/recover_confirm.html",
+                                  post_reset_redirect=reverse(login))

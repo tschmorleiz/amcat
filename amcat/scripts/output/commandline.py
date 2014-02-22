@@ -21,23 +21,20 @@ from amcat.tools.table import tableoutput
 from amcat.tools.table import table3
 from amcat.scripts import script, types
 
+
 class TableToString(script.Script):
     input_type = table3.Table
     options_form = None
     output_type = str
 
-
     def run(self, tableObj):
         return tableoutput.table2unicode(tableObj)
-       
-       
+
+
 class ArticleListToString(script.Script):
     input_type = types.ArticleIterator
     options_form = None
     output_type = str
 
-
     def run(self, articleList):
         return '\n'.join(('%s: %s' % (a.id, a.headline) for a in articleList.articles.all()))
-        
-        

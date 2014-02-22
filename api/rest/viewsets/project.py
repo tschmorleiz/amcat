@@ -32,28 +32,33 @@ from api.rest.viewset import AmCATViewSetMixin
 log = logging.getLogger(__name__)
 
 __all__ = ("CannotEditLinkedResource", "NotFoundInProject", "ProjectPermission",
-            "ProjectViewSetMixin", "ProjectSerializer", "ProjectViewSet")
+           "ProjectViewSetMixin", "ProjectSerializer", "ProjectViewSet")
 
 _DEFAULT_PERMISSION_MAP = {
-    'OPTIONS' : True,
-    'HEAD' : True,
-    'GET' : ROLE_PROJECT_METAREADER,
-    'POST' : ROLE_PROJECT_WRITER,
-    'PUT' : False,
-    'PATCH' : ROLE_PROJECT_ADMIN,
-    'DELETE' : ROLE_PROJECT_ADMIN,
+    'OPTIONS': True,
+    'HEAD': True,
+    'GET': ROLE_PROJECT_METAREADER,
+    'POST': ROLE_PROJECT_WRITER,
+    'PUT': False,
+    'PATCH': ROLE_PROJECT_ADMIN,
+    'DELETE': ROLE_PROJECT_ADMIN,
 }
+
 
 class CannotEditLinkedResource(exceptions.PermissionDenied):
     default_detail = 'Cannot modify a linked resource, please edit via the owning project'
 
+
 class NotFoundInProject(exceptions.APIException):
     status_code = status.HTTP_404_NOT_FOUND
     default_detail = 'The requested resource does not exist in the given project'
+
     def __init__(self, detail=None):
         self.detail = detail or self.default_detail
 
+
 class ProjectPermission(permissions.BasePermission):
+
     """
     Checks permissions based on the user's project role
     Uses view.permission_map, defaulting to _DEFAULT_PERMISSIONS_MAP
@@ -62,10 +67,12 @@ class ProjectPermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
         # When viewing project lists, no project is in context
-        if view.project is None: return True
+        if view.project is None:
+            return True
 
         user = request.user if request.user.is_authenticated() else None
-        if user and user.is_superuser: return True
+        if user and user.is_superuser:
+            return True
         required_role_id = getattr(view, 'permission_map', {}).get(request.method)
         if not required_role_id:
             required_role_id = _DEFAULT_PERMISSION_MAP[request.method]
@@ -79,6 +86,7 @@ class ProjectPermission(permissions.BasePermission):
 
 
 class ProjectSerializer(AmCATModelSerializer):
+
     """
     This serializer includes another boolean field `favourite` which is is True
     when the serialized project is in request.user.user_profile.favourite_projects.
@@ -97,7 +105,8 @@ class ProjectSerializer(AmCATModelSerializer):
                        .favourite_projects.values_list("id", flat=True))
 
     def is_favourite(self, project):
-        if project is None: return
+        if project is None:
+            return
         return project.id in self.favourite_projects
 
     def restore_fields(self, data, files):
@@ -108,6 +117,7 @@ class ProjectSerializer(AmCATModelSerializer):
 
     class Meta:
         model = Project
+
 
 class ProjectViewSetMixin(AmCATViewSetMixin):
     permission_classes = (ProjectPermission,)
@@ -122,6 +132,7 @@ class ProjectViewSetMixin(AmCATViewSetMixin):
         name = '{base_name}-{view}'.format(**locals())
         return reverse(name, kwargs=kwargs)
 
+
 class ProjectViewSet(ProjectViewSetMixin, DatatablesMixin, ModelViewSet):
     model = Project
 
@@ -130,8 +141,8 @@ class ProjectViewSet(ProjectViewSetMixin, DatatablesMixin, ModelViewSet):
         if 'pk' in self.kwargs:
             return Project.objects.get(pk=self.kwargs['pk'])
         else:
-            return None # no permissions needed. Not a very elegant signal?
-    
+            return None  # no permissions needed. Not a very elegant signal?
+
     def filter_queryset(self, queryset):
         qs = super(ProjectViewSet, self).filter_queryset(queryset)
         role = Role.objects.get(label="metareader", projectlevel=True)
@@ -140,5 +151,3 @@ class ProjectViewSet(ProjectViewSetMixin, DatatablesMixin, ModelViewSet):
 
         else:
             return qs.filter(id__in=self.request.user.get_profile().get_projects(role))
-
-

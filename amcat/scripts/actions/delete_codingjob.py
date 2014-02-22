@@ -22,7 +22,8 @@
 Script add a project
 """
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from django import forms
 from django.db import transaction
@@ -31,10 +32,11 @@ from amcat.scripts.script import Script
 from amcat.models import CodingJob
 
 
+PROJECT_ROLE_READER = 11
 
-PROJECT_ROLE_READER=11
 
 class DeleteCodingJob(Script):
+
     """Delete the given job including all codings and article set unless the
     article set is in use somewhere else"""
     class options_form(forms.Form):
@@ -53,7 +55,7 @@ class DeleteCodingJob(Script):
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli()
-    
+
 
 ###########################################################################
 #                          U N I T   T E S T S                            #
@@ -61,7 +63,9 @@ if __name__ == '__main__':
 
 from amcat.tools import amcattest
 
+
 class TestDeleteCodingJob(amcattest.AmCATTestCase):
+
     def test_delete(self):
         """Simple deletion of a job"""
         from amcat.models import ArticleSet, Coding
@@ -80,8 +84,8 @@ class TestDeleteCodingJob(amcattest.AmCATTestCase):
         """Delete a job whose set is in use somewhere else"""
         from amcat.models import ArticleSet
         s = amcattest.create_test_set(articles=5)
-        j = amcattest.create_test_job(articleset=s) 
-        j2 = amcattest.create_test_job(articleset=s)# use same article set
+        j = amcattest.create_test_job(articleset=s)
+        j2 = amcattest.create_test_job(articleset=s)  # use same article set
         DeleteCodingJob(job=j.id).run()
         self.assertFalse(CodingJob.objects.filter(pk=j.id).exists())
         self.assertEquals(j2.articleset, s)

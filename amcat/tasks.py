@@ -31,12 +31,14 @@ from celery.utils.log import get_task_logger
 log = get_task_logger(__name__)
 log.setLevel(logging.INFO)
 
-#Things that cannot be serialized:
+# Things that cannot be serialized:
 #- Scraper script (unless...)
 #- Any Django model
 #- lxml.html.HTMLElements
 
-#since html elements are not serializable, we will convert them early
+# since html elements are not serializable, we will convert them early
+
+
 def convert(unit):
     t = type(unit)
     if isinstance(unit, Document):
@@ -46,23 +48,29 @@ def convert(unit):
     elif t in (html.HtmlElement, etree._Element):
         for js in unit.cssselect("script"):
             js.drop_tree()
-        unit = html2text(html.tostring(unit)).strip() 
+        unit = html2text(html.tostring(unit)).strip()
     elif t in (list, tuple, types.GeneratorType):
         unit = tuple(unit)
         if all([type(e) in (html.HtmlElement, etree._Element) for e in unit]):
             unit = "\n\n".join(map(convert, unit))
     return unit
 
+
 class LockHack(object):
-    #awaiting a better solution
-    def acquire(self):pass
-    def release(self):pass
+    # awaiting a better solution
+
+    def acquire(self):
+        pass
+
+    def release(self):
+        pass
 
 
 @app.task
 def _scrape_task(controller, scraper):
     controller._scrape(scraper)
-    
+
+
 @app.task
 def _scrape_unit_task(controller, scraper, unit):
     controller._scrape_unit(scraper, unit)

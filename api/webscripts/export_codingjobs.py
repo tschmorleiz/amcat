@@ -25,20 +25,18 @@ from amcat.scripts.processors.export_codingjobs import ExportCodingjobsScript, C
 import logging
 log = logging.getLogger(__name__)
 
+
 class ExportCodingjobsForm(CodingjobsForm):
     pass
 
-    
+
 class ExportCodingjobs(WebScript):
     name = "Export Codingjob"
     form_template = None
     form = ExportCodingjobsForm
     displayLocation = ()
     output_template = None
-    
-    
+
     def run(self):
         result = ExportCodingjobsScript(self.data).run()
         return self.outputResponse(result, ExportCodingjobsScript.output_type)
-        
-    

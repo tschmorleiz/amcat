@@ -34,6 +34,7 @@ import collections
 import logging
 log = logging.getLogger(__name__)
 
+
 def surlencode(query, doseq=False):
     """
     This is an improved version of urlencode, which takes the same
@@ -41,26 +42,27 @@ def surlencode(query, doseq=False):
     which are sequences.
     """
     def _surlencode():
-        for k,v in query.items():
+        for k, v in query.items():
             if isinstance(v, (list, tuple)):
                 for vsub in v:
-                    yield urlencode({ k : vsub })
+                    yield urlencode({k: vsub})
             else:
-                yield urlencode({ k : v })
-    
+                yield urlencode({k: v})
+
     return "&".join(_surlencode())
 
+
 class ApiTestCase(TestCase):
+
     def __init__(self, *args, **kargs):
         super(ApiTestCase, self).__init__(*args, **kargs)
-        self._passwords = {} # user_id -> password
-        
+        self._passwords = {}  # user_id -> password
+
     def setUp(self):
         self.client = Client()
         self.user = amcattest.create_test_user()
         self.user.is_superuser = True
         self.user.save()
-        
 
     def _login(self, as_user=None, password=None):
         as_user = as_user or self.user
@@ -72,7 +74,7 @@ class ApiTestCase(TestCase):
             as_user.save()
             self._passwords[as_user.id] = password
         self.assertTrue(self.client.login(username=as_user.username, password=password), "Cannot log in")
-        
+
     def _request(self, resource, as_user=None, method='get', check_status=200, request_args=[], request_options={}, **options):
         if as_user is not None:
             self._login(as_user=as_user)
@@ -97,7 +99,8 @@ class ApiTestCase(TestCase):
         return json.loads(result.content)
 
     def post(self, resource, body, check_status=201, **options):
-        result = self._request(resource, method='post', format='json', request_args=[body], check_status=check_status, **options)
+        result = self._request(resource, method='post',
+                               format='json', request_args=[body], check_status=check_status, **options)
         return json.loads(result.content)
 
     def get_object(self, resource, pk, **options):
@@ -106,10 +109,8 @@ class ApiTestCase(TestCase):
         keys, values = zip(*result.iteritems())
         t = collections.namedtuple(resource.model.__name__, keys)
         return t(*values)
-    
 
-
-    def assertDictsEqual(self, a,b):
+    def assertDictsEqual(self, a, b):
         if a != b:
             msg = []
             for x in a:
@@ -120,5 +121,4 @@ class ApiTestCase(TestCase):
             for x in b:
                 if x not in a:
                     msg += ["<< {x} not in a".format(**locals())]
-            self.assertEqual(a,b, "\n".join(msg))
-    
+            self.assertEqual(a, b, "\n".join(msg))

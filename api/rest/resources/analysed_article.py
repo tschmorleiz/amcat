@@ -26,8 +26,10 @@ from api.rest.viewsets.analysed_article import AnalysedArticleSerializer
 
 
 class AnalysedArticlesPaginationSerializer(AmCATPaginationSerializer):
+
     class Meta:
         object_serializer_class = AnalysedArticleSerializer
+
 
 class AnalysedArticleResource(AmCATResource):
     model = AnalysedArticle
@@ -43,4 +45,3 @@ class AnalysedArticleResource(AmCATResource):
               .annotate(assigned=Count("id"), done=BooleanSum("done"), error=BooleanSum("error"))
               )
         return qs
-

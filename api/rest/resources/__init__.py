@@ -24,7 +24,8 @@ If you want to customize the model, create it in this package and import it here
 """
 
 
-import types, sys
+import types
+import sys
 from amcat.tools import classtools
 from api.rest.resources.amcatresource import AmCATResource
 from api.rest.resources.project import ProjectResource
@@ -60,19 +61,21 @@ MODELS = ['Article', 'AmCAT',
 # Automatically generate resources for these models
 for modelname in MODELS:
     if "." in modelname:
-        package, modelname = modelname.rsplit(".", 1) 
+        package, modelname = modelname.rsplit(".", 1)
     else:
         package, modelname = "amcat.models", modelname
     model = classtools.import_attribute(package, modelname)
-    resource =  AmCATResource.create_subclass(model)
+    resource = AmCATResource.create_subclass(model)
     setattr(sys.modules[__name__], resource.__name__, resource)
+
 
 def all_resources():
     for r in globals().values():
         if (isinstance(r, (type, types.ClassType))
-            and issubclass(r, AmCATResource)
-            and r != AmCATResource):
+                and issubclass(r, AmCATResource)
+                and r != AmCATResource):
             yield r
+
 
 def get_resource_for_model(model):
     for resource in all_resources():
@@ -80,10 +83,12 @@ def get_resource_for_model(model):
             return resource
     raise ValueError("No resource registered for model {model}".format(**locals()))
 
+
 def get_all_resource_views(request):
     for r in all_resources():
         if hasattr(r, "get_model_name"):
             yield (r.get_model_name(), reverse(r.get_view_name(), request=request))
+
 
 @api_view(['GET'])
 def api_root(request, format=None):
@@ -91,5 +96,5 @@ def api_root(request, format=None):
     Overview of API resources
     """
     return Response(OrderedDict(sorted(
-        get_all_resource_views(request), key=lambda r:r[0])
+        get_all_resource_views(request), key=lambda r: r[0])
     ))

@@ -23,7 +23,8 @@
 Script add a user to db and users table
 """
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from django import forms
 
@@ -34,6 +35,7 @@ from amcat.models.user import User, Affiliation, create_user
 from amcat.models.authorisation import Role
 from amcat.forms.fields import UserField
 
+
 class AddUserForm(forms.ModelForm):
     username = UserField()
     password = forms.CharField(required=False)
@@ -42,7 +44,9 @@ class AddUserForm(forms.ModelForm):
         model = User
         fields = ('username', 'first_name', 'last_name', 'email')
 
+
 class AddUser(Script):
+
     """Add a user to the database. A new DB user will be created,
     and the user will be added to the users table.
 

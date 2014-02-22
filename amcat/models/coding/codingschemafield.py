@@ -37,9 +37,12 @@ from amcat.models.coding import serialiser
 
 from django.db import models
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
+
 
 class CodingSchemaFieldType(AmcatModel):
+
     """
     Model for codingschemas_fieldtypes
 
@@ -52,7 +55,7 @@ class CodingSchemaFieldType(AmcatModel):
     determined by parameters in the schema field definition.
     """
     __label__ = 'name'
-    
+
     id = models.IntegerField(primary_key=True, db_column="fieldtype_id")
     name = models.CharField(max_length=50, unique=True)
     serialiserclassname = models.CharField(max_length=50, db_column="serialiserclass")
@@ -66,32 +69,33 @@ class CodingSchemaFieldType(AmcatModel):
         """Create a serialiser object for this field type with the given field"""
         pass
 
-    
     class Meta():
         db_table = 'codingschemas_fieldtypes'
         app_label = 'amcat'
-        
+
+
 class CodingSchemaField(AmcatModel):
+
     """Model for codingschemas_fields
 
     Fields are the concrete fields in an coding schema. Every value in an actual
     coding is bound to an coding schema field, which can e.g. (de)serialise
     and validate the coded values.
     """
-    
+
     id = models.AutoField(primary_key=True, db_column="codingschemafield_id")
 
     codingschema = models.ForeignKey(CodingSchema, related_name='fields')
     fieldnr = models.IntegerField(default=0)
-    
+
     label = models.TextField()
     required = models.BooleanField(default=True)
     fieldtype = models.ForeignKey(CodingSchemaFieldType)
-    
-    codebook = models.ForeignKey(Codebook, null=True) # for codebook fields
+
+    codebook = models.ForeignKey(Codebook, null=True)  # for codebook fields
     split_codebook = models.BooleanField(default=False, help_text="Do not display a list of all codes in annotator, " +
-                                                                   "but let the user first choose a root and then " + 
-                                                                   "one of its descendants.")
+                                         "but let the user first choose a root and then " +
+                                         "one of its descendants.")
 
     # Default needs to the last field specified, in order to allow checks on
     # `fieldtype` when validating `default` in forms.
@@ -110,27 +114,27 @@ class CodingSchemaField(AmcatModel):
         """Validate the given value for this field"""
         if (value is None) and self.required:
             raise RequiredValueError(self)
-            
+
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-        
+
 from amcat.tools import amcattest
-        
+
+
 class TestCodingSchemaFieldType(amcattest.AmCATTestCase):
+
     def test_get_serialiser(self):
         """Are the built in field types present and bound to the right class?"""
         fieldtype = CodingSchemaFieldType.objects.get(pk=1)
         self.assertEqual(fieldtype.serialiserclass, serialiser.TextSerialiser)
 
+
 class TestCodingSchemaField(amcattest.AmCATTestCase):
+
     def test_create_field(self):
         """Can we create a schema field object on a schema"""
         fieldtype = CodingSchemaFieldType.objects.get(pk=1)
         a = amcattest.create_test_schema()
         f = CodingSchemaField.objects.create(codingschema=a, fieldnr=1, fieldtype=fieldtype)
         self.assertIsNotNone(f)
-        
-        
-        
-        

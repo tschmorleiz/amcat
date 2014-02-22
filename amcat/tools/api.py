@@ -38,6 +38,7 @@ article_url = articleset_url + '{articleset}/articles/'
 
 
 class AmcatAPI(object):
+
     def __init__(self, host, user, password):
         self.host = host
         self.user = user
@@ -51,11 +52,12 @@ class AmcatAPI(object):
         if expected_status is None:
             expected_status = dict(get=200, post=201)[method]
         url = "{self.host}/api/v4/{url}".format(**locals())
-        options = dict({'format' : format}, **options)
+        options = dict({'format': format}, **options)
         r = requests.request(method, url, auth=(self.user, self.password), data=data, params=options, headers=headers)
         log.info("HTTP {method} {url} (options={options!r}, data={data!r}) -> {r.status_code}".format(**locals()))
         if r.status_code != expected_status:
-            raise Exception("Request {url!r} returned code {r.status_code}, expected {expected_status}:\n{r.text}".format(**locals()))
+            raise Exception(
+                "Request {url!r} returned code {r.status_code}, expected {expected_status}:\n{r.text}".format(**locals()))
         if format == 'json':
             try:
                 return r.json()
@@ -63,7 +65,7 @@ class AmcatAPI(object):
                 raise Exception("Cannot decode json; text={r.text!r}".format(**locals()))
         else:
             return r.text
-        
+
     def list_sets(self, project, **filters):
         """List the articlesets in a project"""
         url = articleset_url.format(**locals())
@@ -73,7 +75,7 @@ class AmcatAPI(object):
         """List the articles in a set"""
         url = article_url.format(**locals())
         return self.request(url, **filters)
-    
+
     def create_set(self, project, json_data=None, **options):
         """Create a new article set. Provide the needed arguments using the post_data or with key-value pairs"""
         url = articleset_url.format(**locals())
@@ -82,7 +84,7 @@ class AmcatAPI(object):
             return self.request(url, method="post", data=options)
         else:
             if not isinstance(json_data, (str, unicode)):
-                
+
                 json_data = DjangoJSONEncoder().encode(json_data)
             headers = {'content-type': 'application/json'}
             return self.request(url, method='post', data=json_data, headers=headers)
@@ -94,7 +96,7 @@ class AmcatAPI(object):
         is another list of dictionaries. 
         """
         url = article_url.format(**locals())
-        if json_data is None: #TODO duplicated from create_set, move into requests (or separate post method?)
+        if json_data is None:  # TODO duplicated from create_set, move into requests (or separate post method?)
             # form encoded request
             return self.request(url, method="post", data=options)
         else:
@@ -103,26 +105,32 @@ class AmcatAPI(object):
             headers = {'content-type': 'application/json'}
             return self.request(url, method='post', data=json_data, headers=headers)
 
-        
+
 if __name__ == '__main__':
-    import argparse, sys, pydoc
+    import argparse
+    import sys
+    import pydoc
     logging.basicConfig(level=logging.INFO)
-    
+
     actions = {}
     for name in dir(AmcatAPI):
-        if name.startswith("_"): continue
+        if name.startswith("_"):
+            continue
         fn = getattr(AmcatAPI, name)
         actions[name] = fn.__doc__
-    epilog = "Possible actions (use api.py help <action> for help on the chosen action):\n%s" % ("\n".join("  {name}: {desc}".format(**locals()) for (name, desc) in actions.items()))
+    epilog = "Possible actions (use api.py help <action> for help on the chosen action):\n%s" % (
+        "\n".join("  {name}: {desc}".format(**locals()) for (name, desc) in actions.items()))
 
     parser = argparse.ArgumentParser(description=__doc__, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('host')
     parser.add_argument('username')
     parser.add_argument('password')
-    parser.add_argument('action', help="The action to run. Valid options: help, list_sets. Use help <action> to get help op the chosen action")
-    parser.add_argument('argument', help="Additional arguments for the action. User key=value to specify keyword arguments. Actions using post_data can be given using json encoded string or by pointing to a file using post_data=@filename.", nargs="*")
+    parser.add_argument(
+        'action', help="The action to run. Valid options: help, list_sets. Use help <action> to get help op the chosen action")
+    parser.add_argument(
+        'argument', help="Additional arguments for the action. User key=value to specify keyword arguments. Actions using post_data can be given using json encoded string or by pointing to a file using post_data=@filename.", nargs="*")
     opts = parser.parse_args()
-    
+
     if opts.action == "help":
         if opts.argument:
             action = opts.argument[0]
@@ -146,10 +154,10 @@ if __name__ == '__main__':
 
         try:
             result = action(*args, **kargs)
-        except TypeError,e :
+        except TypeError, e:
             print("TypeError on calling {action.__name__}: {e}\n".format(**locals()))
             print(pydoc.render_doc(action, "Help on %s"), file=sys.stderr)
             sys.exit(1)
-                
+
         json.dump(result, sys.stdout, indent=2, sort_keys=True)
         print()

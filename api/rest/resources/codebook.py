@@ -33,6 +33,7 @@ import itertools
 MAX_CODEBOOKS = 5
 CACHE_LABELS = (2, 1)
 
+
 def _walk(nodes):
     """Convert all TreeItems to dictionaries"""
     for node in nodes:
@@ -40,7 +41,9 @@ def _walk(nodes):
         node['children'] = tuple(_walk(node['children']))
         yield node
 
+
 class CodebookHierarchyResource(AmCATResource):
+
     """
     This resource has no direct relationship to one model. Instead, it's
     composed of multiple codebooks. A thorough documentation of the design
@@ -86,7 +89,6 @@ class CodebookHierarchyResource(AmCATResource):
         codebook.cache_labels()
         return tuple(_walk(codebook.get_tree(include_labels=include_labels, **kwargs)))
 
-
     def _get(self, request, *args, **kwargs):
         qs = self.filter_queryset(self.get_queryset())
 
@@ -102,7 +104,6 @@ class CodebookHierarchyResource(AmCATResource):
 class CodebookResource(AmCATResource):
     model = Codebook
     extra_filters = ["codingschemafield__codingschema__id"]
-
 
 
 from amcat.models import Label

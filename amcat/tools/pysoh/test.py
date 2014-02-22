@@ -15,25 +15,26 @@ TEST_PORT = 9876
 FIXTURE = '''@prefix : <http://example.org/#> .
              []   :says  "Hello World"'''
 
+
 def get_test_soh():
     soh_port = os.environ.get('SOH_TEST_SERVER')
     if soh_port:
         return SOHServer(soh_port)
     else:
         return Fuseki(port=TEST_PORT)
-    
+
 
 class TestSOH(unittest.TestCase):
 
-    #TODO: Do something useful if fuseki is not installed
-    
+    # TODO: Do something useful if fuseki is not installed
+
     def setUp(self):
-        #try:
+        # try:
         #    self.soh = get_test_soh()
-        #except OSError:
+        # except OSError:
         #    log.exception("Cannot find fuseki")
         #    return
-        #self.soh.prefixes[""] = "http://example.org/#"
+        # self.soh.prefixes[""] = "http://example.org/#"
         #self.soh.add_triples(FIXTURE, clear=True)
         pass
 
@@ -63,7 +64,7 @@ class TestSOH(unittest.TestCase):
         self.soh.add_triples(g, clear=True)
         g = self.soh.get_triples()
         self.assertEqual(len(g), 1)
-        self.assertGraphContains(g,r'<http://example.org/John> <http://example.org/loves> "Mary" .')
+        self.assertGraphContains(g, r'<http://example.org/John> <http://example.org/loves> "Mary" .')
 
     def todo_test_get(self):
         """Can we get the fixture triples?"""
@@ -86,7 +87,6 @@ class TestSOH(unittest.TestCase):
         g = self.soh.get_triples()
         self.assertEqual(len(g), 2)
         self.assertGraphContains(g, r'^_:\w+ <http://example.org/#istalking> "True" .')
-
 
 
 if __name__ == '__main__':

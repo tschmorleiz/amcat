@@ -25,43 +25,79 @@ They are defined here, so scripts can reference to them as required input or out
 """
 
 
-
 class ArticleIterator(object):
+
     """Class representing a list of articles that can be iterated over"""
     pass
-    
-class ObjectIterator(object): pass
-class JsonData(object): pass
-class CsvCommaData(object): pass
-class CsvSemicolonData(object): pass
-class ExcelData(object): pass
-class HtmlData(object): pass
-class SPSSData(object): pass
-class DataTableJsonData(object): pass
-class ArticleidList(object): pass
-class ArticleidDictPerQuery(object): pass
+
+
+class ObjectIterator(object):
+    pass
+
+
+class JsonData(object):
+    pass
+
+
+class CsvCommaData(object):
+    pass
+
+
+class CsvSemicolonData(object):
+    pass
+
+
+class ExcelData(object):
+    pass
+
+
+class HtmlData(object):
+    pass
+
+
+class SPSSData(object):
+    pass
+
+
+class DataTableJsonData(object):
+    pass
+
+
+class ArticleidList(object):
+    pass
+
+
+class ArticleidDictPerQuery(object):
+    pass
+
 
 class ImageMap(object):
+
     """ contains an image map, which is used by the clustermap script"""
+
     def __init__(self, mapHtml, image, articleCount, table):
         self.mapHtml = mapHtml
         self.image = image
         self.articleCount = articleCount
         self.table = table
 
+
 class ArticleSetStatistics(object):
+
     """ class representing some basic information of a search query: the number of articles and the first/last date of the matching articles """
+
     def __init__(self, articleCount=None, firstDate=None, lastDate=None):
         self.articleCount = articleCount
         self.firstDate = firstDate
         self.lastDate = lastDate
 
-        
+
 class ErrorMsg(object):
+
     """ class representing an error message """
+
     def __init__(self, message, code=None, fields=None, **kargs):
         self.message = message
         self.code = code
         self.fields = fields
         self.kargs = kargs
-

@@ -21,8 +21,7 @@ from amcat.models import CodingJob
 from api.rest.resources.amcatresource import AmCATResource
 from api.rest.viewsets.coding.codingjob import CodingJobSerializer
 
+
 class CodingJobResource(AmCATResource):
     model = CodingJob
     serializer_class = CodingJobSerializer
-
-

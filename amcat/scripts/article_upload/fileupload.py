@@ -21,11 +21,12 @@
 Helper form for file upload forms that handles decoding and zip files
 """
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 from django import forms
 import os.path
 import shutil
-import zipfile 
+import zipfile
 import chardet
 import csv
 import collections
@@ -34,6 +35,7 @@ from django.core.files import File
 import tempfile
 import shutil
 
+
 @contextmanager
 def TemporaryFolder(*args, **kargs):
     tempdir = tempfile.mkdtemp(*args, **kargs)
@@ -41,45 +43,50 @@ def TemporaryFolder(*args, **kargs):
         yield tempdir
     finally:
         shutil.rmtree(tempdir)
-        
+
+
 @contextmanager
 def ZipFileContents(zip_file, *args, **kargs):
     with TemporaryFolder(*args, **kargs) as tempdir:
         with zipfile.ZipFile(zip_file) as zf:
             files = []
             for name in zf.namelist():
-                if name.endswith("/"): continue # skip folders
+                if name.endswith("/"):
+                    continue  # skip folders
                 # using zipfile.extract(name, tempdir) gives an error if name contains non-ascii characters
                 # this may be related to http://bugs.python.org/issue17656, but we are using 2.7.3
                 # strange enough, the issue does not occur in 'runserver' mode, but file handling might be different?
                 fn = os.path.basename(name.encode("ascii", "ignore"))
                 # use mkstemp instead of temporary folder because we don't want it to be deleted
                 # it will be deleted on __exit__ anyway since the whole tempdir will be deleted
-                _handle, fn = tempfile.mkstemp(suffix="_"+fn, dir=tempdir)
+                _handle, fn = tempfile.mkstemp(suffix="_" + fn, dir=tempdir)
                 f = open(fn, 'w')
                 shutil.copyfileobj(zf.open(name), f)
                 f.close()
                 files.append(File(open(fn), name=name))
             yield files
-        
+
 DecodedFile = collections.namedtuple("File", ["name", "file", "bytes", "encoding", "text"])
 ENCODINGS = ["Autodetect", "ISO-8859-15", "UTF-8", "Latin-1"]
 
 
 class RawFileUploadForm(forms.Form):
+
     """Helper form to handle uploading a file"""
-    file = forms.FileField(help_text="Uploading very large files can take a long time. If you encounter timeout problems, consider uploading smaller files")
+    file = forms.FileField(
+        help_text="Uploading very large files can take a long time. If you encounter timeout problems, consider uploading smaller files")
 
     def get_entries(self):
         return [self.files['file']]
-    
+
+
 class FileUploadForm(RawFileUploadForm):
+
     """Helper form to handle uploading a file with encoding"""
     encoding = forms.ChoiceField(choices=enumerate(ENCODINGS),
-                                 initial=0, required=False, 
+                                 initial=0, required=False,
                                  help_text="Try to change this value when character issues arise.", )
 
-    
     def decode(self, bytes):
         """
         Decode the given bytes using the encoding specified in the form.
@@ -109,18 +116,20 @@ class FileUploadForm(RawFileUploadForm):
     def get_uploaded_text(self):
         """Returns a DecodedFile object representing the file"""
         return self.decode_file(self.files['file'])
-        
+
     def get_entries(self):
         return [self.get_uploaded_text()]
-    
+
 DIALECTS = [("autodetect", "Autodetect"),
             ("excel", "CSV, comma-separated"),
             ("excel-semicolon", "CSV, semicolon-separated (Europe)"),
             ]
 
+
 class excel_semicolon(csv.excel):
     delimiter = ';'
 csv.register_dialect("excel-semicolon", excel_semicolon)
+
 
 def namedtuple_csv_reader(csv_file, encoding='utf-8', **kargs):
     """
@@ -135,7 +144,7 @@ def namedtuple_csv_reader(csv_file, encoding='utf-8', **kargs):
         encoding = chardet.detect(csv_file.read(1024))["encoding"]
         log.info("Guessed encoding: {encoding}".format(**locals()))
         csv_file.seek(0)
-    
+
     r = csv.reader(csv_file, **kargs)
     return namedtuples_from_reader(r, encoding=encoding)
 
@@ -150,7 +159,8 @@ def _xlsx_as_csv(file):
     for row in ws.rows:
         row = [c.value for c in row]
         yield row
-    
+
+
 def namedtuple_xlsx_reader(xlsx_file):
     """
     Uses openpyxl to read an xslx file and provide a named-tuple interface to it
@@ -158,47 +168,52 @@ def namedtuple_xlsx_reader(xlsx_file):
     reader = _xlsx_as_csv(xlsx_file)
     return namedtuples_from_reader(reader)
 
+
 def namedtuples_from_reader(reader, encoding=None):
     """
     returns a sequence of namedtuples from a (csv-like) reader which should yield the header followed by value rows
     """
-    
+
     header = reader.next()
+
     class Row(collections.namedtuple("Row", header, rename=True)):
-        column_names=header
+        column_names = header
+
         def __getitem__(self, key):
             if not isinstance(key, int):
                 # look up key in self.header
                 key = self.column_names.index(key)
             return super(Row, self).__getitem__(key)
+
         def items(self):
             return zip(self.column_names, self)
-        
+
     for values in reader:
         if encoding is not None:
             values = [x.decode(encoding) for x in values]
         if len(values) < len(header):
             values += [None] * (len(header) - len(values))
         yield Row(*values)
-    
-        
+
+
 class CSVUploadForm(FileUploadForm):
-    dialect = forms.ChoiceField(choices=DIALECTS, initial="autodetect", required=False, 
+    dialect = forms.ChoiceField(choices=DIALECTS, initial="autodetect", required=False,
                                 help_text="Select the kind of CSV file")
 
     def get_entries(self):
         return self.get_reader(reader_class=namedtuple_csv_reader)
-    
+
     def get_reader(self, reader_class=namedtuple_csv_reader):
         f = self.files['file']
-        
+
         if f.name.endswith(".xlsx"):
             if reader_class != namedtuple_csv_reader:
                 raise Exception("Cannot handle xlsx files with non-default reader, sorry!")
             return namedtuple_xlsx_reader(f)
-            
+
         d = self.cleaned_data['dialect']
-        if not d: d = "autodetect"
+        if not d:
+            d = "autodetect"
         if d == 'autodetect':
             dialect = csv.Sniffer().sniff(f.readline())
             f.seek(0)
@@ -208,12 +223,14 @@ class CSVUploadForm(FileUploadForm):
             dialect = csv.get_dialect(d)
 
         enc = self.cleaned_data['encoding']
-        encoding = {'encoding' : ENCODINGS[int(enc)]} if enc and reader_class == namedtuple_csv_reader else {}
+        encoding = {'encoding': ENCODINGS[int(enc)]} if enc and reader_class == namedtuple_csv_reader else {}
         return reader_class(f, dialect=dialect, **encoding)
-    
+
+
 class ZipFileUploadForm(FileUploadForm):
-    file = forms.FileField(help_text="You can also upload a zip file containing the desired files. Uploading very large files can take a long time. If you encounter timeout problems, consider uploading smaller files")
-        
+    file = forms.FileField(
+        help_text="You can also upload a zip file containing the desired files. Uploading very large files can take a long time. If you encounter timeout problems, consider uploading smaller files")
+
     def get_uploaded_texts(self):
         """
         Returns a list of DecodedFile objects representing the zipped files,
@@ -230,17 +247,18 @@ class ZipFileUploadForm(FileUploadForm):
     def get_entries(self):
         return self.get_uploaded_texts()
 
-    
+
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
 
 from amcat.tools import amcattest
 
+
 class TestFileUpload(amcattest.AmCATTestCase):
 
     def _get_entries(self, bytes, dialect="autodetect", encoding=0):
-         with tempfile.NamedTemporaryFile() as f:
+        with tempfile.NamedTemporaryFile() as f:
             f.write(bytes)
             f.flush()
             s = CSVUploadForm(dict(encoding=encoding, dialect=dialect),
@@ -252,33 +270,32 @@ class TestFileUpload(amcattest.AmCATTestCase):
 
     def _to_dict(self, rows):
         return [dict(r.items()) for r in rows]
-    
+
     def test_csv(self):
         self.assertEqual(self._get_entries("a,b\n1,2", dialect="excel"),
-                         [dict(a='1',b='2')])
+                         [dict(a='1', b='2')])
 
         self.assertEqual(self._get_entries("a;b\n1;2", dialect="excel-semicolon"),
-                         [dict(a='1',b='2')])
-        
+                         [dict(a='1', b='2')])
+
         # does autodetect work?
         self.assertEqual(self._get_entries("a,b\n1,2"),
-                         [dict(a='1',b='2')])
+                         [dict(a='1', b='2')])
         self.assertEqual(self._get_entries("a;b\n1;2"),
-                         [dict(a='1',b='2')]) 
+                         [dict(a='1', b='2')])
 
     def test_csv_reader(self):
         csv = ["a,b,c", "1,2,\xe9"]
-        
 
         line, = namedtuple_csv_reader(csv, encoding='latin-1')
-        self.assertEqual(tuple(line), ("1","2",u"\xe9"))
+        self.assertEqual(tuple(line), ("1", "2", u"\xe9"))
 
         self.assertEqual(line[0], "1")
         self.assertEqual(line.a, "1")
         self.assertEqual(line["a"], "1")
 
         csv = ["a\tb", "1", "\t2"]
-        
+
         l1, l2 = namedtuple_csv_reader(csv, dialect='excel-tab')
         self.assertEqual(l1, ('1', None))
         self.assertEqual(l2, ('', '2'))

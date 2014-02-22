@@ -4,7 +4,7 @@ from amcat.models.medium import Medium
 
 if __name__ == "__main__":
 
-    alias_file = open('bzk_aliases.txt','r')
+    alias_file = open('bzk_aliases.txt', 'r')
     media = json.loads(alias_file.read())
     alias_dict = {}
     for medium, aliases in media.items():

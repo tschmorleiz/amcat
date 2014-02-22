@@ -25,60 +25,58 @@ from amcat.models.medium import Medium
 import datetime
 from amcat.scripts.processors.articlelist_to_table import ArticleListToTable
 
-import  json
+import json
+
 
 def encode_json(obj):
-    """ also encode Django objects to Json, preferebly by id-name""" 
+    """ also encode Django objects to Json, preferebly by id-name"""
     if isinstance(obj, Medium):
         return "%s - %s" % (obj.id, obj.name)
     if isinstance(obj, table3.Table):
-        return json.JSONDecoder().decode(TableToJson().run(obj)) # TODO: this is very ugly and inefficient.. (double encoding..)
+        # TODO: this is very ugly and inefficient.. (double encoding..)
+        return json.JSONDecoder().decode(TableToJson().run(obj))
     if isinstance(obj, datetime.datetime):
         return obj.strftime('%Y-%m-%d %H:%M')
     raise TypeError("%r is not JSON serializable" % (obj,))
-    
+
 
 class TableToJson(script.Script):
     input_type = table3.Table
     options_form = None
     output_type = types.JsonData
 
-
     def run(self, tableObj):
         return tableoutput.table2json(tableObj, colnames=True)
-       
-       
+
+
 class DictToJson(script.Script):
     input_type = dict
     options_form = None
     output_type = types.JsonData
 
-
     def run(self, dictObj):
         return json.dumps(dictObj, default=encode_json)
-       
-       
+
+
 class ArticleListToJson(script.Script):
     input_type = types.ArticleIterator
     options_form = amcat.scripts.forms.ArticleColumnsForm
     output_type = types.JsonData
 
-
     def run(self, articleList):
         tableObj = ArticleListToTable(self.options).run(articleList)
         return tableoutput.table2json(tableObj, colnames=True)
-        
-        
-        
+
+
 class ErrormsgToJson(script.Script):
     input_type = types.ErrorMsg
     options_form = None
     output_type = types.JsonData
-    
+
     def run(self, errorMsg):
-        msgDict = {'message':errorMsg.message}
+        msgDict = {'message': errorMsg.message}
         if errorMsg.code:
             msgDict['code'] = errorMsg.code
         if errorMsg.fields:
             msgDict['fields'] = errorMsg.fields
-        return json.dumps({'error':msgDict})
+        return json.dumps({'error': msgDict})

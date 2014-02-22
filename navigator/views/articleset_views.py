@@ -41,7 +41,7 @@ from django.utils.safestring import SafeText
 from django.template.defaultfilters import escape
 
 
-class ArticleSetListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin, DatatableMixin, ListView):
+class ArticleSetListView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, DatatableMixin, ListView):
     model = ArticleSet
     parent = ProjectDetailsView
     context_category = 'Articles'
@@ -65,7 +65,7 @@ class ArticleSetListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin
                   ("codingjob", "Coding Job Sets"),
                   ]
         context.update(locals())
-        context.update({"what" : self.what})
+        context.update({"what": self.what})
         return context
 
     def filter_linked_table(self, table):
@@ -83,20 +83,18 @@ class ArticleSetListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin
             return ArticleSetViewSet
 
     def filter_table(self, table):
-        return getattr(self, "filter_{}_table".format(self.what), lambda t : t)(table)
-
+        return getattr(self, "filter_{}_table".format(self.what), lambda t: t)(table)
 
     def get_datatable(self):
         """Create the Datatable object"""
         url = reverse('article set-details', args=[self.project.id, 123])
         table = FavouriteDatatable(resource=self.get_resource(), label="article set",
-                                   set_url=url + "?star=1", unset_url=url+"?star=0",
-                                   url_kwargs={"project" : self.project.id})
+                                   set_url=url + "?star=1", unset_url=url + "?star=0",
+                                   url_kwargs={"project": self.project.id})
         table = table.rowlink_reverse('article set-details', args=[self.project.id, '{id}'])
         table = table.hide("project")
         table = self.filter_table(table)
         return table
-
 
 
 class ArticleSetDetailsView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, DatatableMixin, DetailView):
@@ -131,7 +129,7 @@ class ArticleSetImportView(ProjectScriptView):
 
     def get_success_url(self):
         project = self.form.cleaned_data["target_project"]
-        return reverse(ArticleSetListView.get_view_name(), kwargs={"project_id":project.id})
+        return reverse(ArticleSetListView.get_view_name(), kwargs={"project_id": project.id})
 
     def get_form(self, form_class):
         form = super(ArticleSetImportView, self).get_form(form_class)
@@ -141,7 +139,8 @@ class ArticleSetImportView(ProjectScriptView):
             qs = qs.exclude(articlesets=self.kwargs["articleset_id"])
             qs = qs.exclude(pk=self.project.id)
             form.fields['target_project'].queryset = qs
-            form.fields['target_project'].help_text = "Only showing your favourite projects that do not use this set already"
+            form.fields[
+                'target_project'].help_text = "Only showing your favourite projects that do not use this set already"
 
         return form
 
@@ -152,18 +151,20 @@ class ArticleSetSampleView(ProjectScriptView):
     url_fragment = 'sample'
 
     def get_success_url(self):
-        return self.parent._get_breadcrumb_url({'project_id' : self.project.id, 'articleset_id' : self.result.id}, self)
-
+        return self.parent._get_breadcrumb_url({'project_id': self.project.id, 'articleset_id': self.result.id}, self)
 
     def success_message(self, result=None):
         old = ArticleSet.objects.get(pk=self.kwargs['articleset_id'])
         return SafeText("Created sample set {newname} as shown below. "
                         "<a href='{oldurl}'>Return to original set {old.id} : {oldname}</a>"
-                        .format(newname=escape(self.result.name), oldurl=reverse('article set-details', kwargs=self.kwargs),
-                                oldname=escape(old.name), **locals()))
+                        .format(
+                            newname=escape(self.result.name), oldurl=reverse('article set-details', kwargs=self.kwargs),
+                            oldname=escape(old.name), **locals()))
 
 from amcat.models import Role
 PROJECT_READ_WRITE = Role.objects.get(projectlevel=True, label="read/write").id
+
+
 class ArticleSetEditView(ProjectEditView):
     parent = ArticleSetDetailsView
     fields = ['project', 'name', 'provenance']
@@ -171,9 +172,10 @@ class ArticleSetEditView(ProjectEditView):
 
 from amcat.models import Plugin
 from api.rest.resources import PluginResource
-UPLOAD_PLUGIN_TYPE=1
+UPLOAD_PLUGIN_TYPE = 1
 
-class ArticleSetUploadListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin, DatatableMixin, ListView):
+
+class ArticleSetUploadListView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, DatatableMixin, ListView):
     parent = ArticleSetListView
     model = Plugin
     resource = PluginResource
@@ -182,7 +184,8 @@ class ArticleSetUploadListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrum
 
     def filter_table(self, table):
         table = table.rowlink_reverse('article set-upload', args=[self.project.id, '{id}'])
-        return table.filter(plugin_type=UPLOAD_PLUGIN_TYPE).hide('id', 'class_name')#, 'plugin_type')
+        return table.filter(plugin_type=UPLOAD_PLUGIN_TYPE).hide('id', 'class_name')  # , 'plugin_type')
+
 
 class ArticleSetUploadView(ProjectScriptView):
     parent = ArticleSetUploadListView
@@ -211,6 +214,7 @@ class ArticleSetUploadView(ProjectScriptView):
 
         return context
 
+
 class ArticleSetRefreshView(ProjectActionRedirectView):
     parent = ArticleSetDetailsView
     url_fragment = "refresh"
@@ -220,7 +224,10 @@ class ArticleSetRefreshView(ProjectActionRedirectView):
         ArticleSet.objects.get(pk=articleset_id).refresh_index(full_refresh=True)
 
 from amcat.models.project import LITTER_PROJECT_ID
-import json, datetime
+import json
+import datetime
+
+
 class ArticleSetDeleteView(ProjectActionRedirectView):
     parent = ArticleSetDetailsView
     url_fragment = "delete"
@@ -232,15 +239,16 @@ class ArticleSetDeleteView(ProjectActionRedirectView):
         aset.project = Project.objects.get(id=LITTER_PROJECT_ID)
         aset.indexed = False
         aset.provenance = json.dumps({
-            "provenance" : aset.provenance,
-            "project" : project.id,
-            "deleted_on" : datetime.datetime.now().isoformat()
+            "provenance": aset.provenance,
+            "project": project.id,
+            "deleted_on": datetime.datetime.now().isoformat()
         })
         aset.save()
         project.favourite_articlesets.remove(aset)
 
     def get_redirect_url(self, **kwargs):
         return ArticleSetListView._get_breadcrumb_url(kwargs, self)
+
 
 class ArticleSetUnlinkView(ProjectActionRedirectView):
     parent = ArticleSetDetailsView

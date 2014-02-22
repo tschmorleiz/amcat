@@ -22,22 +22,26 @@
 Script add a codebook
 """
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from django import forms
 
 from amcat.scripts.script import Script
 from amcat.models.coding.codebook import Codebook
 
-PROJECT_ROLE_READER=11
+PROJECT_ROLE_READER = 11
+
 
 class AddCodebookForm(forms.ModelForm):
+
     class Meta:
         model = Codebook
         fields = ['name']
 
 
 class AddCodebook(Script):
+
     """Add a project to the database."""
 
     options_form = AddCodebookForm
@@ -56,6 +60,7 @@ if __name__ == '__main__':
 ###########################################################################
 
 from amcat.tools import amcattest
+
 
 class TestAddCodebook(amcattest.AmCATTestCase):
     pass

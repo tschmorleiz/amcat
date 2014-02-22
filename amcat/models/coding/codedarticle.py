@@ -32,6 +32,7 @@ log = logging.getLogger(__name__)
 
 STATUS_NOTSTARTED, STATUS_INPROGRESS, STATUS_COMPLETE, STATUS_IRRELEVANT = 0, 1, 2, 9
 
+
 class CodedArticleStatus(AmcatModel):
     id = models.IntegerField(primary_key=True, db_column='status_id')
     label = models.CharField(max_length=50)
@@ -39,6 +40,7 @@ class CodedArticleStatus(AmcatModel):
     class Meta():
         db_table = 'coded_article_status'
         app_label = 'amcat'
+
 
 def _to_coding(coded_article, coding):
     """
@@ -53,6 +55,7 @@ def _to_coding(coded_article, coding):
         coded_article=coded_article, sentence_id=coding.get("sentence_id"),
         start=coding.get("start"), end=coding.get("end")
     )
+
 
 def _to_codingvalue(coding, codingvalue):
     """
@@ -69,6 +72,7 @@ def _to_codingvalue(coding, codingvalue):
         coding=coding
     )
 
+
 def _to_codingvalues(coding, values):
     """
     Takes an iterator with codingvalue dictionaries (see _to_coding) and a coding,
@@ -78,6 +82,7 @@ def _to_codingvalues(coding, values):
 
 
 class CodedArticle(models.Model):
+
     """
     A CodedArticle is an article in a context of two other objects: a codingjob and an
     article. It exist for every (codingjob, article) in {codingjobs} X {codingjobarticles}
@@ -192,10 +197,12 @@ class CodedArticle(models.Model):
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-        
+
 from amcat.tools import amcattest
 
+
 class TestCodedArticle(amcattest.AmCATTestCase):
+
     def test_comments(self):
         """Can we set and read comments?"""
         from amcat.models import CodedArticle
@@ -211,13 +218,13 @@ class TestCodedArticle(amcattest.AmCATTestCase):
 
     def _get_coding_dict(self, sentence_id=None, field_id=None, intval=None, strval=None, start=None, end=None):
         return {
-            "sentence_id" : sentence_id,
-            "start" : start,
-            "end" : end,
-            "values" : [{
-                "codingschemafield_id" : field_id,
-                "intval" : intval,
-                "strval" : strval
+            "sentence_id": sentence_id,
+            "start": start,
+            "end": end,
+            "values": [{
+                "codingschemafield_id": field_id,
+                "intval": intval,
+                "strval": strval
             }]
         }
 
@@ -277,6 +284,7 @@ class TestCodedArticle(amcattest.AmCATTestCase):
 
 
 class TestCodedArticleStatus(amcattest.AmCATTestCase):
+
     def test_status(self):
         """Is initial status 0? Can we set it?"""
         ca = amcattest.create_test_coded_article()
@@ -290,6 +298,3 @@ class TestCodedArticleStatus(amcattest.AmCATTestCase):
         self.assertEqual(ca.status, CodedArticleStatus.objects.get(pk=9))
         ca.set_status(STATUS_NOTSTARTED)
         self.assertEqual(ca.status, CodedArticleStatus.objects.get(pk=0))
-
-
-        

@@ -28,11 +28,13 @@ from django.forms.util import ErrorList
 
 from operator import attrgetter, itemgetter
 
+
 def _remove_duplicates(seq):
     """Remove duplicates in `seq` whilst preserving order."""
     seen = set()
     seen_add = seen.add
-    return [ x for x in seq if x not in seen and not seen_add(x)]
+    return [x for x in seq if x not in seen and not seen_add(x)]
+
 
 def order_fields(fields=(), classes=()):
     """
@@ -67,7 +69,7 @@ def order_fields(fields=(), classes=()):
         original_init = form.__init__
 
         def init(self, *args, **kwargs):
-            original_init(self, *args, **kwargs)        
+            original_init(self, *args, **kwargs)
 
             # keyOrder will be a list with the fields of each class sorted
             keyOrder = []
@@ -75,7 +77,7 @@ def order_fields(fields=(), classes=()):
                 # Sort according to creation_counter
                 keyOrder += [field[0] for field in sorted(
                     cls.base_fields.iteritems(), key=(
-                        lambda f : f[1].creation_counter
+                        lambda f: f[1].creation_counter
                     )
                 )]
 
@@ -86,19 +88,22 @@ def order_fields(fields=(), classes=()):
                 self.fields.insert(0, field, self.fields.pop(field))
 
         form.__init__ = init
-        return form            
+        return form
     return decorator
 
+
 class HideFieldsForm(ModelForm):
+
     """
     This form takes an extra parameter upon initilisation `hide`, which
     indicates which fields need to be hidden. This allows developers to
     disable editing for some of its fields, which can be benificial when
     values are already known (e.g. for existing database entries).
     """
+
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
-            initial=None, error_class=ErrorList, label_suffix=':',
-            empty_permitted=False, instance=None, hidden=None):
+                 initial=None, error_class=ErrorList, label_suffix=':',
+                 empty_permitted=False, instance=None, hidden=None):
         """
         @param hidden: fields to be hidden
         @type hidden: iterable or string (for single field)
@@ -118,4 +123,3 @@ class HideFieldsForm(ModelForm):
 
         for field_name in hidden:
             del self.fields[field_name]
-

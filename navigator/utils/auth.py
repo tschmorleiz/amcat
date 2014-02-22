@@ -25,7 +25,7 @@ from django.contrib.auth import authenticate, login
 
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
- 
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from functools import wraps
@@ -43,11 +43,14 @@ from amcat.tools import sendmail
 import inspect
 import threading
 
-import logging; log=logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
+
 
 def get_request():
     th = threading.current_thread()
     return th.request if hasattr(th, 'request') else None
+
 
 def create_user(username, first_name, last_name, email, affiliation, language, role):
     """
@@ -58,12 +61,12 @@ def create_user(username, first_name, last_name, email, affiliation, language, r
     """
     password = toolkit.random_alphanum(7)
     log.info("Creating new user: {username}".format(**locals()))
-    
+
     u = _create_user(
         username, first_name, last_name, email,
         affiliation, language, role, password=password
     )
-    
+
     log.info("Created new user, sending email...")
     html = render(get_request(), "utils/welcome_email.html", locals()).content
     text = render(get_request(), "utils/welcome_email.txt", locals()).content
@@ -72,7 +75,9 @@ def create_user(username, first_name, last_name, email, affiliation, language, r
     log.info("Email sent, done!")
     return u
 
+
 class check_perm(object):
+
     """
     This view-decorator checks privilleges against the currently logged
     in user. Example:
@@ -82,6 +87,7 @@ class check_perm(object):
             ..
             return HttpResponse("")
     """
+
     def __init__(self, priv, onproject=False, arg='id'):
         """
         @type priv: string or Privilege object
@@ -123,6 +129,7 @@ class check_perm(object):
 
 
 class check(object):
+
     """
     This view-decorator preforms a few basic checks. It checks if
       * cls.objects.get(**{id=id})        .. it exists
@@ -196,6 +203,7 @@ class check(object):
             pass
 
     """
+
     def __init__(self, cls, action='read', args='id', args_map=None):
         """
         @type cls: subclass of django.models.Model
@@ -227,7 +235,6 @@ class check(object):
         # default value for object
         return first_kw == 1
 
-
     def __call__(self, func):
         @wraps(func)
         def check(request, *args, **kwargs):
@@ -239,7 +246,7 @@ class check(object):
                     # This function allows its object to not be specified and there are no
                     # identifiers given to this 'wrap'-function.
                     for a in self.args:
-                        if a in kwargs: # Arguments may not be given
+                        if a in kwargs:  # Arguments may not be given
                             del kwargs[a]
 
                     return func(request, None, *args, **kwargs)
@@ -266,31 +273,35 @@ class check(object):
             # Check against privillege system
             can = getattr(_obj, 'can_%s' % self.action, None)
             if can and not can(request.user):
-                raise PermissionDenied("User {request.user} is not allows to '{self.action}' object {_obj!r}".format(**locals()))
+                raise PermissionDenied(
+                    "User {request.user} is not allows to '{self.action}' object {_obj!r}".format(**locals()))
 
             # Delete all id-keywords
-            for a in self.args: del kwargs[a]
+            for a in self.args:
+                del kwargs[a]
 
             if self.args:
                 return func(request, obj, *args, **kwargs)
             else:
                 return func(request, *args, **kwargs)
 
-
         # Return wrap-function
         return check
 
+
 class RequireLoginMiddleware(object):
+
     """
     This middleware forces a login_required decorator for all views
     """
+
     def __init__(self):
         self.no_login = (
             settings.ACCOUNTS_URL,
             settings.MEDIA_URL,
             settings.STATIC_URL,
             settings.API_URL,
-            )
+        )
 
     def _login_required(self, url):
         """
@@ -303,7 +314,9 @@ class RequireLoginMiddleware(object):
         if not request.user.is_authenticated() and self._login_required(request.path):
             return login_required(view_func)(request, *view_args, **view_kwargs)
 
+
 class NginxRequestMethodFixMiddleware(object):
+
     """
     nginx ignores the content written to the output buffer when:
 
@@ -314,12 +327,16 @@ class NginxRequestMethodFixMiddleware(object):
     By reading request.POST by default, point 3 is eleminated and
     ngix will always return content.
     """
+
     def process_request(self, request):
         request.POST
 
+
 class SetRequestContextMiddleware(object):
+
     """
     This middleware installs `request` in the local thread storage
     """
+
     def process_request(self, request):
         threading.current_thread().request = request

@@ -30,11 +30,14 @@ from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LAParams, LTTextBox, LTTextLine, LTFigure
 
 from django import forms
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
+
 
 class PDFForm(ScraperForm):
     file = forms.FileField()
-    password = forms.CharField(required = False)
+    password = forms.CharField(required=False)
+
 
 class PDFScraper(Scraper):
     options_form = PDFForm
@@ -43,7 +46,7 @@ class PDFScraper(Scraper):
         super(PDFScraper, self).__init__(*args, **kwargs)
         self.doc = self.load_document()
 
-    def load_document(self, _file = None, password = None):
+    def load_document(self, _file=None, password=None):
         """turn the file into a PDFMiner document"""
         log.info("loading document...")
         if _file == None:
@@ -53,7 +56,7 @@ class PDFScraper(Scraper):
         doc = PDFDocument()
         parser.set_document(doc)
         doc.set_parser(parser)
-        
+
         if not password:
             if 'password' in self.options.keys() and self.options['password']:
                 password = self.options['password']
@@ -66,8 +69,8 @@ class PDFScraper(Scraper):
             raise ValueError("PDF text extraction not allowed")
 
         return doc
-         
-    def process_page(self, page, params = None):
+
+    def process_page(self, page, params=None):
         """processes a page using the parameters given
         params should be passed in a dictionary, and are named as follows:
             char_margin 
@@ -80,14 +83,14 @@ class PDFScraper(Scraper):
         if params:
             params = LAParams(**params)
         resourcemanager = PDFResourceManager()
-        device = PDFPageAggregator(resourcemanager, laparams = params)
+        device = PDFPageAggregator(resourcemanager, laparams=params)
         interpreter = PDFPageInterpreter(resourcemanager, device)
-                
+
         interpreter.process_page(page)
         return device.get_result()
 
-    def process_document(self, doc, params = None):
-        for i,page in enumerate(doc.get_pages()):
+    def process_document(self, doc, params=None):
+        for i, page in enumerate(doc.get_pages()):
             log.info("processing page {i}".format(**locals()))
             yield self.process_page(page, params)
 
@@ -103,7 +106,7 @@ class PDFScraper(Scraper):
                 result.append(self.parse_layout(obj._objs))
         return result
 
-    def get_textlines(self, page, params = None):
+    def get_textlines(self, page, params=None):
         if not params:
             params = {}
         if not isinstance(params, LAParams):
@@ -112,7 +115,7 @@ class PDFScraper(Scraper):
         for line in page.get_textlines(params, objects):
             yield line
 
-    def get_textboxes(self, page, params = None):
+    def get_textboxes(self, page, params=None):
         if not params:
             params = {}
         if not isinstance(params, LAParams):
@@ -120,15 +123,3 @@ class PDFScraper(Scraper):
         lines = self.get_textlines(page, params)
         for textbox in page.get_textboxes(params, list(lines)):
             yield textbox
-
-
-
-
-
-
-
-
-
-
-
-                                  

@@ -23,17 +23,19 @@ from amcat.models import ArticleSet, Plugin, Project
 
 __all__ = ("AnalysedArticleSerializer",)
 
+
 class AnalysedArticleSerializer(Serializer):
+
     def _set_narticles(self, rows):
         asets = {x["article__articlesets_set"] for x in rows}
-        self._narticles =dict(ArticleSet.objects.filter(pk__in=asets).values("pk")
-                                  .annotate(n=Count("articles"))
-                                  .values_list("pk", "n"))
+        self._narticles = dict(ArticleSet.objects.filter(pk__in=asets).values("pk")
+                               .annotate(n=Count("articles"))
+                               .values_list("pk", "n"))
 
     def get_fields(self):
-        flds = {f : fields.IntegerField() for f in ["articles", "done","error"]}
+        flds = {f: fields.IntegerField() for f in ["articles", "done", "error"]}
         flds["plugin_id"] = relations.PrimaryKeyRelatedField(queryset=Plugin.objects.all())
-        flds[ "article__articlesets_set"] = relations.PrimaryKeyRelatedField(queryset=ArticleSet.objects.all())
+        flds["article__articlesets_set"] = relations.PrimaryKeyRelatedField(queryset=ArticleSet.objects.all())
         flds["article__articlesets_set__project"] = relations.PrimaryKeyRelatedField(queryset=Project.objects.all())
 
         return flds

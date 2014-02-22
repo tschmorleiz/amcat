@@ -29,11 +29,12 @@ from django.db import connections
 
 from amcat.models import Article, ArticleSet, ArticleSetArticle
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 SIMPLIFY = {
     Article: {
-        ("articleset_id", ArticleSet) : ("articleset", ArticleSetArticle)
+        ("articleset_id", ArticleSet): ("articleset", ArticleSetArticle)
     }
 }
 
@@ -56,13 +57,15 @@ def _get_single_where(node):
         # tuple node
         return node
 
+
 def simplify_count(qs):
     """
     If possible, simplify the count query to remove unneeded joins (i.e. what the query optimizer
     was hired for). Since we only have the query set to go from, need to inspect it to see whether
     we can optimize. For safety, only optimize known relations from SIMPLIFY
     """
-    if qs.model not in SIMPLIFY: raise ValueError("Can't simplify %s" % qs.model)
+    if qs.model not in SIMPLIFY:
+        raise ValueError("Can't simplify %s" % qs.model)
 
     # Get the single conjoined where clause, or raise a ValueError trying
     where = _get_single_where(qs.query.where)
@@ -73,14 +76,15 @@ def simplify_count(qs):
     constraint, test, annotation, value = where
     column, model = constraint.field.column, constraint.field.model
 
-    if test != 'exact' or annotation is not True or (column, model) not in SIMPLIFY[qs.model] :
+    if test != 'exact' or annotation is not True or (column, model) not in SIMPLIFY[qs.model]:
         raise ValueError("Can't simplify %s %s %s:%s" % (qs.model, test, model, column))
 
     # So now we know that the query has one equality constraint on a column on a different table
     # i.e. the query is of form qs.model.objects.filter(model__field=value)
     # check whether we can simplify this query
     simple_column, simple_model = SIMPLIFY[qs.model][column, model]
-    return simple_model.objects.filter(**{simple_column : value}).count()
+    return simple_model.objects.filter(**{simple_column: value}).count()
+
 
 def approximate_count(qs):
     """
@@ -101,11 +105,13 @@ def approximate_count(qs):
         except DatabaseError:
             raise ValueError("Where clause used or database error. Cannot return approx count")
         else:
-            if c >= 100: return c
+            if c >= 100:
+                return c
 
         raise ValueError("Approximation not reliable")
 
     raise ValueError("Where clause(s) applied. Cannot return approx count")
+
 
 def count(qs):
     """

@@ -32,14 +32,15 @@ from amcat.scripts.article_upload.bzk_aliases import BZK_ALIASES as MEDIUM_ALIAS
 from datetime import date
 import re
 
+
 class BZKPDFScraper(UploadScript, PDFScraper):
-    
+
     def _scrape_unit(self, unit):
         self.index = []
         article_lines = []
         headline = ""
         for i, p in enumerate(self.process_document(self.doc)):
-            #is this page an index page?
+            # is this page an index page?
             index_pattern = re.compile("^[^\(]+\([^\)]+\)..+[0-9]+$")
             if any([index_pattern.match(line.get_text()) for line in self.get_textlines(p)]):
                 for line in self.get_textlines(p):
@@ -47,39 +48,39 @@ class BZKPDFScraper(UploadScript, PDFScraper):
                     text = line.get_text()
                     result = pattern.search(text)
                     if result:
-                        h = result.group(1); m = result.group(3)
+                        h = result.group(1)
+                        m = result.group(3)
                         self.index.append((h, m))
                 continue
 
-            #if not, scrape lines on page for current article
+            # if not, scrape lines on page for current article
             for line in self.get_textlines(p):
                 text = line.get_text()
                 if text.lower().strip() in [i[0].lower().strip() for i in self.index]:
 
                     # title is recognized. yield old article, start new
                     if len(headline) > 0:
-                        article =  self.getarticle(headline, article_lines)
+                        article = self.getarticle(headline, article_lines)
                         yield article
-                        
 
                     headline = text
                     article_lines = []
-                                
+
                 article_lines.append(text)
-                
-            #last article
+
+            # last article
             yield self.getarticle(headline, article_lines)
-                        
+
     def getarticle(self, headline, lines):
-        article = Document(headline = headline)
+        article = Document(headline=headline)
         text = ""
         for line in lines[2:]:
             if len(line) > 2:
                 text += "\n" + line
 
-        text = text.replace("-\n","")
-        text = text.replace("  "," ")
-        text = text.replace("\n"," ")
+        text = text.replace("-\n", "")
+        text = text.replace("  ", " ")
+        text = text.replace("\n", " ")
 
         article.props.text = text
         date_pattern = re.compile("([0-9]{2,2})\-([0-9]{2,2})\-([0-9]{4,4})")
@@ -91,7 +92,7 @@ class BZKPDFScraper(UploadScript, PDFScraper):
         pagenum_pattern = re.compile("\(p.([0-9]+)([0-9\-]+)?\)")
         result = pagenum_pattern.search(lines[1])
         if result:
-            
+
             article.props.pagenr = int(result.group(1))
 
         for h, medium in self.index:
@@ -114,36 +115,41 @@ if __name__ == "__main__":
     from amcat.scripts.tools import cli
     cli.run_cli(BZKPDFScraper)
 
-        
+
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
 
 from amcat.tools import amcattest
 
+
 class TestBZK(amcattest.AmCATTestCase):
+
     def setUp(self):
-        if amcattest.skip_slow_tests(): return
+        if amcattest.skip_slow_tests():
+            return
 
         from django.core.files import File
-        import os.path, json
+        import os.path
+        import json
         self.dir = os.path.join(os.path.dirname(__file__), 'test_files', 'bzk')
-        self.bzk = BZKPDFScraper(project = amcattest.create_test_project().id,
-                       file = File(open(os.path.join(self.dir, 'test.pdf'))),
-                       articleset = amcattest.create_test_set().id)
+        self.bzk = BZKPDFScraper(project=amcattest.create_test_project().id,
+                                 file=File(open(os.path.join(self.dir, 'test.pdf'))),
+                                 articleset=amcattest.create_test_set().id)
         self.result = self.bzk.run()
 
-
         def test_scrape_unit(self):
-            if amcattest.skip_slow_tests(): return
+            if amcattest.skip_slow_tests():
+                return
 
             self.assertTrue(self.bzk.index)
             self.assertTrue(self.result)
-        
-        def test_getarticle(self):
-            if amcattest.skip_slow_tests(): return
 
-            #props to check for:
+        def test_getarticle(self):
+            if amcattest.skip_slow_tests():
+                return
+
+            # props to check for:
             # headline, text, date, pagenr, medium
             must_props = ('headline', 'text', 'medium', 'date')
             may_props = ('pagenr',)
@@ -153,7 +159,5 @@ class TestBZK(amcattest.AmCATTestCase):
             for proplist in must_props:
                 self.assertTrue(all(proplist))
             for proplist in may_props:
-                #assuming at least one of the articles has the property. if not, break.
+                # assuming at least one of the articles has the property. if not, break.
                 self.assertTrue(any(proplist))
-                
-            

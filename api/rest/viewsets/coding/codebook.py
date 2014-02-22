@@ -32,26 +32,28 @@ from api.rest.viewsets.project import ProjectViewSetMixin
 log = logging.getLogger(__name__)
 
 __all__ = ("CodebookSerializer", "CodebookViewSetMixin", "CodingJobCodebookViewSet",
-            "CodebookViewSet")
+           "CodebookViewSet")
+
 
 def serialize_codebook_code(codebook, ccode):
     function = ccode.function
 
     return {
-        "codebookcode" : ccode.id,
-        "code" : ccode.code_id,
-        "parent" : ccode.parent_id,
-        "hide" : ccode.hide,
-        "valid_from" : ccode.validfrom,
-        "valid_to" : ccode.validto,
-        "ordernr" : ccode.ordernr,
-        "labels" : codebook._labels[ccode.code_id],
-        "function" : {
-            "id" : function.id,
-            "label" : function.label,
-            "description" : function.description
+        "codebookcode": ccode.id,
+        "code": ccode.code_id,
+        "parent": ccode.parent_id,
+        "hide": ccode.hide,
+        "valid_from": ccode.validfrom,
+        "valid_to": ccode.validto,
+        "ordernr": ccode.ordernr,
+        "labels": codebook._labels[ccode.code_id],
+        "function": {
+            "id": function.id,
+            "label": function.label,
+            "description": function.description
         }
     }
+
 
 class CodebookSerializer(AmCATModelSerializer):
     model = Codebook
@@ -65,20 +67,23 @@ class CodebookSerializer(AmCATModelSerializer):
         codebook.cache_labels()
         return (serialize_codebook_code(codebook, ccode) for ccode in codebook.codebookcodes)
 
+
 class CodebookViewSetMixin(AmCATViewSetMixin):
     model_serializer_class = CodebookSerializer
     model_key = "codebook"
     model = Codebook
+
 
 class CodebookViewSet(ProjectViewSetMixin, CodebookViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
     model = Codebook
 
     def filter_queryset(self, queryset):
         qs = super(CodebookViewSet, self).filter_queryset(queryset)
-        return qs.filter(Q(project=self.project)|Q(projects_set=self.project))
+        return qs.filter(Q(project=self.project) | Q(projects_set=self.project))
+
 
 class CodingJobCodebookViewSet(ProjectViewSetMixin, CodingJobViewSetMixin,
-                      CodebookViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
+                               CodebookViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
     model = Codebook
     model_serializer_class = CodebookSerializer
 
@@ -99,8 +104,4 @@ class CodingJobCodebookViewSet(ProjectViewSetMixin, CodingJobViewSetMixin,
 
     def filter_queryset(self, queryset):
         qs = super(CodingJobCodebookViewSet, self).filter_queryset(queryset)
-        return qs.filter(id__in=set(self._get_codebook_ids()) - {None,}).distinct()
-
-
-
-
+        return qs.filter(id__in=set(self._get_codebook_ids()) - {None, }).distinct()

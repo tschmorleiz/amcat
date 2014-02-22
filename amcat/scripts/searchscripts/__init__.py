@@ -22,4 +22,4 @@
 # from amcat.scripts.searchscripts.aggregation import AggregationScript
 # from amcat.scripts.searchscripts.articleids import ArticleidsDictScript
 
-#searchscripts = [ArticleListScript]#, AggregationScript]
+# searchscripts = [ArticleListScript]#, AggregationScript]

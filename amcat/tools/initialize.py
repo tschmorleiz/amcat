@@ -42,6 +42,7 @@ from amcat.tools import classtools, db_upgrader, amcates
 INITIAL_DATA_MODULE = amcat.models
 INITIAL_DATA_FILE = "initial_data.json"
 
+
 def create_admin():
     """Create the admin account if it doesn't exit"""
     try:
@@ -53,10 +54,9 @@ def create_admin():
         sup.save()
 
         log.info("\n{line}\n#   A default superuser `amcat` with password `amcat` has been created.   #\n{line}"
-                 .format(line="#"*75))
+                 .format(line="#" * 75))
 
-    
-        
+
 def initialize(sender, **kwargs):
     """
     Initialize the amcat database by loading data, creating the admin account, and upgrading the db if needed
@@ -66,6 +66,7 @@ def initialize(sender, **kwargs):
     create_admin()
     amcates.ES().check_index()
     db_upgrader.upgrade_database()
+
 
 def set_signals():
     """
@@ -78,4 +79,4 @@ def set_signals():
         create_superuser,
         sender=auth_models,
         dispatch_uid='django.contrib.auth.management.create_superuser'
-        )
+    )

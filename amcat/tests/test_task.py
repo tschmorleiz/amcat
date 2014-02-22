@@ -30,7 +30,9 @@ from api.webscripts.webscript import WebScript
 class _TestTaskScript(Script):
     pass
 
+
 class _TestTaskWebScript(WebScript):
+
     def __init__(self, *args, **kwargs):
         self._args = args
         self._kwargs = kwargs
@@ -43,8 +45,9 @@ class _TestTaskWebScript(WebScript):
 
 
 class TestTask(amcattest.AmCATTestCase):
+
     def _get_task(self):
-        return task(lambda : None).delay()
+        return task(lambda: None).delay()
 
     def test_get_result(self):
         user = amcattest.create_test_user()
@@ -58,7 +61,8 @@ class TestTask(amcattest.AmCATTestCase):
 
     def test_get_class(self):
         user = amcattest.create_test_user()
-        task = Task.objects.create(uuid="bar", task_name="foo", class_name="amcat.tests.test_task._TestTaskScript", user=user)
+        task = Task.objects.create(uuid="bar", task_name="foo",
+                                   class_name="amcat.tests.test_task._TestTaskScript", user=user)
         self.assertEqual(_TestTaskScript.__name__, task.get_class().__name__)
 
     def test_get_object(self):
@@ -70,7 +74,6 @@ class TestTask(amcattest.AmCATTestCase):
         self.assertEqual(task.get_object()._kwargs["test"], 2)
 
         # Test no raises
-        task = Task.objects.create(uuid="bar", task_name="foo", class_name="amcat.tests.test_task._TestTaskScript", user=user)
+        task = Task.objects.create(uuid="bar", task_name="foo",
+                                   class_name="amcat.tests.test_task._TestTaskScript", user=user)
         task.get_object()
-
-

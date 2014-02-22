@@ -31,30 +31,37 @@ from navigator.utils.misc import session_pop
 from navigator import forms
 USER_MENU = None
 
-import smtplib, itertools
+import smtplib
+import itertools
 
 from django import db
 from django import http
 
+
 def _table_view(request, table, selected=None, menu=USER_MENU):
     return render(request, "user/table.html", locals())
 
+
 def _list_users(request, selected, **filters):
     return _table_view(request, Datatable(UserResource).filter(**filters), selected)
+
 
 @check_perm("view_users_same_affiliation")
 def my_affiliated_active(request):
     return _list_users(request, "active affiliated users", is_active=True,
                        userprofile__affiliation=request.user.get_profile().affiliation)
 
+
 @check_perm("view_users_same_affiliation")
 def my_affiliated_all(request):
     return _list_users(request, "all affiliated users",
                        affiliation=request.user.get_profile().affiliation)
 
+
 @check_perm("view_users")
 def all(request):
     return _list_users(request, "all users")
+
 
 @check(User)
 def view(request, user=None, form=None):
@@ -70,13 +77,13 @@ def view(request, user=None, form=None):
     menu = None if user == request.user else USER_MENU
     main_active = "Current User" if user == request.user else "Users"
 
+    return render(request, "user/view.html", {'user': user,
+                                              'form': form,
+                                              'projects': projects,
+                                              'success': success,
+                                              'main_active': main_active,
+                                              'menu': menu})
 
-    return render(request, "user/view.html", {'user' : user,
-                                              'form' : form,
-                                              'projects' : projects,
-                                              'success' : success,
-                                              'main_active' : main_active,
-                                              'menu' : menu})
 
 @check(User, action='update')
 def edit(request, user):
@@ -86,6 +93,7 @@ def edit(request, user):
         return redirect(reverse(view, args=[user.id]))
     return view(request, id=user.id, form=form)
 
+
 @check(User, action='create', args=None)
 def add(request):
     add_form = forms.AddUserForm(request)
@@ -93,6 +101,7 @@ def add(request):
 
     message = session_pop(request.session, "users_added")
     return render(request, "user/add.html", locals())
+
 
 @db.transaction.commit_on_success
 def _add_multiple_users(request):
@@ -109,12 +118,13 @@ def _add_multiple_users(request):
             create_user(**dict(itertools.chain(props.items(), user.items())))
 
         request.session['users_added'] = ("Succesfully added {} user(s)"
-                                            .format(len(amf.cleaned_data['csv'])))
+                                          .format(len(amf.cleaned_data['csv'])))
 
         # Users created
         return redirect(reverse(add))
 
     return amf, forms.AddUserForm(request)
+
 
 @db.transaction.commit_on_success
 def _add_one_user(request):
@@ -141,7 +151,7 @@ def add_submit(request):
     except smtplib.SMTPException as e:
         log.exception()
         message = ("Could not send e-mail. If this this error "
-                    + "continues to exist, contact your system administrator")
+                   + "continues to exist, contact your system administrator")
     except db.utils.DatabaseError as e:
         # Duplicate users?
         message = "A database error occured. Try again?"
@@ -153,7 +163,7 @@ def add_submit(request):
         amf, af = resp
 
     return render(request, "user/add.html", {
-        'error' : locals().get('message'),
-        'add_multiple_form' : amf,
-        'add_form' : af,
+        'error': locals().get('message'),
+        'add_multiple_form': amf,
+        'add_form': af,
     })

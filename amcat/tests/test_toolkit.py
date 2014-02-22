@@ -27,92 +27,92 @@ import random
 import inspect
 import logging
 
+
 class TestToolkit(amcattest.AmCATTestCase):
     TARGET_MODULE = toolkit
 
     def test_multidict(self):
         for input, output in (
-            ([(1,1), (1,2), (1,3), (2,3)], {1 : set([1,2,3]), 2:set([3])}),
-            ((x for x in [(1,1), (1,2), (1,3), (2,3)]), {1 : set([1,2,3]), 2:set([3])}),
+            ([(1, 1), (1, 2), (1, 3), (2, 3)], {1: set([1, 2, 3]), 2: set([3])}),
+            ((x for x in [(1, 1), (1, 2), (1, 3), (2, 3)]), {1: set([1, 2, 3]), 2: set([3])}),
             ((x for x in []), {}),
-            ):
+        ):
             self.assertEqual(dict(toolkit.multidict(input)), output)
-
 
     def test_readdate(self):
         for s, date, american, lax in (
-            ("22 maart 1980" , datetime.datetime(1980, 3, 22,0,0,0), False, True),
-            ("22 mrt 1980" , datetime.datetime(1980, 3, 22,0,0,0), False, True),
-            ("22/3/1980" , datetime.datetime(1980, 3, 22,0,0,0), False, True),
-            ("1980-3-22" , datetime.datetime(1980, 3, 22,0,0,0), False, True),
-            ("1980-3-22T01:00:05" , datetime.datetime(1980, 3, 22,1,0,5), False, True),
-            ("1980-3-22 01:00" , datetime.datetime(1980, 3, 22,1,0,0), False, True),
-            ("1980-3-22 01:00 PM" , datetime.datetime(1980, 3, 22,13,0,0), False, True),
-            ("1980-3-22 01:00:00:00" , datetime.datetime(1980, 3, 22,0,0,0), False, True), #time->0
-            ("1980-13-22 01:00:00:00" , None, False, True), # illegal date --> None
-            ("1980-13-22 01:00:00" , ValueError, False, False), # illegal date --> Error
-            ("1980-3-22 27:00:00" , ValueError, False, False), # illegal time --> Error
-            ("1980-3-22 23:00:00:00" , ValueError, False, False), # illegal time --> Error
-            ("Sun Sep 29 18:21:12 +0000 2013", datetime.datetime(2013,9,29,18,21,12), False, False), # twitter (??)
-            ("1/1/98", datetime.datetime(1998, 1, 1,0,0,0), False, True),
-            ("1/1/04", datetime.datetime(2004, 1, 1,0,0,0), False, True),
-            ("31/12/72", datetime.datetime(1972, 12, 31,0,0,0), False, True),
-            ("12/31/72", datetime.datetime(1972, 12, 31,0,0,0), True, True),
-            ("1/2/1972", datetime.datetime(1972, 2, 1,0,0,0), False, True),
-            ("1/2/1972", datetime.datetime(1972, 1, 2,0,0,0), True, True),
-            ("1/2/1972", datetime.datetime(1972, 1, 2,0,0,0), True, True),
-            ("30.09.2008", datetime.datetime(2008, 9, 30,0,0,0), False, False),
+            ("22 maart 1980", datetime.datetime(1980, 3, 22, 0, 0, 0), False, True),
+            ("22 mrt 1980", datetime.datetime(1980, 3, 22, 0, 0, 0), False, True),
+            ("22/3/1980", datetime.datetime(1980, 3, 22, 0, 0, 0), False, True),
+            ("1980-3-22", datetime.datetime(1980, 3, 22, 0, 0, 0), False, True),
+            ("1980-3-22T01:00:05", datetime.datetime(1980, 3, 22, 1, 0, 5), False, True),
+            ("1980-3-22 01:00", datetime.datetime(1980, 3, 22, 1, 0, 0), False, True),
+            ("1980-3-22 01:00 PM", datetime.datetime(1980, 3, 22, 13, 0, 0), False, True),
+            ("1980-3-22 01:00:00:00", datetime.datetime(1980, 3, 22, 0, 0, 0), False, True),  # time->0
+            ("1980-13-22 01:00:00:00", None, False, True),  # illegal date --> None
+            ("1980-13-22 01:00:00", ValueError, False, False),  # illegal date --> Error
+            ("1980-3-22 27:00:00", ValueError, False, False),  # illegal time --> Error
+            ("1980-3-22 23:00:00:00", ValueError, False, False),  # illegal time --> Error
+            # twitter (??)
+            ("Sun Sep 29 18:21:12 +0000 2013", datetime.datetime(2013, 9, 29, 18, 21, 12), False, False),
+            ("1/1/98", datetime.datetime(1998, 1, 1, 0, 0, 0), False, True),
+            ("1/1/04", datetime.datetime(2004, 1, 1, 0, 0, 0), False, True),
+            ("31/12/72", datetime.datetime(1972, 12, 31, 0, 0, 0), False, True),
+            ("12/31/72", datetime.datetime(1972, 12, 31, 0, 0, 0), True, True),
+            ("1/2/1972", datetime.datetime(1972, 2, 1, 0, 0, 0), False, True),
+            ("1/2/1972", datetime.datetime(1972, 1, 2, 0, 0, 0), True, True),
+            ("1/2/1972", datetime.datetime(1972, 1, 2, 0, 0, 0), True, True),
+            ("30.09.2008", datetime.datetime(2008, 9, 30, 0, 0, 0), False, False),
             ("31. Januar 2009", datetime.datetime(2009, 1, 31, 0, 0, 0), False, True),
             ("December 31, 2009 Thursday", datetime.datetime(2009, 12, 31, 0, 0, 0), False, False),
             (u'30 ao\xfbt 2002', datetime.datetime(2002, 8, 30, 0, 0, 0), False, False),
             ('31. Maerz 2003', datetime.datetime(2003, 3, 31, 0, 0, 0), False, False),
             ('September 1, 2008 Monday 12:44 PM AEST', datetime.datetime(2008, 9, 1, 12, 44), False, False),
-            ):
+        ):
             if inspect.isclass(date) and issubclass(date, Exception):
                 self.assertRaises(date, toolkit.readDate, s, lax=False, american=american)
             else:
                 date2 = toolkit.readDate(s, lax=lax, american=american)
                 self.assertEqual(date2, date)
 
-
     def test_dateoutput(self):
         for date, iso, isotime, yw, ym, yq in (
-            (datetime.datetime(1990, 1, 10, 13,1,0), "1990-01-10", "1990-01-10 13:01:00", 1990.02, 1990.01, 1990.1),
-            ):
+            (datetime.datetime(1990, 1, 10, 13, 1, 0), "1990-01-10", "1990-01-10 13:01:00", 1990.02, 1990.01, 1990.1),
+        ):
             self.assertEqual(toolkit.writeDate(date), iso)
             self.assertEqual(toolkit.writeDateTime(date), isotime)
 
     def test_splitlist(self):
         def plusone(l):
-            for i,e in enumerate(l):
-                l[i] = e+1
+            for i, e in enumerate(l):
+                l[i] = e + 1
         for input, output, itemsperbatch in (
-            ([1,2,3], [[1,2], [3]], 2),
-            ([1,2,3], [[1,2, 3]], 20),
-            ((1,2,3), [(1,2), (3,)], 2),
-            ((i for i in (1,2,3)), [[1,2],[3]], 2),
-            ):
+            ([1, 2, 3], [[1, 2], [3]], 2),
+            ([1, 2, 3], [[1, 2, 3]], 20),
+            ((1, 2, 3), [(1, 2), (3,)], 2),
+            ((i for i in (1, 2, 3)), [[1, 2], [3]], 2),
+        ):
             o = toolkit.splitlist(input, itemsperbatch)
             self.assertEqual(list(o), output)
 
     def test_sortbyvalue(self):
         for input, output in (
-            ({"a" : 12, "b" : 6, "c" : 99}, [("b", 6), ("a" , 12), ("c", 99)]),
-            ({"a" : 12, "b" : 6, "c" : 99}.items(), [("b", 6), ("a" , 12), ("c", 99)]),
-            ({"a" : 12, "b" : 6, "c" : 99}.iteritems(), [("b", 6), ("a" , 12), ("c", 99)]),
-            ):
+            ({"a": 12, "b": 6, "c": 99}, [("b", 6), ("a", 12), ("c", 99)]),
+            ({"a": 12, "b": 6, "c": 99}.items(), [("b", 6), ("a", 12), ("c", 99)]),
+            ({"a": 12, "b": 6, "c": 99}.iteritems(), [("b", 6), ("a", 12), ("c", 99)]),
+        ):
             o = toolkit.sortByValue(input)
             self.assertEqual(o, output)
 
     def test_head(self):
         for input, filter, output in (
-            ([1,2,3], None, 1),
+            ([1, 2, 3], None, 1),
             ([], None, None),
-            ([1,2,3,4], lambda x : not x%2, 2),
-            ([4,3,2,1], lambda x : not x%2, 4),
-            ([3,1], lambda x : not x%2, None),
+            ([1, 2, 3, 4], lambda x: not x % 2, 2),
+            ([4, 3, 2, 1], lambda x: not x % 2, 4),
+            ([3, 1], lambda x: not x % 2, None),
 
-            ):
+        ):
             self.assertEqual(output, toolkit.head(input, filter))
             self.assertEqual(output, toolkit.head(tuple(input), filter))
             self.assertEqual(output, toolkit.head((i for i in input), filter))

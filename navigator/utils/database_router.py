@@ -1,4 +1,5 @@
 class DummyRouter(object):
+
     """ Dummy Router that sets allow_relation to True, to avoid saving problems"""
 
     def db_for_read(self, model, **hints):

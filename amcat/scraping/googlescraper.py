@@ -27,22 +27,21 @@ INDEX_URL = "https://www.google.nl/search?num=100&hl=nl&safe=off&site=&source=hp
 from amcat.scraping.document import HTMLDocument
 from amcat.scraping.scraper import HTTPScraper
 
-class GoogleScraper(HTTPScraper):
-    query=""
-    article_url_pattern=""
 
-    def __init__(self,*args,**kwargs):
-        super(GoogleScraper,self).__init__(*args,**kwargs)
+class GoogleScraper(HTTPScraper):
+    query = ""
+    article_url_pattern = ""
+
+    def __init__(self, *args, **kwargs):
+        super(GoogleScraper, self).__init__(*args, **kwargs)
         self.query = quote_plus(self.query)
 
     def _get_units(self):
 
-
-
         self.query = quote_plus(self.query)
         start = 0
         index_url = INDEX_URL.format(q=self.query)
-        index = self.getdoc(index_url) 
+        index = self.getdoc(index_url)
         while index.cssselect("#rso li.g"):
             for unit in index.cssselect('#rso li.g'):
                 href = unit.cssselect('a.l')[0].get('href')
@@ -57,6 +56,4 @@ class GoogleScraper(HTTPScraper):
                     else:
                         if self.query in doc.text_content():
                             yield doc
-            index = self.getdoc(urljoin("https://www.google.nl",index.cssselect("#nav a")[-1].get('href')))
-
-
+            index = self.getdoc(urljoin("https://www.google.nl", index.cssselect("#nav a")[-1].get('href')))

@@ -20,7 +20,8 @@
 ###########################################################################
 
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from django import forms
 
@@ -30,6 +31,7 @@ from amcat.models import Medium, Article, MediumAlias
 
 
 class ReplaceMedium(Script):
+
     """
     Globally (!) replace a medium by another medium, delete the old medium,
     and add its name as an alias for the new medium.
@@ -54,7 +56,7 @@ class ReplaceMedium(Script):
         log.info("Inserting {old_medium} as alias for {new_medium.id}:{new_medium}".format(**locals()))
         MediumAlias.objects.create(medium=new_medium, name=old_medium.name)
         log.info("Done")
-    
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli()

@@ -27,11 +27,13 @@ import json
 from amcat.models.user import User
 from django import forms
 from django.db import models
-from django.core.exceptions import ValidationError 
+from django.core.exceptions import ValidationError
 
-import logging; log = logging.getLogger()
+import logging
+log = logging.getLogger()
 
 __all__ = ['JSONField', 'UserField', 'CSVField']
+
 
 class JSONField(models.TextField):
     __metaclass__ = models.SubfieldBase
@@ -52,7 +54,7 @@ class JSONField(models.TextField):
 
 class UserField(forms.SlugField):
     default_error_messages = {
-        'exists' : 'This username is not available.'
+        'exists': 'This username is not available.'
     }
 
     def validate(self, value):
@@ -66,13 +68,12 @@ class UserField(forms.SlugField):
             raise ValidationError(self.default_error_messages['exists'])
 
 
-
 class CSVField(forms.FileField):
     default_error_messages = {
-        'notcsv' : 'The uploaded file is corrupt or not valid.',
-        'columnerr' : ' The value (%s) at row %s, column %s is not valid. Validator reported: %s',
-        'no_such_column' : 'Column "%s" is required, but not found in "%s"',
-        'delimiter' : 'Delimiter must be a one-character ASCII value.'
+        'notcsv': 'The uploaded file is corrupt or not valid.',
+        'columnerr': ' The value (%s) at row %s, column %s is not valid. Validator reported: %s',
+        'no_such_column': 'Column "%s" is required, but not found in "%s"',
+        'delimiter': 'Delimiter must be a one-character ASCII value.'
     }
 
     def __init__(self, columns=None, delimiter=",", *args, **kwargs):
@@ -127,7 +128,8 @@ class CSVField(forms.FileField):
                     try:
                         val = field.clean(val)
                     except ValidationError as e:
-                        raise ValidationError(self.error_messages['columnerr'] % (val, rownr+1, columns[colnr], e.messages[0]))
+                        raise ValidationError(self.error_messages['columnerr'] %
+                                              (val, rownr + 1, columns[colnr], e.messages[0]))
 
                 _row.append(val)
 

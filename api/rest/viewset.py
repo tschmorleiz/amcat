@@ -33,7 +33,9 @@ from . import tablerenderer
 
 ModelKey = namedtuple("ModelKey", ("key", "viewset"))
 
+
 class AmCATViewSetMixin(object):
+
     """
     All ViewSet used in the AmCAT API should inherit from this class, or at least
     define a classmethod get_url_pattern(), which returns the pattern for the
@@ -67,8 +69,8 @@ class AmCATViewSetMixin(object):
         response = super(AmCATViewSetMixin, self).finalize_response(request, response, *args, **kargs)
         response = tablerenderer.set_response_content(response)
         return response
-    
-    @classmethod    
+
+    @classmethod
     def _get_model_keys(cls):
         """
         Get an iterator of all model_key properties in superclasses. This function
@@ -82,7 +84,8 @@ class AmCATViewSetMixin(object):
             return
 
         for base in cls.__bases__:
-            if not hasattr(base, '_get_model_keys'): continue
+            if not hasattr(base, '_get_model_keys'):
+                continue
             for basekey in base._get_model_keys():
                 yield basekey
 
@@ -91,7 +94,7 @@ class AmCATViewSetMixin(object):
     @classmethod
     def _get_url_pattern_listname(cls):
         return r"{model_key}s"
-        
+
     @classmethod
     def _get_url_pattern(cls):
         # Deduplicate (while keeping ordering) with OrderedDict
@@ -108,6 +111,7 @@ class AmCATViewSetMixin(object):
 ######################
 
 class AmCATViewSetMixinTest(amcattest.AmCATTestCase):
+
     def test_get_url_pattern(self):
         class AMixin(AmCATViewSetMixin):
             model_key = "project"
@@ -118,13 +122,17 @@ class AmCATViewSetMixinTest(amcattest.AmCATTestCase):
         class CMixin(BMixin):
             pass
 
-        class AViewSet(AMixin, BMixin): pass
-        class BViewSet(AMixin, CMixin): pass
-        class CViewSet(BMixin, AMixin): pass
-            
+        class AViewSet(AMixin, BMixin):
+            pass
+
+        class BViewSet(AMixin, CMixin):
+            pass
+
+        class CViewSet(BMixin, AMixin):
+            pass
+
         self.assertEquals(r"projects", AMixin.get_url_pattern())
         self.assertEquals(r"codebooks", BMixin.get_url_pattern())
         self.assertEquals(r"projects/(?P<project>\d+)/codebooks", AViewSet.get_url_pattern())
         self.assertEquals(r"projects/(?P<project>\d+)/codebooks", BViewSet.get_url_pattern())
         self.assertEquals(r"codebooks/(?P<codebook>\d+)/projects", CViewSet.get_url_pattern())
-

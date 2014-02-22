@@ -13,7 +13,9 @@ from django.core import urlresolvers
 import logging
 log = logging.getLogger(__name__)
 
+
 class MaintenanceModeMiddleware(object):
+
     def process_request(self, request):
         import amcat
         fn = os.path.join(os.path.dirname(amcat.__file__), "maintenance-mode")
@@ -24,6 +26,3 @@ class MaintenanceModeMiddleware(object):
             resolver = urlresolvers.get_resolver(None)
             callback, param_dict = resolver._resolve_special('503')
             return callback(request, **param_dict)
-
-
-

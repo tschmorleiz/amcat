@@ -27,7 +27,7 @@ from amcat.models.articleset import *
 from amcat.models.user import *
 from amcat.models.project import *
 from amcat.models.sentence import *
-from amcat.models.sentiment import *  
+from amcat.models.sentiment import *
 from amcat.models.amcat import *
 from amcat.models.task import *
 
@@ -49,7 +49,6 @@ from amcat.models.coding.codedarticle import *
 from amcat.models.coding.codingrule import *
 
 from amcat.models.scraper import *
-
 
 
 from amcat.models.rule import *

@@ -35,10 +35,13 @@ from amcat.forms.fields import JSONField
 
 IN_PROGRESS = "INPROGRESS"
 
+
 class TaskPending(Exception):
     pass
 
+
 class Task(AmcatModel):
+
     """
     A Task represents a Script (see: amcat.scripts.Script) which was ran asynchronously
     using Celery. Because Celery fails to remember task-names when submitted, they are
@@ -96,7 +99,6 @@ class Task(AmcatModel):
         @type signal: basestring
         @param signal: signal to send to running process (used in combination with terminate). Default: SIGKILL"""
         return self.get_async_result().revoke(**kwargs)
-
 
     class Meta:
         db_table = "tasks"

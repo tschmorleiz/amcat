@@ -46,6 +46,7 @@ class CodingRuleSerializer(AmCATModelSerializer):
     class Meta:
         model = CodingRule
 
+
 class CodingRuleViewSetMixin(AmCATViewSetMixin):
     model_serializer_class = CodingRuleSerializer
     model_key = "coding_rule"
@@ -55,10 +56,12 @@ class CodingRuleViewSetMixin(AmCATViewSetMixin):
 class CodingRuleActionSerializer(AmCATModelSerializer):
     model = CodingRuleAction
 
+
 class CodingRuleActionViewSetMixin(AmCATViewSetMixin):
     model_serializer_class = CodingRuleActionSerializer
     model_key = "coding_rule_action"
     model = CodingRuleAction
+
 
 class CodingRuleActionViewSet(CodingRuleActionViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
     model = CodingRuleAction

@@ -23,6 +23,7 @@ from django.db.models import Q
 from api.rest.resources.amcatresource import AmCATResource
 from api.rest.viewsets.project import ProjectSerializer
 
+
 class ProjectResource(AmCATResource):
     model = Project
     extra_filters = ['projectrole__user__id']
@@ -33,6 +34,6 @@ class ProjectResource(AmCATResource):
         # only show projects that are either public or the user has a role in
         if self.request.user.is_anonymous():
             qs = qs.filter(guest_role__isnull=False)
-        elif not self.request.user.is_superuser: 
+        elif not self.request.user.is_superuser:
             qs = qs.filter(Q(guest_role__isnull=False) | Q(projectrole__user_id=self.request.user.id)).distinct()
         return qs

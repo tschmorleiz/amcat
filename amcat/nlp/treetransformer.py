@@ -21,7 +21,9 @@
 Extract semantic roles from syntax by transforming trees with SPARQL statements
 """
 
-import logging, csv, re
+import logging
+import csv
+import re
 from collections import namedtuple
 
 from rdflib import Graph, Namespace, Literal
@@ -37,58 +39,78 @@ NS_AMCAT = Namespace(AMCAT)
 VIS_IGNORE_PROPERTIES = "position", "label"
 GOLD_ROLES = "su", "obj", "quote", "eqv", "om"
 
-Triple = namedtuple("Triple", ["subject", "predicate","object"])
+Triple = namedtuple("Triple", ["subject", "predicate", "object"])
+
 
 def _id(obj):
     return obj if isinstance(obj, int) else obj.id
+
+
 def _token_uri(token):
     tokenstr = unicode(token).encode("ascii", "ignore")
     tokenstr = re.sub("\W", "", tokenstr)
     uri = NS_AMCAT["t_{token.position}_{tokenstr}".format(i=_id(token), **locals())]
     return uri
+
+
 def _rel_uri(rel):
     return NS_AMCAT["rel_{rel}".format(**locals())]
 
+
 class Node(object):
+
     """Flexible 'record-like' object with arbitrary attributes used for representing tokens"""
+
     def __unicode__(self):
-        return "Node(%s)" % ", ".join("%s=%r"%kv for kv in self.__dict__.iteritems())
+        return "Node(%s)" % ", ".join("%s=%r" % kv for kv in self.__dict__.iteritems())
+
     def __init__(self, **kargs):
         self.__dict__.update(kargs)
     __repr__ = __unicode__
 
+
 class LexicalRule(object):
+
     def __init__(self, lexclass, lemmata):
         self.lexclass = lexclass
         self.lemmata = lemmata
+
     def apply(self, transformer):
         lemmata = ",".join('"{}"'.format(l) for l in self.lemmata)
         where = '?x :lemma ?l . FILTER (?l IN ({}))'.format(lemmata)
         transformer.update(where, '?x :lexclass "{self.lexclass}"'.format(**locals()))
-               
+
+
 class GrammarRule(object):
+
     def __init__(self, where, insert, delete, name=None, show=True):
         self.where = where
         self.insert = insert
         self.delete = delete
         self.name = name
         self.show = show
+
     def apply(self, transformer):
         transformer.update(self.where, self.insert, self.delete)
-        
+
+
 def _load_lexicon(lexiconfile):
     for row in csv.DictReader(open(lexiconfile)):
         yield LexicalRule(row["class"], set(s.strip() for s in row["lemmata"].split(",")))
-    
+
+
 def _load_rules(rulefile):
     for row in csv.DictReader(open(rulefile)):
-        if not row["active"].strip(): continue
+        if not row["active"].strip():
+            continue
         fields = row["where"], row["insert"], row["delete"], row["name"]
         fields = [f.decode("utf-8").replace(u"\u201c", u'"').replace(u"\u201d", u'"') for f in fields]
         fields += [bool(row["show"].strip())]
         yield GrammarRule(*fields)
-        if row["show"].strip().lower() == "stop": break
-    
+        if row["show"].strip().lower() == "stop":
+            break
+
+
 class TreeTransformer(object):
 
     def __init__(self, soh, lexiconfile, rulefile, gold_roles=GOLD_ROLES):
@@ -97,32 +119,31 @@ class TreeTransformer(object):
         """
         self.soh = soh
         self.soh.prefixes[""] = AMCAT
-        self.tokens = {} # position -> url
+        self.tokens = {}  # position -> url
         self.lexicon = list(_load_lexicon(lexiconfile))
         self.rules = list(_load_rules(rulefile))
-        self.gold_roles = gold_roles 
+        self.gold_roles = gold_roles
 
     def apply_lexical(self):
         for rule in self.lexicon:
             rule.apply(self)
-        
+
     def apply_rules(self):
         for rule in self.rules:
             rule.apply(self)
 
-            
     def _create_rdf_triples(self, analysis_sentence_id):
         """
         Get the raw RDF subject, predicate, object triples representing the given analysed sentence
         """
         tokenset = set()
-        for t in (TripleModel.objects.filter(child__sentence = analysis_sentence_id)
+        for t in (TripleModel.objects.filter(child__sentence=analysis_sentence_id)
                   .select_related("child", "child__word", "parent", "parent__word", "relation")):
             for pred in _rel_uri(t.relation), NS_AMCAT["rel"]:
                 yield _token_uri(t.child), pred, _token_uri(t.parent)
             tokenset |= set([t.child_id, t.parent_id])
 
-        for t in Token.objects.filter(pk__in = tokenset).select_related("word", "word__lemma"):
+        for t in Token.objects.filter(pk__in=tokenset).select_related("word", "word__lemma"):
             uri = _token_uri(t)
             yield uri, NS_AMCAT["label"], Literal(str(t.word))
             yield uri, NS_AMCAT["lemma"], Literal(str(t.word.lemma))
@@ -145,22 +166,25 @@ class TreeTransformer(object):
     def get_roles(self):
         """Retrieve the childposition-role-parentposition triples"""
         for triple in self.get_triples():
-            if triple.predicate not in self.gold_roles: continue
+            if triple.predicate not in self.gold_roles:
+                continue
             yield Triple(int(triple.subject.position), triple.predicate, int(triple.object.position))
-        read_node = lambda n : int(n) if n.strip() else None
+        read_node = lambda n: int(n) if n.strip() else None
         for s, p, o in self.query(select=["?spos", "?p", "?opos"],
                                   where="""?s ?p [:position ?opos] OPTIONAL {?s :position ?spos}
                                            FILTER (?p IN (:su, :obj, :quote, :om))"""):
-            if s: s = int(s)
-            if o: o = int(o)
+            if s:
+                s = int(s)
+            if o:
+                o = int(o)
             p = p.replace(AMCAT, "")
             if p in self.gold_roles:
                 yield (s, p, o)
-        
+
     def get_triples(self, ignore_rel=True, limit_predicate=None):
         """Retrieve the Node-predicate_string-Node triples for the loaded sentence"""
         nodes, triples = {}, []
-        for s,p,o in self.soh.get_triples(parse=True):
+        for s, p, o in self.soh.get_triples(parse=True):
             child = nodes.setdefault(s, Node())
             pred = str(p).replace(AMCAT, "")
             if isinstance(o, Literal):
@@ -168,8 +192,10 @@ class TreeTransformer(object):
                     o = getattr(child, pred) + "; " + o
                 setattr(child, pred, unicode(o))
             else:
-                if ignore_rel and pred == "rel": continue
-                if pred == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": continue
+                if ignore_rel and pred == "rel":
+                    continue
+                if pred == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+                    continue
                 parent = nodes.setdefault(o, Node())
                 triples.append(Triple(child, pred, parent))
         # make sure every node has a position and label
@@ -188,14 +214,17 @@ class TreeTransformer(object):
         """Perform a direct query on the data store"""
         return self.soh.query(select, where, **kargs)
 
+
 def set_attribute_if_missing(obj, attr, value):
     if not hasattr(obj, attr):
         setattr(obj, attr, value)
+
 
 def nodes(triples):
     for triple in triples:
         for node in (triple.subject, triple.object):
             yield node
+
 
 def visualise_triples(triples, triple_args_function=None,
                       ignore_properties=VIS_IGNORE_PROPERTIES):
@@ -206,20 +235,21 @@ def visualise_triples(triples, triple_args_function=None,
                                  optional arguments for a triple
     """
     g = dot.Graph()
-    _nodes = {} # Node -> dot.Node
+    _nodes = {}  # Node -> dot.Node
     # create nodes
     for n in set(nodes(triples)):
         label = "%s: %s" % (n.position, n.label)
-        for k,v in n.__dict__.iteritems():
+        for k, v in n.__dict__.iteritems():
             if k not in ignore_properties:
                 label += "\\n%s: %s" % (k, v)
-        node = dot.Node(id="node_%s"%n.position, label=label)
+        node = dot.Node(id="node_%s" % n.position, label=label)
         g.addNode(node)
         _nodes[n] = node
     # create edges
     for triple in triples:
-        kargs = triple_args_function(triple) if  triple_args_function else {}
-        if 'label' not in kargs: kargs['label'] = triple.predicate
+        kargs = triple_args_function(triple) if triple_args_function else {}
+        if 'label' not in kargs:
+            kargs['label'] = triple.predicate
         g.addEdge(_nodes[triple.subject], _nodes[triple.object], **kargs)
     # some theme options
     g.theme.graphattrs["rankdir"] = "BT"
@@ -237,10 +267,13 @@ def visualise_triples(triples, triple_args_function=None,
 from amcat.tools import amcattest
 from amcat.tools.pysoh.test import get_test_soh
 
+
 def get_test_transformer():
     return TreeTransformer(get_test_soh())
 
+
 class TestGrammar(amcattest.AmCATTestCase):
+
     def todo_test_load(self):
         # TODO: do something useful when fuseki is not installed!
         from amcat.models import Token, Triple, Pos, Relation
@@ -257,7 +290,7 @@ class TestGrammar(amcattest.AmCATTestCase):
 
         triples = list(tt.get_triples())
         self.assertEqual(len(triples), 1)
-        s,p,o = triples[0]
+        s, p, o = triples[0]
         self.assertEqual(p, "rel_su")
         self.assertEqual(s.label,  "b")
 
@@ -265,7 +298,7 @@ class TestGrammar(amcattest.AmCATTestCase):
 
         triples = list(tt.get_triples())
         self.assertEqual(len(triples), 1)
-        s,p,o = triples[0]
+        s, p, o = triples[0]
         self.assertEqual(s.bla,  "piet")
 
     def test_visualise(self):

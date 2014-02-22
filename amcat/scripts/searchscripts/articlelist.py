@@ -34,6 +34,7 @@ from django import forms
 import logging
 log = logging.getLogger(__name__)
 
+
 @order_fields(classes=(amcat.scripts.forms.SelectionForm, amcat.scripts.forms.ArticleColumnsForm))
 class ArticleListForm(amcat.scripts.forms.ArticleColumnsForm, amcat.scripts.forms.SelectionForm):
     start = forms.IntegerField(initial=0, min_value=0, widget=forms.HiddenInput, required=False)
@@ -42,11 +43,11 @@ class ArticleListForm(amcat.scripts.forms.ArticleColumnsForm, amcat.scripts.form
     highlight = forms.BooleanField(initial=False, required=False)
     sortColumn = forms.CharField(required=False)
     sortOrder = forms.ChoiceField(
-                    choices=(
-                        ('asc', 'Ascending'),
-                        ('desc', 'Descending'),
-                     ),
-                    initial = 'asc', required=False)
+        choices=(
+            ('asc', 'Ascending'),
+            ('desc', 'Descending'),
+        ),
+        initial = 'asc', required=False)
 
     def clean_start(self):
         data = self.cleaned_data['start']
@@ -59,7 +60,7 @@ class ArticleListForm(amcat.scripts.forms.ArticleColumnsForm, amcat.scripts.form
         if data == None:
             data = 100
         if data == -1:
-            data = 99999999 # unlimited (well, sort of ;)
+            data = 99999999  # unlimited (well, sort of ;)
         return data
 
     def clean_columns(self):
@@ -76,6 +77,7 @@ class ArticleListForm(amcat.scripts.forms.ArticleColumnsForm, amcat.scripts.form
 
 
 class ArticleListScript(script.Script):
+
     """
     Main script for conducting a selection query in amcat, either on the database or on the index
     """
@@ -83,7 +85,6 @@ class ArticleListScript(script.Script):
     input_type = None
     options_form = ArticleListForm
     output_type = types.ArticleIterator
-
 
     def run(self, input=None):
         """ returns an iterable of articles, when the index is used, possibly including highlighting """

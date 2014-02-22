@@ -24,7 +24,7 @@ Later it can be extended with finding scripts that are stored in the database
 
 import amcat.scripts.output
 from amcat.scripts import types
-import inspect 
+import inspect
 
 import logging
 log = logging.getLogger(__name__)
@@ -40,11 +40,12 @@ outputClasses = {
     'datatables': types.DataTableJsonData
 }
 
+
 def findAllScripts():
     """iterates over all available scripts"""
     classes = inspect.getmembers(amcat.scripts.output, inspect.isclass)
     for _classname, cls in classes:
-        if hasattr(cls, 'input_type') and hasattr(cls, 'output_type'): # if the class is a Script
+        if hasattr(cls, 'input_type') and hasattr(cls, 'output_type'):  # if the class is a Script
             #log.debug('found script %s' % classname)
             yield cls
 
@@ -67,25 +68,23 @@ def findScript(inputClass, outputClass):
     if not (inputClass is None or outputClass is None):
         log.warn('No script found for {inputClass} -> {outputClass}'.format(**locals()))
 
-            
-            
-scripts = list(findAllScripts())
 
+scripts = list(findAllScripts())
 
 
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-        
 from amcat.tools import amcattest
 from amcat.tools import table
 
+
 class TestScriptManager(amcattest.AmCATTestCase):
+
     def test_find(self):
-        """Test whether we can find certain basic scripts"""  
-        self.assertIsNotNone(scripts)        
+        """Test whether we can find certain basic scripts"""
+        self.assertIsNotNone(scripts)
         self.assertIsNotNone(findScript(table.table3.Table, 'csv'))
         self.assertIsNotNone(findScript(table.table3.Table, 'html'))
         self.assertIsNotNone(findScript(table.table3.Table, 'json'))
         self.assertRaises(Exception, findScript, table.table3.Table, 'not-exisiting-outputclass')
-

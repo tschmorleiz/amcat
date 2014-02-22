@@ -25,11 +25,11 @@ from amcat.scripts import script, types
 import logging
 log = logging.getLogger(__name__)
 
+
 class TableToSPSS(script.Script):
     input_type = table3.Table
     options_form = None
     output_type = types.SPSSData
-
 
     def run(self, tableObj):
         filename = table2spss.table2sav(tableObj)

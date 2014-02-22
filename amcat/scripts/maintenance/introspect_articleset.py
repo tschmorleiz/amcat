@@ -22,40 +22,43 @@ Assess the quality of articles in a given set at a given date
 """
 
 from django import forms
-import logging; log = logging.getLogger("amcat.scripts.maintenance.value_article")
+import logging
+log = logging.getLogger("amcat.scripts.maintenance.value_article")
 import json
 
 from amcat.scripts.script import Script
 from amcat.models.articleset import ArticleSet
 from amcat.models.article import Article
 
+
 class ValueArticleForm(forms.Form):
     date = forms.DateField()
-    articleset = forms.ModelChoiceField(queryset = ArticleSet.objects.all())
+    articleset = forms.ModelChoiceField(queryset=ArticleSet.objects.all())
+
 
 class ValueArticleScript(Script):
     options_form = ValueArticleForm
     article_properties = [
-        'date','section',
-        'pagenr','headline','byline',
-        'length','url','text','parent',
-        'medium','author'
-        ]
+        'date', 'section',
+        'pagenr', 'headline', 'byline',
+        'length', 'url', 'text', 'parent',
+        'medium', 'author'
+    ]
+
     def __init__(self, *args, **kwargs):
         super(ValueArticleScript, self).__init__(*args, **kwargs)
-        self.article_props_occurrences = {prop : 0 for prop in self.article_properties}
-        
+        self.article_props_occurrences = {prop: 0 for prop in self.article_properties}
 
     def run(self, _input=None):
         log.info("getting articles...")
         articles = Article.objects.filter(
-            date__contains = self.options['date'],
-            articlesets_set = self.options['articleset'])
+            date__contains=self.options['date'],
+            articlesets_set=self.options['articleset'])
         log.info("{} articles found. evaluating...".format(articles.count()))
         for article in articles:
             log.debug(article.headline)
 
-            #evaluate regular properties
+            # evaluate regular properties
             for prop in self.article_properties:
                 if hasattr(article, prop):
                     value = getattr(article, prop)
@@ -63,21 +66,21 @@ class ValueArticleScript(Script):
                     value = None
                 if value:
                     self.article_props_occurrences[prop] += 1
-                log.debug("{prop} : {v}".format(v = self.truncate(value), **locals()))
+                log.debug("{prop} : {v}".format(v=self.truncate(value), **locals()))
 
-            #evaluate metastring
+            # evaluate metastring
             if article.metastring:
                 for key, value in eval(article.metastring).items():
-                    log.debug("meta.{key} : {v}".format(v = self.truncate(value), **locals()))
+                    log.debug("meta.{key} : {v}".format(v=self.truncate(value), **locals()))
                     if key in self.article_props_occurrences.keys():
                         self.article_props_occurrences[key] += 1
                     else:
                         self.article_props_occurrences[key] = 1
 
-        #print samples
+        # print samples
         self.print_samples(articles)
 
-        #print totals
+        # print totals
         log.info("Total:")
         log.info("{key}: {value} / {total articles} = {percentage}")
         total_articles = len(articles)
@@ -86,10 +89,10 @@ class ValueArticleScript(Script):
             log.info("{key}: {value} / {total_articles} = {percentage}%".format(**locals()))
 
     def print_samples(self, articles):
-        #Find 3 articles with most and least attributes
-        #most to show the less common props, least to see if anything is missing there
+        # Find 3 articles with most and least attributes
+        # most to show the less common props, least to see if anything is missing there
 
-        #find number of props per article
+        # find number of props per article
         articles_nprops = {}
         for article in articles:
             n_props = 0
@@ -116,7 +119,7 @@ class ValueArticleScript(Script):
         if len(value) > 80:
             value = value[0:79] + "..."
         return value.encode('utf-8')
-        
+
 
 if __name__ == "__main__":
     from amcat.scripts.tools import cli

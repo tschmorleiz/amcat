@@ -33,22 +33,23 @@ from django_boolean_sum import BooleanSum
 # een lijst van artikelen, klikbaar naar de 'analysed article' view.
 
 # (maar niet nu :-))
-    
+
+
 class ProcessParsingView(ProjectScriptView):
     script = CheckParsing
     success_template_name = "navigator/project/process_parsing.html"
-    
+
     def get_template_names(self):
         if getattr(self, 'success', None):
             return [self.success_template_name]
         else:
             return [self.template_name]
-        
+
     def get_context_data(self, **kwargs):
         context = super(ProcessParsingView, self).get_context_data(**kwargs)
         if getattr(self, 'success', None):
             aset, plugin = [self.form.cleaned_data[x] for x in ("articleset", "plugin")]
-    
+
             context["set"] = aset
             context["plugin"] = plugin
             context["totaln"] = aset.articles.count()
@@ -58,18 +59,17 @@ class ProcessParsingView(ProjectScriptView):
                  .annotate(assigned=Count("id"), done=BooleanSum("done"), error=BooleanSum("error")))
             context.update(q[0])
         return context
-        
+
     def form_valid(self, form):
         result = self.run_form(form)
         return self.render_to_response(self.get_context_data(form=form, result=result, success=True))
-        
+
     def get_form(self, form_class):
         form = super(ProcessParsingView, self).get_form(form_class)
         if self.request.method == 'GET':
             #form.fields['target_project'].queryset = qs
             # only show favourites
             qs = ArticleSet.objects.filter(favourite_of_projects=self.project.id)
-            form.fields['articleset'].queryset=qs
+            form.fields['articleset'].queryset = qs
             del form.fields['analysed_articles']
         return form
-            

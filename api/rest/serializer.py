@@ -28,7 +28,9 @@ from rest_framework.relations import PrimaryKeyRelatedField
 
 from api.rest.fields import DatatablesEchoField
 
+
 class AmCATPaginationSerializer(pagination.BasePaginationSerializer):
+
     """
     Rename and add some fields of pagination for datatable js
     """
@@ -40,19 +42,20 @@ class AmCATPaginationSerializer(pagination.BasePaginationSerializer):
     next = pagination.NextPageField(source='*')
     previous = pagination.PreviousPageField(source='*')
 
+
 class AmCATModelSerializer(serializers.ModelSerializer):
 
     @classmethod
     def skip_field(cls, name, field):
         """Do we skip serializing this field?"""
         return isinstance(field, PrimaryKeyRelatedField) and field.many
-    
+
     def get_fields(self):
         fields = super(AmCATModelSerializer, self).get_fields()
 
         return collections.OrderedDict(
             [(name, field) for (name, field) in fields.iteritems()
-              if not self.skip_field(name, field)]
+             if not self.skip_field(name, field)]
         )
 
 ###########################################################################
@@ -62,8 +65,8 @@ class AmCATModelSerializer(serializers.ModelSerializer):
 from amcat.tools import amcattest
 from api.rest.apitestcase import ApiTestCase
 
-class TestSerializer(ApiTestCase):
 
+class TestSerializer(ApiTestCase):
 
     def test_get_object(self):
         from api.rest.resources import ArticleResource
@@ -79,11 +82,11 @@ class TestSerializer(ApiTestCase):
 
         res = self.get(ProjectResource, datatables_options='{"sEcho":5}')
         self.assertEqual(res['echo'], 5)
-    
+
     def test_get(self):
         from api.rest.resources import ArticleResource, ProjectResource
         from amcat.tools import toolkit
-        
+
         p1 = amcattest.create_test_project(name="testnaam", description="testdescription", insert_date='2012-01-01')
 
         actual = self.get(ProjectResource, id=p1.id)
@@ -91,29 +94,29 @@ class TestSerializer(ApiTestCase):
         actual_results = actual.pop("results")
         self.assertEqual(len(actual_results), 1)
         actual_results = actual_results[0]
-        
-        date = actual_results.pop('insert_date')
-        toolkit.readDate(date)# check valid date, not much more to check here?
 
-        expected_results={u'insert_user': p1.insert_user.id,
-                          u'description': 'testdescription',
-                          u'name': u'testnaam',
-                          u'guest_role': 11,
-                          u'owner': p1.owner.id,
-                          u'active': True,
-                           u'id': p1.id,
-                          u'favourite' : False,
-        }
-        
+        date = actual_results.pop('insert_date')
+        toolkit.readDate(date)  # check valid date, not much more to check here?
+
+        expected_results = {u'insert_user': p1.insert_user.id,
+                            u'description': 'testdescription',
+                            u'name': u'testnaam',
+                            u'guest_role': 11,
+                            u'owner': p1.owner.id,
+                            u'active': True,
+                            u'id': p1.id,
+                            u'favourite': False,
+                            }
+
         expected_meta = {
-            u'page' : 1,
-            u'next' : None,
-            u'previous' : None,
-            u'per_page' : 10,
-            u'total' : 1,
-            u'pages' : 1,
-            u'echo' : None,
-            }
+            u'page': 1,
+            u'next': None,
+            u'previous': None,
+            u'per_page': 10,
+            u'total': 1,
+            u'pages': 1,
+            u'echo': None,
+        }
 
         self.assertDictsEqual(actual, expected_meta)
         self.assertDictsEqual(actual_results, expected_results)

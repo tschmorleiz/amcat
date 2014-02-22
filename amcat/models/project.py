@@ -36,9 +36,12 @@ from amcat.models.articleset import ArticleSetArticle, ArticleSet
 ROLEID_PROJECT_READER = 11
 LITTER_PROJECT_ID = 1
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
+
 
 class Project(AmcatModel):
+
     """Model for table projects.
 
     Projects are the main organizing unit in AmCAT. Most other objects are
@@ -76,15 +79,15 @@ class Project(AmcatModel):
         Return all codingschemas connected to this project. This returns codingschemas
         owned by it and linked to it.
         """
-        return CodingSchema.objects.filter(Q(projects_set=self)|Q(project=self)).distinct()
+        return CodingSchema.objects.filter(Q(projects_set=self) | Q(project=self)).distinct()
 
     def get_codebooks(self):
         """
         Return all codebooks connected to this project. This returns codebooks 
         owned by it and linked to it.
         """
-        return Codebook.objects.filter(Q(projects_set=self)|Q(project=self)).distinct()
-    
+        return Codebook.objects.filter(Q(projects_set=self) | Q(project=self)).distinct()
+
     def can_read(self, user):
         return (self in user.get_profile().projects
                 or user.get_profile().haspriv('view_all_projects')
@@ -100,8 +103,9 @@ class Project(AmcatModel):
         Get a set of articlesets either owned by this project or
         contained in a set owned by this project
         """
-        sets = ArticleSet.objects.filter(Q(project=self)|Q(projects_set=self))
-        if distinct: return sets.distinct()
+        sets = ArticleSet.objects.filter(Q(project=self) | Q(projects_set=self))
+        if distinct:
+            return sets.distinct()
         return sets
 
     def all_articles(self):
@@ -109,8 +113,8 @@ class Project(AmcatModel):
         Get a set of articles either owned by this project
         or contained in a set owned by this project
         """
-        return Article.objects.filter(Q(articlesets_set__project=self)|Q(project=self)).distinct()
-            
+        return Article.objects.filter(Q(articlesets_set__project=self) | Q(project=self)).distinct()
+
     def get_all_article_ids(self):
         """
         Get a sequence of article ids either owned by this project
@@ -124,7 +128,8 @@ class Project(AmcatModel):
     def get_mediums(self):
         from amcat.tools.amcates import ES
         sets = [s.id for s in self.all_articlesets()]
-        if not sets: return Medium.objects.none()
+        if not sets:
+            return Medium.objects.none()
         medium_ids = ES().list_media(filters=dict(sets=sets))
         return Medium.objects.filter(id__in=medium_ids)
 
@@ -152,7 +157,7 @@ class Project(AmcatModel):
         """
         project_role = None
         guest_role = self.guest_role_id
-        
+
         if user:
             try:
                 project_role = self.projectrole_set.get(user=user).role_id
@@ -160,34 +165,36 @@ class Project(AmcatModel):
                 pass
 
         # int > None is removed in python3, so avoid direct comparison
-        if project_role is None: return guest_role
-        if guest_role is None: return project_role
+        if project_role is None:
+            return guest_role
+        if guest_role is None:
+            return project_role
         return max(project_role, guest_role)
 
 
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-        
+
 from amcat.tools import amcattest
 
+
 class TestProject(amcattest.AmCATTestCase):
-        
+
     def test_create(self):
         """Can we create a project and access its attributes?"""
         p = amcattest.create_test_project(name="Test")
         self.assertEqual(p.name, "Test")
 
-        
     def test_all_articles(self):
         """Does getting all articles work?"""
         from django.db.models.query import QuerySet
 
-        p1, p2 = [amcattest.create_test_project() for _x in [1,2]]
+        p1, p2 = [amcattest.create_test_project() for _x in [1, 2]]
         a1, a2 = [amcattest.create_test_article(project=p) for p in [p1, p2]]
         self.assertEqual(set(p1.get_all_article_ids()), set([a1.id]))
         self.assertEqual(set(p1.all_articles()), set([a1]))
-        
+
         s = amcattest.create_test_set(project=p1)
         self.assertEqual(set(p1.get_all_article_ids()), set([a1.id]))
         self.assertEqual(set(p1.all_articles()), set([a1]))
@@ -200,7 +207,7 @@ class TestProject(amcattest.AmCATTestCase):
         """Does getting all articlesets work?"""
         from django.db.models.query import QuerySet
 
-        p1, p2 = [amcattest.create_test_project() for _x in [1,2]]
+        p1, p2 = [amcattest.create_test_project() for _x in [1, 2]]
         a1 = amcattest.create_test_set(5, project=p1)
         a2 = amcattest.create_test_set(5, project=p2)
 
@@ -208,7 +215,6 @@ class TestProject(amcattest.AmCATTestCase):
         p1.articlesets.add(a2)
         self.assertEqual({a1, a2}, set(p1.all_articlesets()))
         self.assertTrue(isinstance(p1.all_articlesets(), QuerySet))
-
 
     def test_get_schemas(self):
         """Does get_schemas give the right results in the face of multiply imported schemas??"""
@@ -219,9 +225,10 @@ class TestProject(amcattest.AmCATTestCase):
         cs = amcattest.create_test_schema(project=p)
         p.codingschemas.add(cs)
         p2.codingschemas.add(cs)
+
         class TestForm(forms.Form):
             c = forms.ModelChoiceField(queryset=p.get_codingschemas())
-        
+
         self.assertEqual(len(p.get_codingschemas().filter(pk=cs.id)), 1)
         self.assertEqual(len(p2.get_codingschemas().filter(pk=cs.id)), 1)
         self.assertEqual(len(p3.get_codingschemas().filter(pk=cs.id)), 0)
@@ -232,13 +239,12 @@ class TestProject(amcattest.AmCATTestCase):
         set2 = amcattest.create_test_set(2, project=set1.project)
         set3 = amcattest.create_test_set(2)
         [s.refresh_index() for s in [set1, set2, set3]]
-        
+
         media = set(set1.project.get_mediums())
         self.assertEqual(
             set(set1.project.get_mediums()),
-            { a.medium for a in set1.articles.all() } | { a.medium for a in set2.articles.all() }
+            {a.medium for a in set1.articles.all()} | {a.medium for a in set2.articles.all()}
         )
 
         # can we get_mediums on an empty project?
         self.assertEqual(list(amcattest.create_test_project().get_mediums()), [])
-

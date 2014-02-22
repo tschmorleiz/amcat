@@ -36,18 +36,22 @@ except ImportError:
 import copy
 import types
 
-import logging; log = logging.getLogger(__name__)
-
+import logging
+log = logging.getLogger(__name__)
 
 
 _ARTICLE_PROPS = [
     'date', 'section', 'pagenr', 'headline', 'byline', 'length',
     'url', 'externalid', 'text', 'parent', 'medium', 'author',
 ]
+
+
 class Properties(object):
     pass
 
+
 class Document(object):
+
     """Object representing an document. No properties are
     forced upon constructing. This is the base for all other
     objects.
@@ -57,12 +61,13 @@ class Document(object):
         doc.props.headline = 'headline of article'
         
     """
+
     def __init__(self, **kargs):
         self.props = Properties()
         self.article = None
         self.is_comment = False
 
-        for k,v in kargs.items():
+        for k, v in kargs.items():
             setattr(self.props, k, v)
 
     @deprecated
@@ -130,7 +135,7 @@ class Document(object):
             try:
                 for js in val.cssselect("script"):
                     js.drop_tree()
-                return html2text(html.tostring(val)).strip() 
+                return html2text(html.tostring(val)).strip()
             except (parser.HTMLParseError, TypeError, ValueError) as e:
                 log.error('html2text failed')
                 return 'Converting from HTML failed!'
@@ -146,17 +151,16 @@ class Document(object):
         return val
 
 
-
-
-
 class HTMLDocument(Document):
+
     """
     Document object for HTML documents. This means that all properties are converted to
     MarkDown compatible text in `getprops`. Moreover, lxml.html objects (or even lists of
     lxml.html objects) are converted to text before returning.
     """
+
     def __init__(self, doc=None, *args, **kargs):
-        self.doc = doc # lxml object
+        self.doc = doc  # lxml object
         super(HTMLDocument, self).__init__(*args, **kargs)
 
     def copy(self):
@@ -167,29 +171,28 @@ class HTMLDocument(Document):
     def prepare(self, processor, force=False):
         log.info("Preparing {} using processor {}, getdoc={}".format(
             self.get_props().get("url"), processor, getattr(processor, "getdoc", None)
-        )) 
+        ))
 
         if (self.doc is None or force):
             try:
                 self.doc = processor.getdoc(self.props.url)
             except AttributeError:
                 # no need to prepare if opener or url not known
-                pass 
+                pass
         return self
 
     def __str__(self):
         return "HTMLDocument(url={})".format(getattr(self.props, "url", None))
 
 
-
-
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-
 from amcat.tools import amcattest
 
+
 class TestDocument(amcattest.AmCATTestCase):
+
     def test_set_get(self):
         doc = Document()
 
@@ -201,7 +204,8 @@ class TestDocument(amcattest.AmCATTestCase):
     def test_del(self):
         doc = Document()
 
-        doc.props.foo = 'bar'; del doc.props.foo
+        doc.props.foo = 'bar'
+        del doc.props.foo
         self.assertRaises(AttributeError, lambda: doc.props.foo)
 
     def test_updateprops(self):
@@ -212,7 +216,6 @@ class TestDocument(amcattest.AmCATTestCase):
 
         self.assertEqual(dic, doc.get_props())
         self.assertNotEqual({}, doc.get_props())
-
 
     def test_return_types(self):
         doc = Document()
@@ -232,4 +235,3 @@ class TestDocument(amcattest.AmCATTestCase):
         self.assertEqual(doc_b.props.spam, 'ham')
         self.assertTrue(doc_b.props.foo == doc.props.foo)
         self.assertFalse(doc_b.props.foo is doc.props.foo)
-

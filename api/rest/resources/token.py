@@ -21,18 +21,21 @@ from amcat.models import Token, AnalysedArticle
 from api.rest.resources.amcatresource import AmCATResource
 from api.rest.serializer import AmCATModelSerializer
 
+
 class TokenResource(AmCATResource):
     model = Token
     extra_filters = ["sentence__analysed_article__id"]
+
 
 class AnalysedArticleListResource(AmCATResource):
     model = AnalysedArticle
     extra_filters = ["article__articlesets_set__id"]
 
     class serializer_class(AmCATModelSerializer):
+
         class Meta:
             model = AnalysedArticle
-            fields = ("id", "article","plugin","done", "error")
+            fields = ("id", "article", "plugin", "done", "error")
 
     @classmethod
     def get_model_name(cls):

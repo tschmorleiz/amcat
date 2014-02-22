@@ -30,8 +30,9 @@ from amcat.scripts.searchscripts.aggregation import AggregationScript, Aggregati
 
 from django.utils.datastructures import MultiValueDict
 
-        
+
 DEFAULTS = dict(datetype="all", columns=['article_id'], yAxis='total', counterType='numberOfArticles')
+
 
 class TestArticleList(amcattest.AmCATTestCase):
 
@@ -47,7 +48,7 @@ class TestArticleList(amcattest.AmCATTestCase):
         options = DEFAULTS.copy()
         options.update(kargs)
         return list(AggregationScript(**options).run().to_list(tuple_name=None))
-    
+
     @amcattest.skip_TODO("This code is outdated, should be cleaned up")
     def test_selection(self):
         """Can we select articles outside the project?"""
@@ -73,29 +74,26 @@ class TestArticleList(amcattest.AmCATTestCase):
     def test_aggregation(self):
         """Can we create nice tables?"""
         p = amcattest.create_test_project()
-        m1, m2 = [amcattest.create_test_medium() for x in [1,2]]
+        m1, m2 = [amcattest.create_test_medium() for x in [1, 2]]
         arts1 = {amcattest.create_test_article(project=p, medium=m1) for i in range(5)}
         arts2 = {amcattest.create_test_article(project=p, medium=m2) for i in range(15)}
         aset = amcattest.create_test_set(project=p)
-        aset.add_articles(arts1|arts2)
+        aset.add_articles(arts1 | arts2)
         aset.refresh_index()
 
-
         # can we select on mediumid
-        self.assertEqual(self.list(projects=[p.id]), self.pks(arts1|arts2))
+        self.assertEqual(self.list(projects=[p.id]), self.pks(arts1 | arts2))
         self.assertEqual(self.list(projects=[p.id], mediums=[m1.id]), self.pks(arts1))
 
         # can we make a table?
         x = self.aggr(projects=[p.id], xAxis='medium')
         self.assertEqual(set(x), {(5,), (15,)})
 
-        
         # add second project with articles from first project in set
         p2 = amcattest.create_test_project()
         s = amcattest.create_test_set(project=p2)
-        s.add(*(arts1|arts2))
+        s.add(*(arts1 | arts2))
         x = self.aggr(projects=[p2.id], articlesets=[s.id], xAxis='medium')
-
 
     @amcattest.use_elastic
     def test_form(self):
@@ -103,7 +101,7 @@ class TestArticleList(amcattest.AmCATTestCase):
         arts = {amcattest.create_test_article(project=p) for i in range(10)}
         form = dict(yAxis=['medium'], counterType=['numberOfArticles'], articlesets=[],
                     xAxis=[u'date'], datetype=['all'], projects=[unicode(p.id)])
-        
+
         #f = AggregationForm(data=MultiValueDict(form))
         #valid = f.is_valid()
         #self.assertTrue(valid, "Validation errors: {f.errors}".format(**locals()))
@@ -114,4 +112,3 @@ class TestArticleList(amcattest.AmCATTestCase):
         f = AggregationForm(data=MultiValueDict(form))
         valid = f.is_valid()
         self.assertTrue(valid, "Validation errors: {f.errors}".format(**locals()))
-        

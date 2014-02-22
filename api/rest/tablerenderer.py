@@ -29,7 +29,9 @@ from amcat.tools.table import table3
 from functools import partial
 import collections
 
+
 class TableRenderer(BaseRenderer):
+
     """
     Generic (abstract) renderer which flattens the table before writing. 
     """
@@ -40,18 +42,18 @@ class TableRenderer(BaseRenderer):
         Serialize the table3.Table into the target format
         """
         raise NotImplementedError
-    
+
     def render(self, data, media_type=None, renderer_context=None):
         """
         Renders serialized *data* into target format
         """
         if data is None or 'results' not in data:
             return ''
-        
+
         data = data['results']
         table = self.tablize(data)
         return self.render_table(table)
-        
+
     def tablize(self, data):
         """
         Convert a list of data into a table.
@@ -67,8 +69,7 @@ class TableRenderer(BaseRenderer):
         for item in data:
             for k, v in item.iteritems():
                 headers[k].add(type(v))
-                
-        
+
         table = table3.ObjectTable(rows=data)
         for header in sorted(headers):
             fieldtype = headers[header]
@@ -76,11 +77,11 @@ class TableRenderer(BaseRenderer):
                 fieldtype = list(fieldtype)[0]
             else:
                 fieldtype = None
-            fieldtype = {bool:str, type(None):str}.get(fieldtype, fieldtype)
-            table.addColumn(label=header, col=partial(lambda key, item: item.get(key, None), header), fieldtype=fieldtype)
+            fieldtype = {bool: str, type(None): str}.get(fieldtype, fieldtype)
+            table.addColumn(label=header, col=partial(lambda key, item: item.get(key, None), header),
+                            fieldtype=fieldtype)
 
         return table
-
 
     def flatten_data(self, data):
         """
@@ -141,8 +142,9 @@ class TableRenderer(BaseRenderer):
             flat_dict.update(nested_item)
         return flat_dict
 
-    
+
 class CSVRenderer(TableRenderer):
+
     """
     Renderer which serializes to CSV
     """
@@ -153,10 +155,13 @@ class CSVRenderer(TableRenderer):
     def render_table(self, table):
         return table.to_csv()
 
+
 class CSVRendererWithUnderscores (CSVRenderer):
     level_sep = '_'
 
+
 class XLSXRenderer(TableRenderer):
+
     """
     Renderer which serializes to Excel XLSX
     """
@@ -168,7 +173,9 @@ class XLSXRenderer(TableRenderer):
         result = table.export(format='xlsx')
         return result
 
+
 class SPSSRenderer(TableRenderer):
+
     """
     Renderer which serializes to Excel XLSX
     """
@@ -176,13 +183,14 @@ class SPSSRenderer(TableRenderer):
     media_type = 'application/x-spss-sav'
     format = 'spss'
     extension = 'sav'
-    
+
     def render_table(self, table):
         result = table.export(format='spss')
         return result
 
-        
+
 EXPORTERS = [CSVRenderer, XLSXRenderer, SPSSRenderer]
+
 
 def set_response_content(response):
     """
@@ -195,4 +203,3 @@ def set_response_content(response):
             response['Content-Disposition'] = 'attachment; filename="data.{exporter.extension}"'.format(**locals())
             break
     return response
-

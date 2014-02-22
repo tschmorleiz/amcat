@@ -1,4 +1,4 @@
-#inverting bzk aliases dict
+# inverting bzk aliases dict
 from amcat.scripts.article_upload.bzk_aliases import BZK_ALIASES
 
 if __name__ == '__main__':

@@ -27,7 +27,9 @@ from amcat.tools.model import AmcatModel
 
 from django.db import models
 
+
 class Sentence(AmcatModel):
+
     """Model for sentences.
 
     A sentence is a natural sentence in an article
@@ -35,7 +37,7 @@ class Sentence(AmcatModel):
     is often based on sentences
     """
     __label__ = 'sentence'
-    
+
     id = models.AutoField(primary_key=True, db_column="sentence_id")
     sentence = models.TextField()
     parnr = models.IntegerField()
@@ -53,14 +55,11 @@ class Sentence(AmcatModel):
         return Triple.objects.filter(parent__sentence=self, analysis=analysis)
 
 
-    
-    
-
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-        
 from amcat.tools import amcattest
+
 
 class TestSentence(amcattest.AmCATTestCase):
 
@@ -73,16 +72,11 @@ class TestSentence(amcattest.AmCATTestCase):
             parnr = i // 7
             sent = "".join(unichr(offset + c) for c in range(47, 1000, 100))
             sentences += [(parnr, sentnr, sent)]
-            Sentence.objects.create(article = a, parnr = parnr, sentnr = sentnr, sentence=sent)
+            Sentence.objects.create(article=a, parnr=parnr, sentnr=sentnr, sentence=sent)
         from amcat.models.article import Article
         aid = a.id
         del a
-        a2 = Article.objects.get(pk = aid)
+        a2 = Article.objects.get(pk=aid)
         sentences2 = [(s.parnr, s.sentnr, s.sentence) for s in a2.sentences.all()]
 
         self.assertEqual(set(sentences), set(sentences2))
-
-            
-            
-            
-        

@@ -20,7 +20,8 @@
 ###########################################################################
 
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from django import forms
 from django.db import transaction
@@ -30,14 +31,16 @@ from amcat.models import ArticleSet, Article, Sentence
 
 from amcat.nlp import sbd
 
+
 class CreateSentences(Script):
+
     """
     Perform a keyword query on an articleset.
     """
     class options_form(forms.Form):
         articlesets = forms.ModelMultipleChoiceField(queryset=ArticleSet.objects.all())
 
-    @transaction.commit_on_success    
+    @transaction.commit_on_success
     def run(self, _input=None):
         sets = self.options['articlesets']
         log.info("Listing articles from sets {sets}".format(**locals()))
@@ -59,8 +62,7 @@ class CreateSentences(Script):
             sbd.create_sentences(article)
 
         log.info("Splitted {n} articles!".format(**locals()))
-        
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli()
-        

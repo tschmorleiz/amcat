@@ -30,6 +30,7 @@ class TaskResource(AmCATResource):
     model = Task
     serializer_class = TaskSerializer
 
+
 class TaskResultResource(AmCATResource):
     model = Task
 
@@ -39,9 +40,10 @@ class TaskResultResource(AmCATResource):
 
     serializer_class = TaskResultSerializer
 
+
 @api_view(http_method_names=("GET",))
 def single_task_result(request, task_id, uuid=False):
-    task = Task.objects.get(**{ "uuid" if uuid else "id" : task_id})
+    task = Task.objects.get(**{"uuid" if uuid else "id": task_id})
 
     try:
         return copy(task.get_response())
@@ -49,8 +51,8 @@ def single_task_result(request, task_id, uuid=False):
         return HttpResponse(status=404)
     except Exception, e:
         if e.__class__.__name__ in ('QueryValidationError', 'QueryError', 'QueryParseError'):
-            error_msg= "Cannot parse query: {e}".format(e=e.message)
-                
+            error_msg = "Cannot parse query: {e}".format(e=e.message)
+
         else:
             error_msg = "{e.__class__.__name__}: {e}".format(**locals())
         return HttpResponse(content=error_msg, status=500)

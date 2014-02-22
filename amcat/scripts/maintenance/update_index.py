@@ -25,13 +25,14 @@ from amcat.scripts.script import Script
 from amcat.models.articleset import ArticleSet
 from amcat.models.scraper import Scraper
 
+
 class UpdateIndexScript(Script):
-    def run(self, _input = None):
-        setids = Scraper.objects.filter(active = True).values('articleset')
-        for s in ArticleSet.objects.filter(pk__in = setids):
+
+    def run(self, _input=None):
+        setids = Scraper.objects.filter(active=True).values('articleset')
+        for s in ArticleSet.objects.filter(pk__in=setids):
             s.refresh_index()
 
 if __name__ == "__main__":
     from amcat.scripts.tools import cli
     cli.run_cli(UpdateIndexScript)
-        

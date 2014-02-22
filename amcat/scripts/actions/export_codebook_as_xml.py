@@ -18,11 +18,13 @@
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
-import csv, collections
+import csv
+import collections
 from lxml import etree
-from lxml.etree import Element 
+from lxml.etree import Element
 
 from django import forms
 from django.forms import widgets
@@ -30,10 +32,12 @@ from django.forms import widgets
 from amcat.models import Code, Codebook, Language
 from amcat.scripts.script import Script
 
+
 def _create_element(tag, value):
     el = Element(tag)
     el.text = unicode(value)
     return el
+
 
 def _node_to_xml(treeitem):
     code = Element("code")
@@ -46,6 +50,7 @@ def _node_to_xml(treeitem):
 
     code.append(children)
     return code
+
 
 def codebook_to_xml(codebook):
     codebook.cache_labels()
@@ -64,12 +69,14 @@ def codebook_to_xml(codebook):
     xml_root.append(roots)
     return xml_root
 
+
 class ExportCodebookAsXML(Script):
+
     """Export a codebook to an xml file."""
 
     class options_form(forms.Form):
         codebook = forms.ModelChoiceField(queryset=Codebook.objects.all())
-        
+
     def _run(self, codebook, **kargs):
         return etree.tostring(codebook_to_xml(codebook))
 
@@ -78,7 +85,9 @@ class ExportCodebookAsXML(Script):
 ###########################################################################
 from amcat.tools import amcattest
 
+
 class TestExportCodebookAsXML(amcattest.AmCATTestCase):
+
     def test_codebook_to_xml(self):
         # Empty codebook
         cb = codebook_to_xml(amcattest.create_test_codebook())
@@ -99,7 +108,7 @@ class TestExportCodebookAsXML(amcattest.AmCATTestCase):
         # Test unicode
         cb = amcattest.create_test_codebook_with_codes()[0]
         label = cb.codes[0].labels.all()[0]
-        label.label = u"\u2603" # It's Mr. Snowman!
+        label.label = u"\u2603"  # It's Mr. Snowman!
         label.save()
 
         # Shouldn't raise errors
@@ -110,4 +119,3 @@ class TestExportCodebookAsXML(amcattest.AmCATTestCase):
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli()
-

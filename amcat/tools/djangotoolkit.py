@@ -29,7 +29,8 @@ import re
 import time
 import json
 import urllib
-import logging; LOG = logging.getLogger(__name__)
+import logging
+LOG = logging.getLogger(__name__)
 
 from django.db.models.fields.related import ForeignKey, OneToOneField, ManyToManyField
 from django.db import models
@@ -38,6 +39,7 @@ from contextlib import contextmanager
 
 
 from amcat.tools.table.table3 import ObjectTable, SortedTable
+
 
 def to_querydict(d, mutable=False):
     """Convert a normal dictionary to a querydict. The dictionary can have lists as values,
@@ -51,13 +53,15 @@ def to_querydict(d, mutable=False):
             return s.encode("utf-8")
         else:
             return s
-            
-    d = {k : encode(v) for (k,v) in d.iteritems()}
+
+    d = {k: encode(v) for (k, v) in d.iteritems()}
     return QueryDict(urllib.urlencode(d, True), mutable=mutable)
+
 
 def from_querydict(d):
     """Convert a QueryDict to a normal dictionary with lists as values."""
     return dict(d.iterlists())
+
 
 def db_supports_distinct_on(db='default'):
     """
@@ -77,6 +81,7 @@ def distinct_args(*fields):
     """
     return fields if db_supports_distinct_on() else []
 
+
 def get_related(appmodel):
     """Get a sequence of model classes related to the given model class"""
     # from modelviz.py:222 vv
@@ -88,11 +93,13 @@ def get_related(appmodel):
             if isinstance(field, ManyToManyField) and getattr(field, 'creates_table', False):
                 yield field.related.parent_model
 
+
 def get_all_related(modelclasses):
     """Get all related model classes from the given model classes"""
     for m in modelclasses:
         for m2 in get_related(m):
             yield m2
+
 
 def get_related_models(modelnames, stoplist=set(), applabel='amcat'):
     """Get related models
@@ -110,9 +117,10 @@ def get_related_models(modelnames, stoplist=set(), applabel='amcat'):
     _models = set([models.get_model(applabel, modelname) for modelname in modelnames])
     stops = set([models.get_model(applabel, stop) for stop in stoplist])
     while True:
-        related = set(get_all_related(_models - stops)) # seed from non-stop models
-        new = related - _models 
-        if not new: return _models
+        related = set(get_all_related(_models - stops))  # seed from non-stop models
+        new = related - _models
+        if not new:
+            return _models
         _models |= new
 
 
@@ -134,7 +142,8 @@ def list_queries(dest=None, output=False, printtime=False, outputopts={}):
     Note: this will set settings.DEBUG to True temporarily.
     """
     t = time.time()
-    if dest is None: dest = []
+    if dest is None:
+        dest = []
     from django.conf import settings
     from django.db import connection
     nqueries = len(connection.queries)
@@ -160,11 +169,11 @@ def query_list_to_table(queries, maxqlen=120, output=False, normalise_numbers=Tr
         query = q["sql"]
         if normalise_numbers:
             query = re.sub(r"\d+", "#", query)
-        #print(query)
+        # print(query)
         time[query].append(float(q["time"]))
-    t =  ObjectTable(rows = time.items())
-    t.addColumn(lambda (k, v) : len(v), "N")
-    t.addColumn(lambda (k, v) : k[:maxqlen], "Query")
+    t = ObjectTable(rows=time.items())
+    t.addColumn(lambda (k, v): len(v), "N")
+    t.addColumn(lambda (k, v): k[:maxqlen], "Query")
     cum = t.addColumn(lambda (k, v):  "%1.4f" % sum(v), "Cum.")
     t.addColumn(lambda (k, v):  "%1.4f" % (sum(v) / len(v)), "Avg.")
     t = SortedTable(t, sort=cum)
@@ -178,6 +187,7 @@ def query_list_to_table(queries, maxqlen=120, output=False, normalise_numbers=Tr
         t.output(**outputoptions)
     return t
 
+
 def get_ids(objects):
     """Convert the given object(s) to integers by asking for their .pk.
     Safe to call on integer objects"""
@@ -188,6 +198,7 @@ def get_ids(objects):
 
 from django.dispatch import Signal
 from types import NoneType
+
 
 def receiver(signal, sender=None, **kwargs):
     """
@@ -218,14 +229,18 @@ def receiver(signal, sender=None, **kwargs):
 class JsonField(models.Field):
     __metaclass__ = models.SubfieldBase
     serialize_to_string = True
+
     def get_internal_type(self):
         return "TextField"
+
     def value_to_string(self, obj):
         return self.get_prep_value(self._get_val_from_obj(obj))
+
     def get_prep_value(self, value):
         if value:
             return json.dumps(value)
         return None
+
     def to_python(self, value):
         if isinstance(value, (str, unicode)):
             return json.loads(value)
@@ -238,13 +253,15 @@ class JsonField(models.Field):
 
 from amcat.tools import amcattest
 
+
 class TestDjangoToolkit(amcattest.AmCATTestCase):
+
     def test_related_models(self):
         """Test get_related_models function. Note: depends on the actual amcat.models"""
 
         for start, stoplist, result in [
             (('Sentence',), ('Project',), ['Article', 'Language', 'Medium', 'Project', 'Sentence']),
-            ]:
+        ]:
 
             related = get_related_models(start, stoplist)
             related_names = set(r.__name__ for r in related)
@@ -256,25 +273,24 @@ class TestDjangoToolkit(amcattest.AmCATTestCase):
         with list_queries() as l:
             amcattest.create_test_project(owner=u)
         #query_list_to_table(l, output=print)
-        self.assertEquals(len(l), 2) # create project, create role for owner
+        self.assertEquals(len(l), 2)  # create project, create role for owner
 
     def test_from_querydict(self):
-        di = dict(a=1, b=[2,3])
+        di = dict(a=1, b=[2, 3])
         self.assertEqual(to_querydict(di), QueryDict("a=1&b=2&b=3"))
 
     def test_to_querydict(self):
-        d = to_querydict(dict(a=1, b=[2,3]))
+        d = to_querydict(dict(a=1, b=[2, 3]))
         self.assertEqual(d.get("a"), "1")
         self.assertEqual(d.get("b"), "3")
         self.assertEqual(d.getlist("a"), ["1"])
-        self.assertEqual(d.getlist("b"), ["2","3"])
+        self.assertEqual(d.getlist("b"), ["2", "3"])
 
         self.assertFalse(d._mutable)
         d = to_querydict({}, mutable=False)
         self.assertFalse(d._mutable)
         d = to_querydict({}, mutable=True)
         self.assertTrue(d._mutable)
-
 
     def test_get_or_create(self):
         """Test the get or create operation"""

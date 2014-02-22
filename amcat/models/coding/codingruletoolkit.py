@@ -45,10 +45,10 @@ GREATER_THAN_OR_EQUAL_TO = "GTE"
 LESSER_THAN_OR_EQUAL_TO = "LTE"
 
 AST_MAP = {
-    ast.Eq : EQUALS, ast.NotEq : NOT_EQUALS,
-    ast.Lt : LESSER_THAN, ast.Gt : GREATER_THAN,
-    ast.LtE : LESSER_THAN_OR_EQUAL_TO,
-    ast.GtE : GREATER_THAN_OR_EQUAL_TO
+    ast.Eq: EQUALS, ast.NotEq: NOT_EQUALS,
+    ast.Lt: LESSER_THAN, ast.Gt: GREATER_THAN,
+    ast.LtE: LESSER_THAN_OR_EQUAL_TO,
+    ast.GtE: GREATER_THAN_OR_EQUAL_TO
 
 }
 
@@ -67,7 +67,9 @@ def walk(node):
 
     if isinstance(node, dict):
         w = walk(node["value"]) if "value" in node else node["values"]
-        for node in w: yield node
+        for node in w:
+            yield node
+
 
 def resolve_operands(node):
     """Resolve types of operands of one of EQUALS / NOT_EQUALS"""
@@ -76,7 +78,7 @@ def resolve_operands(node):
 
     if not isinstance(left, ast.Num):
         raise SyntaxError("Left operand of {} must always be a Num/CodingSchemaField (col {}, line {})"
-                            .format(node, node.col_offset, node.lineno))
+                          .format(node, node.col_offset, node.lineno))
 
     # Check right operand. Must be a Num/Str
     value = None
@@ -90,13 +92,13 @@ def resolve_operands(node):
     serialiser = schemafield.serialiser
 
     if (not isinstance(serialiser, (IntervalSerialiser, IntSerialiser, QualitySerialiser))
-          and isinstance(operator, (ast.Lt, ast.LtE, ast.Gt, ast.GtE))):
+            and isinstance(operator, (ast.Lt, ast.LtE, ast.Gt, ast.GtE))):
         raise SyntaxError("Cannot use greater/lesser than when comparing with {}".format(serialiser))
 
     if not isinstance(value, serialiser.serialised_type):
         raise SyntaxError("Right operand of {} must be of {} to deserialise to {} (col {}, line {}))"
-                .format(schemafield, serialiser.serialised_type, serialiser.deserialised_type,
-                            node.col_offset, node.lineno))
+                          .format(schemafield, serialiser.serialised_type, serialiser.deserialised_type,
+                                  node.col_offset, node.lineno))
 
     return schemafield, serialiser.deserialise(value)
 
@@ -105,13 +107,13 @@ def parse_node(node, _seen=()):
     if isinstance(node, ast.BoolOp):
         # and .. or
         return {
-            "type" : OR if isinstance(node.op, ast.Or) else AND,
-            "values" : tuple(parse_node(n, _seen) for n in node.values),
+            "type": OR if isinstance(node.op, ast.Or) else AND,
+            "values": tuple(parse_node(n, _seen) for n in node.values),
         }
     if isinstance(node, ast.Compare):
         return {
-            "type" : AST_MAP[node.ops[0].__class__],
-            "values" : resolve_operands(node)
+            "type": AST_MAP[node.ops[0].__class__],
+            "values": resolve_operands(node)
         }
     if isinstance(node, ast.Num):
         return parse(CodingRule.objects.get(id=node.n), _seen)
@@ -123,9 +125,11 @@ def parse_node(node, _seen=()):
         return dict(type=NOT, value=parse_node(node.operand, _seen))
     if isinstance(node, ast.Tuple):
         # We can ignore an empty tuple
-        if not node.elts: return None
+        if not node.elts:
+            return None
 
     raise SyntaxError("Unknown node (col {}, line {})".format(node.col_offset, node.lineno))
+
 
 def parse(codingrule, _seen=()):
     """
@@ -162,6 +166,7 @@ def parse(codingrule, _seen=()):
 
     return parse_node(tree, _seen=_seen + (codingrule,))
 
+
 def clean_tree(codingschema, tree):
     """
     Checks if this tree is valid by checking if given values are valid for
@@ -180,6 +185,7 @@ def clean_tree(codingschema, tree):
         if possible_values is not None and value not in possible_values:
             raise ValidationError("Value {} not in possible values".format(value))
 
+
 def is_valid(codingschema, tree):
     """True if tree is valid, else False."""
     try:
@@ -188,12 +194,14 @@ def is_valid(codingschema, tree):
         return False
     return True
 
+
 def schemarules_valid(schema):
     """Checks whether all codingrules of `codingschema` are valid"""
     try:
         return all(is_valid(schema, parse(rule)) for rule in schema.rules.all())
     except (SyntaxError, Code.DoesNotExist, CodingRule.DoesNotExist, CodingSchemaField.DoesNotExist):
         return False
+
 
 def _to_json(node):
     if isinstance(node, dict):
@@ -213,6 +221,7 @@ def _to_json(node):
 
     return node
 
+
 def to_json(node, serialise=True):
     """
     Serialise tree, representing ORM objects as dicts.
@@ -230,10 +239,12 @@ def to_json(node, serialise=True):
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-        
+
 from amcat.tools import amcattest
 
+
 class TestCodingRuleToolkit(amcattest.AmCATTestCase):
+
     def condition(self, s, c):
         return CodingRule(codingschema=s, condition=c)
 
@@ -257,7 +268,6 @@ class TestCodingRuleToolkit(amcattest.AmCATTestCase):
         self.condition(schema, "(3==2)").save()
         self.assertFalse(schemarules_valid(schema))
 
-
     def test_to_json(self):
         import functools
 
@@ -267,14 +277,13 @@ class TestCodingRuleToolkit(amcattest.AmCATTestCase):
         c = functools.partial(self.condition, schema_with_fields[0])
 
         tree = to_json(parse(c("{}=={}".format(code_field.id, o1.id))))
-        self.assertEquals(json.loads(tree), {"type":EQUALS, "values":[
-            {"type":"codingschemafield", "id" : code_field.id},
-            {"type":"code", "id" : o1.id}
+        self.assertEquals(json.loads(tree), {"type": EQUALS, "values": [
+            {"type": "codingschemafield", "id": code_field.id},
+            {"type": "code", "id": o1.id}
         ]})
 
         tree = parse(c("{}=={}".format(code_field.id, o1.id)))
         self.assertEquals(json.dumps(to_json(tree, serialise=False)), to_json(tree))
-
 
     def test_clean_tree(self):
         import functools
@@ -308,11 +317,11 @@ class TestCodingRuleToolkit(amcattest.AmCATTestCase):
         code_field = schema_with_fields[4]
 
         c = functools.partial(self.condition, schema)
-        
+
         # Empty conditions should return None
         self.assertEquals(parse(c("")), None)
         self.assertEquals(parse(c("()")), None)
-        
+
         # Recursion should be checked for
         cr = CodingRule.objects.create(codingschema=schema, label="foo", condition="()")
         cr.condition = str(cr.id)
@@ -340,7 +349,7 @@ class TestCodingRuleToolkit(amcattest.AmCATTestCase):
         for inp in ("'a'", "0.2", "2"):
             cr.condition = "{}=={}".format(text_field.id, inp)
             self.assertRaises(SyntaxError, parse, cr)
-        
+
         # "Good" inputs shoudl not yield an error
         for field, inp in ((number_field, 1), (text_field, "u'a'"), (code_field, o1.id)):
             cr.condition = "{}=={}".format(field.id, inp)
@@ -352,17 +361,17 @@ class TestCodingRuleToolkit(amcattest.AmCATTestCase):
         {})""".format(text_field.id, "u'a'")
         self.assertTrue(parse(cr) is not None)
 
-        ## Testing output
+        # Testing output
         tree = parse(c("not {}".format(cr.id)))
         self.assertEquals(tree["type"], NOT)
         self.assertTrue(not isinstance(tree["value"], CodingRule))
 
         tree = parse(c("{}=={}".format(text_field.id, "u'a'")))
-        self.assertEquals(tree, {"type":EQUALS, "values":(text_field, u'a')})
+        self.assertEquals(tree, {"type": EQUALS, "values": (text_field, u'a')})
 
         cr.save()
         tree = parse(c("{cr.id} or {cr.id}".format(cr=cr)))
-        self.assertEquals(tree, {"type":OR, "values":(parse(cr), parse(cr))})
+        self.assertEquals(tree, {"type": OR, "values": (parse(cr), parse(cr))})
 
         # Should accept greater than / greater or equal to / ...
         parse(c("{number_field.id} > 5".format(**locals())))
@@ -373,5 +382,3 @@ class TestCodingRuleToolkit(amcattest.AmCATTestCase):
         # ..but not if schemafieldtype is text or code
         self.assertRaises(SyntaxError, parse, c("{text_field.id} > 5".format(**locals())))
         self.assertRaises(SyntaxError, parse, c("{code_field.id} > 5".format(**locals())))
-        
-

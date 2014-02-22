@@ -33,83 +33,77 @@ import logging
 log = logging.getLogger(__name__)
 
 
-
-
-
-    
 class ViewModelForm(amcat.scripts.forms.GeneralColumnsForm):
     start = forms.IntegerField(initial=0, min_value=0, widget=forms.HiddenInput, required=False)
     length = forms.IntegerField(initial=100, min_value=1, max_value=9999999, widget=forms.HiddenInput, required=False)
     model = forms.CharField()
     select_related = forms.BooleanField(required=False, initial=False)
     search = forms.CharField(required=False)
-    projects = forms.ModelMultipleChoiceField(queryset=Project.objects.all(), required=False) # TODO: change to projects of user
-    
+    # TODO: change to projects of user
+    projects = forms.ModelMultipleChoiceField(queryset=Project.objects.all(), required=False)
+
     sortColumnNr = forms.IntegerField(required=False)
     sortOrder = forms.ChoiceField(
-                    choices=(
-                        ('asc', 'Ascending'), 
-                        ('desc', 'Descending'),
-                     ),
-                    initial = 'asc', required=False)
-    
-    
-    
+        choices=(
+            ('asc', 'Ascending'),
+            ('desc', 'Descending'),
+        ),
+        initial = 'asc', required=False)
+
     def clean_start(self):
         data = self.cleaned_data['start']
         if data == None:
             data = 0
         return data
-        
+
     def clean_length(self):
         data = self.cleaned_data['length']
         if data == None:
             data = 100
         if data == -1:
-            data = 99999999 # unlimited (well, sort of ;)
+            data = 99999999  # unlimited (well, sort of ;)
         return data
-        
+
     def clean_model(self):
         """return the corresponding model with the provided string.
         Also handles . for instance 'coding.CodingJob' will find class 'coding.codingjob.CodingJob'
         but also 'authorisation.ProjectRole' will find the corresponding class"""
         data = self.cleaned_data['model']
         try:
-            if '.' in data: # this code is ugly..
+            if '.' in data:  # this code is ugly..
                 split = data.split('.')
                 clss = getattr(amcat.models, split[0].lower())
                 try:
                     moduleobj = getattr(clss, split[1].lower())
                     data = split[1]
-                except AttributeError: 
+                except AttributeError:
                     moduleobj = clss
                     data = split[1]
             else:
                 moduleobj = getattr(amcat.models, data.lower())
             log.info('moduleobj: %s, data: %s' % (moduleobj, data))
-            if data.islower(): data = data.capitalize() # to make sure "medium" can also be used, not only "Medium" (for example)
+            if data.islower():
+                data = data.capitalize()  # to make sure "medium" can also be used, not only "Medium" (for example)
             data = getattr(moduleobj, data)
-        except Exception,e:
+        except Exception, e:
             log.exception('finding model problem')
             self._errors["model"] = self.error_class(['Invalid model name'])
         # if not hasattr(amcat.models, data.lower()):
             # self._errors["modelname"] = self.error_class(['Invalid model name'])
             # return None
         return data
-        
-        
+
 
 class FindObjectsScript(script.Script):
     input_type = None
     options_form = ViewModelForm
     output_type = types.ObjectIterator
 
-
     def run(self, input=None):
         """ returns an iterable of model objects """
         start = self.options['start']
         length = self.options['length']
-        
+
         kargs = {}
         if self.options['projects']:
             if self.options['model'].__name__ != 'Project':
@@ -120,15 +114,12 @@ class FindObjectsScript(script.Script):
         if self.options['sortColumnNr']:
             column = self.options['columns'][self.options['sortColumnNr']]
             qs = qs.order_by(('-' if self.options['sortOrder'] == 'desc' else '') + column)
-            
-            
-        #TODO: implement search
-            
-        qs = qs[start:start+length]
+
+        # TODO: implement search
+        qs = qs[start:start + length]
         return qs
 
-        
-        
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli(FindObjectsScript)

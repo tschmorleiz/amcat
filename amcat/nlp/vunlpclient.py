@@ -36,98 +36,99 @@ Command line usage:
 
 from __future__ import unicode_literals, print_function, absolute_import
 
-import requests, logging
+import requests
+import logging
 
 log = logging.getLogger(__name__)
 
 DEFAULT_URL = 'http://nlp.labs.vu.nl/webservice/index.php'
 
 # Templates for API calls, should be instantiated with .format(url=".."[,filename=".."])
-REQUEST_STATUS= "{url}?filstat=status&filnam={filename}"
+REQUEST_STATUS = "{url}?filstat=status&filnam={filename}"
 REQUEST_RETRIEVE = "{url}?getparse=getparse&filnam={filename}"
 REQUEST_ID = "{url}?getID"
 
 serverurl = 'http://nlp.labs.vu.nl/webservice/index.php'
 
+
 class Client():
-  """
-  Class that communicates with the vu nlp web service to upload, check, and retrieve parses.
 
-  Since each Connection has a unique id, use the same connection object for all actions on a file.
-  """
+    """
+    Class that communicates with the vu nlp web service to upload, check, and retrieve parses.
 
-  def __init__(self, url=DEFAULT_URL):
+    Since each Connection has a unique id, use the same connection object for all actions on a file.
     """
-    @param url: the url of the web service
-    """
-    self.url = url
-    self._id = None
 
-  def _get_filename(self):
-    """Temporary method to create unique file name until the ws can do it for us"""
-    if self._id is None:
-      log.debug("Requesting unique ID from server")
-      r = requests.get(REQUEST_ID.format(url=self.url))
-      r.raise_for_status()
-      self._id = r.text.strip()
-      self._filename_sequence = 0
-      log.debug("Initialized parser with id: {self._id}".format(**locals()))
-    else:
-      self._filename_sequence += 1
-    return "{self._id}_{self._filename_sequence}".format(**locals())
-    
-  def upload(self, parsecommand, text):
-    """
-    Upload the given text for parsing with the given command
-    @param parsecommand: the command to use for parsing
-    @param text: The text to parse (as string or file object)
-    @returns: the handle with which the results can be checked/retrieved
-    """
-    filename = self._get_filename()
-    command =  "#!{parsecommand}\n{text}".format(**locals())
-    log.debug("Uploading file {filename}".format(**locals()))
-    r = requests.post(self.url, files=dict(infil = (filename, command)))
-    r.raise_for_status()
-    return filename
+    def __init__(self, url=DEFAULT_URL):
+        """
+        @param url: the url of the web service
+        """
+        self.url = url
+        self._id = None
 
-  def check(self, handle):
-    """
-    Check and return the parse status of the given file
-    @param handle: a handle from a succesful upload_file call
-    @returns: a string indicating the status of the file
-    """
-    r = requests.get(REQUEST_STATUS.format(url=self.url, filename=handle))
-    r.raise_for_status()
-    log.debug("Checked status for {handle}: status={r.text!r}".format(**locals()))
-    return r.text.strip()
+    def _get_filename(self):
+        """Temporary method to create unique file name until the ws can do it for us"""
+        if self._id is None:
+            log.debug("Requesting unique ID from server")
+            r = requests.get(REQUEST_ID.format(url=self.url))
+            r.raise_for_status()
+            self._id = r.text.strip()
+            self._filename_sequence = 0
+            log.debug("Initialized parser with id: {self._id}".format(**locals()))
+        else:
+            self._filename_sequence += 1
+        return "{self._id}_{self._filename_sequence}".format(**locals())
 
-  def download(self, handle):
-    """
-    Retrieve the parse results for this file. Will throw an Exception if the file is not yet parsed.
-    @param handle: a handle from a succesful upload_file call
-    @return: a string containing the parse results
-    """
-    # TODO: Should the parser not return a 404 if a file is not found?
-    r = requests.get(REQUEST_RETRIEVE.format(url=self.url, filename=handle))
-    r.raise_for_status()
-    #if r.result == "notfound\n":
-    #  raise Exception('Could not retrieve {handle}'.format(**locals()))
-    return r.content
+    def upload(self, parsecommand, text):
+        """
+        Upload the given text for parsing with the given command
+        @param parsecommand: the command to use for parsing
+        @param text: The text to parse (as string or file object)
+        @returns: the handle with which the results can be checked/retrieved
+        """
+        filename = self._get_filename()
+        command = "#!{parsecommand}\n{text}".format(**locals())
+        log.debug("Uploading file {filename}".format(**locals()))
+        r = requests.post(self.url, files=dict(infil=(filename, command)))
+        r.raise_for_status()
+        return filename
+
+    def check(self, handle):
+        """
+        Check and return the parse status of the given file
+        @param handle: a handle from a succesful upload_file call
+        @returns: a string indicating the status of the file
+        """
+        r = requests.get(REQUEST_STATUS.format(url=self.url, filename=handle))
+        r.raise_for_status()
+        log.debug("Checked status for {handle}: status={r.text!r}".format(**locals()))
+        return r.text.strip()
+
+    def download(self, handle):
+        """
+        Retrieve the parse results for this file. Will throw an Exception if the file is not yet parsed.
+        @param handle: a handle from a succesful upload_file call
+        @return: a string containing the parse results
+        """
+        # TODO: Should the parser not return a 404 if a file is not found?
+        r = requests.get(REQUEST_RETRIEVE.format(url=self.url, filename=handle))
+        r.raise_for_status()
+        # if r.result == "notfound\n":
+        #  raise Exception('Could not retrieve {handle}'.format(**locals()))
+        return r.content
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG, format='[%(asctime)-15s %(name)s:%(lineno)d %(levelname)s] %(message)s')
-  import sys
-  if len(sys.argv) != 3:
-    print(__doc__, file=sys.stderr)
-    sys.exit(64)
-  command, argument = sys.argv[1:]
-  if command == "upload":
-    text = sys.stdin.read()
-    handle = Client().upload(argument, text)
-    print(handle)
-  elif command == "check":
-    print(Client().check(argument))
-  elif command == "download":
-    print(Client().download(argument))
-
-    
+    logging.basicConfig(level=logging.DEBUG, format='[%(asctime)-15s %(name)s:%(lineno)d %(levelname)s] %(message)s')
+    import sys
+    if len(sys.argv) != 3:
+        print(__doc__, file=sys.stderr)
+        sys.exit(64)
+    command, argument = sys.argv[1:]
+    if command == "upload":
+        text = sys.stdin.read()
+        handle = Client().upload(argument, text)
+        print(handle)
+    elif command == "check":
+        print(Client().check(argument))
+    elif command == "download":
+        print(Client().download(argument))

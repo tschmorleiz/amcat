@@ -27,39 +27,45 @@ __all__ = [
     "DateIntervalForm", "InlineTableOutputForm", "TableOutputForm",
     "GeneralColumnsForm", "ArticleColumnsForm"
 ]
-        
+
+
 class DateIntervalForm(forms.Form):
     interval = forms.ChoiceField(
-            choices=(
-                ('day', 'Day'), 
-                ('week', 'Week'), 
-                ('month', 'Month'), 
-                ('quarter', 'Quarter'), 
-                ('year', 'Year')
-            ), initial='month')
-        
+        choices=(
+                ('day', 'Day'),
+            ('week', 'Week'),
+            ('month', 'Month'),
+            ('quarter', 'Quarter'),
+            ('year', 'Year')
+        ), initial='month')
+
+
 class InlineTableOutputForm(forms.Form):
+
     """Form with all the possible outputs for a table3 object"""
     output = forms.ChoiceField(choices=(
         ('csv', 'CSV (semicolon separated)'),
         ('comma-csv', 'CSV (comma separated)'),
         ('excel', 'Excel (.xslx)'),
-        ('spss', 'SPSS (.sav)'), 
+        ('spss', 'SPSS (.sav)'),
         ('json-html', 'Show in navigator')
-     ), initial='json-html')
-        
+    ), initial='json-html')
+
+
 class TableOutputForm(forms.Form):
+
     """Form with all the possible outputs for a table3 object"""
     output = forms.ChoiceField(choices=(
         ('csv', 'CSV (semicolon separated)'),
         ('comma-csv', 'CSV (comma separated)'),
         ('excel', 'Excel (.xslx)'),
-        ('spss', 'SPSS (.sav)'), 
+        ('spss', 'SPSS (.sav)'),
         ('html', 'HTML')
-     ), initial='csv')
-        
-        
+    ), initial='csv')
+
+
 class GeneralColumnsForm(forms.Form):
+
     """represents column for any object, as a string seperated with ,"""
     columns = forms.CharField()
 
@@ -67,40 +73,39 @@ class GeneralColumnsForm(forms.Form):
         data = self.cleaned_data['columns']
         data = [x.strip() for x in data.split(',') if x.strip()]
         return data
-        
-        
+
+
 class ArticleColumnsForm(forms.Form):
-    columns = forms.MultipleChoiceField( # columns are used to indicate which columns should be loaded from the database (for performance reasons)
-            choices=(
+    columns = forms.MultipleChoiceField(  # columns are used to indicate which columns should be loaded from the database (for performance reasons)
+        choices=(
                 ('article_id', 'Article ID'),
-                ('hits', 'Hits'),
-                ('kwic', 'Keyword in Context'),
-                ('date','Date'),
-                #('interval', 'Interval'),
-                ('medium_id','Medium ID'),
-                ('medium_name','Medium Name'),
-                #('project_id','Project ID'),
-                #('project_name','Project Name'),
-                ('pagenr','Page number'),
-                ('section','Section'),
-                ('creator','Author'),
-                ('length','Length'),
-                #('url','url'),
-                #('parent_id','Parent Article ID'),
-                #('externalid','External ID'),
-                #('additionalMetadata','Additional Metadata'),
-                ('headline','Headline'),
-                ('byline','Byline'),
-                ('lead','Lead paragraph'),
-                ('text','Article Text')
-            ), initial = ('article_id', 'date', 'medium_id', 'medium_name', 'headline')
+            ('hits', 'Hits'),
+            ('kwic', 'Keyword in Context'),
+            ('date', 'Date'),
+            #('interval', 'Interval'),
+            ('medium_id', 'Medium ID'),
+            ('medium_name', 'Medium Name'),
+            #('project_id','Project ID'),
+            #('project_name','Project Name'),
+            ('pagenr', 'Page number'),
+            ('section', 'Section'),
+            ('creator', 'Author'),
+            ('length', 'Length'),
+            #('url','url'),
+            #('parent_id','Parent Article ID'),
+            #('externalid','External ID'),
+            #('additionalMetadata','Additional Metadata'),
+            ('headline', 'Headline'),
+            ('byline', 'Byline'),
+            ('lead', 'Lead paragraph'),
+            ('text', 'Article Text')
+        ), initial = ('article_id', 'date', 'medium_id', 'medium_name', 'headline')
     )
     columnInterval = forms.ChoiceField(
-            choices=(
-                ('day', 'Day'), 
-                ('week', 'Week'), 
-                ('month', 'Month'), 
-                ('quarter', 'Quarter'), 
-                ('year', 'Year')
-            ), initial='month', label='Column Interval', required=False)
-    
+        choices=(
+                ('day', 'Day'),
+            ('week', 'Week'),
+            ('month', 'Month'),
+            ('quarter', 'Quarter'),
+            ('year', 'Year')
+        ), initial='month', label='Column Interval', required=False)

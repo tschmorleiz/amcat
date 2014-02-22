@@ -32,6 +32,7 @@ __all__ = (
     "CodedArticleSerializer", "CodedArticleViewSetMixin", "CodedArticleViewSet",
     "CodedArticleSentenceViewSet")
 
+
 def article_property(property_name):
     def inner(self, coded_article):
         return getattr(self.get_article(coded_article), property_name)
@@ -39,8 +40,11 @@ def article_property(property_name):
 
 # Hack class to allow queryset to be set, which in turn allows the metadata (OPTIONS) generator
 # to include this field in its models-property.
+
+
 class PseudoSerializerMethodField(serializers.SerializerMethodField):
     queryset = Medium.objects.none()
+
 
 class CodedArticleSerializer(AmCATModelSerializer):
     model = CodedArticle
@@ -65,14 +69,15 @@ class CodedArticleSerializer(AmCATModelSerializer):
 
     def _get_coded_articles(self):
         view = self.context["view"]
-        if hasattr(view, "object_list"): return view.object_list
+        if hasattr(view, "object_list"):
+            return view.object_list
         return CodedArticle.objects.filter(id=view.object.id)
 
     @cached
     def _get_articles(self):
         aids = self._get_coded_articles().values_list("article__id", flat=True)
         articles = Article.objects.filter(id__in=aids).only("headline", "date", "pagenr", "length")
-        return { a.id : a for a in articles }
+        return {a.id: a for a in articles}
 
     def get_article(self, coded_article):
         return self._get_articles().get(coded_article.article_id)
@@ -83,10 +88,12 @@ class CodedArticleSerializer(AmCATModelSerializer):
     class Meta:
         model = CodedArticle
 
+
 class CodedArticleViewSetMixin(AmCATViewSetMixin):
     model_serializer_class = CodedArticleSerializer
     model_key = "coded_article"
     model = CodedArticle
+
 
 class CodedArticleViewSet(ProjectViewSetMixin, CodingJobViewSetMixin,
                           CodedArticleViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
@@ -109,9 +116,12 @@ class CodedArticleSentenceViewSet(ProjectViewSetMixin, CodingJobViewSetMixin,
         qs = super(CodedArticleSentenceViewSet, self).filter_queryset(queryset)
         return qs.filter(article__id=self.coded_article.article_id)
 
+
 class TestCodedArticleSerializer(amcattest.AmCATTestCase):
     # Simulating request
+
     class View(object):
+
         def __init__(self, objs):
             if isinstance(objs, CodedArticle):
                 self.object = objs
@@ -119,7 +129,7 @@ class TestCodedArticleSerializer(amcattest.AmCATTestCase):
                 self.object_list = objs
 
     def _get_serializer(self, coded_article):
-        return CodedArticleSerializer(context={"view" : self.View(coded_article)})
+        return CodedArticleSerializer(context={"view": self.View(coded_article)})
 
     def test_fields(self):
         c = amcattest.create_test_job()

@@ -45,15 +45,16 @@ from amcat.scripts.forms import SelectionForm
 import logging
 log = logging.getLogger(__name__)
 
+
 class AssignCodingJobForm(forms.Form):
     setname = forms.CharField(max_length=100, label="New set name",
-            help_text="This creates a new set and assigns it to selected coder.")
+                              help_text="This creates a new set and assigns it to selected coder.")
 
     coder = forms.ChoiceField(widget=widgets.JQuerySelect)
     unitschema = forms.ModelChoiceField(None)
     articleschema = forms.ModelChoiceField(None)
     insertuser = forms.ModelChoiceField(None)
-    
+
     def __init__(self, project=None, skip_existing=False, *args, **kwargs):
         self.skip_existing = skip_existing
         super(AssignCodingJobForm, self).__init__(*args, **kwargs)
@@ -77,12 +78,13 @@ class AssignCodingJobForm(forms.Form):
 
         return self.cleaned_data
 
+
 class AssignCodingJob(WebScript):
     name = "Assign as codingjob"
     form_template = "api/webscripts/assign_codingjob.html"
     form = AssignCodingJobForm
     displayLocation = ('ShowSummary', 'ShowArticleList')
-    output_template = None 
+    output_template = None
     is_edit = True
 
     def __init__(self, skip_existing=False, *args,  **kwargs):
@@ -117,7 +119,7 @@ class AssignCodingJob(WebScript):
         # Create articleset
         a = ArticleSet.create_set(project=self.project, articles=articles, name=self.data['setname'], favourite=False)
 
-        # Split all articles 
+        # Split all articles
         CreateSentences(dict(articlesets=[a.id])).run()
 
         # Create codingjob
@@ -135,12 +137,10 @@ class AssignCodingJob(WebScript):
                                      insertuser=insertuser)
         html = "<div>Saved as <a href='%s'>coding job %s</a>.</div>"
 
-
         return HttpResponse(json.dumps({
-            "html" : html % (reverse("coding job-details", args=[self.project.id, c.id]), c.id),
-            "webscriptClassname" : self.__class__.__name__,
-            "webscriptName" : self.name,
-            "doNotAddActionToMainForm" : True            
-            
-        }), mimetype='application/json')
+            "html": html % (reverse("coding job-details", args=[self.project.id, c.id]), c.id),
+            "webscriptClassname": self.__class__.__name__,
+            "webscriptName": self.name,
+            "doNotAddActionToMainForm": True
 
+        }), mimetype='application/json')

@@ -30,21 +30,20 @@ from amcat.models.coding.codingjob import CodingJob
 import logging
 log = logging.getLogger(__name__)
 
-class CodingjobsForm(amcat.scripts.forms.TableOutputForm):
-    codingjobs = amcat.scripts.forms.ModelMultipleChoiceFieldWithIdLabel(queryset=CodingJob.objects.all()) # TODO: change to codingjobs in projects of user
 
-    
+class CodingjobsForm(amcat.scripts.forms.TableOutputForm):
+    # TODO: change to codingjobs in projects of user
+    codingjobs = amcat.scripts.forms.ModelMultipleChoiceFieldWithIdLabel(queryset=CodingJob.objects.all())
+
+
 class ExportCodingjobsScript(script.Script):
     input_type = None
     options_form = CodingjobsForm
     output_type = table.table3.Table
 
-
     def run(self):
-        
+
         tableObj = table.table3.DictTable(0)
-        tableObj.columns.add(self.options['codingjobs'][0].name) #dummy data
+        tableObj.columns.add(self.options['codingjobs'][0].name)  # dummy data
         tableObj.rows.add('die bla')
         return tableObj
-        
-        

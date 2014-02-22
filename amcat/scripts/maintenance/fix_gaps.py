@@ -29,30 +29,33 @@ class Options(forms.Form):
     first_date = forms.DateField()
     last_date = forms.DateField()
 
+
 class FixGapsScript(Script):
     options_form = Options
-    def run(self, _input = None):
+
+    def run(self, _input=None):
         to_run = []
         for date in self._dates():
             print("Checking for date {date}".format(**locals()))
-            for scraper in Scraper.objects.filter(active = True, run_daily = True):
-                dedu = Deduplicate(articleset_1 = scraper.articleset.id, articleset_2 = scraper.articleset.id, headline_ratio=80, text_ratio=99)
-                n_scraped = scraper.n_scraped_articles(from_date = date, to_date = date)
-                n_scraped = date in n_scraped.keys() and n_scraped[date] or 0                
+            for scraper in Scraper.objects.filter(active=True, run_daily=True):
+                dedu = Deduplicate(articleset_1=scraper.articleset.id,
+                                   articleset_2=scraper.articleset.id, headline_ratio=80, text_ratio=99)
+                n_scraped = scraper.n_scraped_articles(from_date=date, to_date=date)
+                n_scraped = date in n_scraped.keys() and n_scraped[date] or 0
                 print("{scraper}: {n_scraped}".format(**locals()))
-                if  scraper.statistics and n_scraped < scraper.statistics[date.weekday()][0]:
+                if scraper.statistics and n_scraped < scraper.statistics[date.weekday()][0]:
                     print(scraper.statistics[date.weekday()][0])
                     print("added")
-                    to_run.append((scraper.get_scraper(date = date),n_scraped))
+                    to_run.append((scraper.get_scraper(date=date), n_scraped))
                 if not(scraper.statistics):
-                    to_run.append((scraper.get_scraper(date = date),n_scraped))
+                    to_run.append((scraper.get_scraper(date=date), n_scraped))
             for s, n in to_run:
                 s.run()
 
     def _dates(self):
         n_days = (self.options['last_date'] - self.options['first_date']).days
         for x in range(n_days + 1):
-            yield self.options['first_date'] + timedelta(days = x)        
+            yield self.options['first_date'] + timedelta(days=x)
 
 
 if __name__ == "__main__":

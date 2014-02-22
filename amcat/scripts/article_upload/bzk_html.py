@@ -28,19 +28,23 @@ from amcat.tools.toolkit import readDate
 from amcat.models.medium import Medium
 from lxml import html
 import re
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 from amcat.scripts.article_upload.bzk_aliases import BZK_ALIASES as MEDIUM_ALIASES
 
+
 class BZK(UploadScript):
+
     def _scrape_unit(self, _file):
-        if type(_file) == unicode: #command line
+        if type(_file) == unicode:  # command line
             etree = html.fromstring(_file)
-        else: #web interface
+        else:  # web interface
             try:
                 etree = html.parse(_file).getroot()
             except IOError as e:
                 log.exception("Failed html.parse")
-                raise TypeError("failed HTML parsing. Are you sure you've inserted the right file?\n{e}".format(**locals()))
+                raise TypeError(
+                    "failed HTML parsing. Are you sure you've inserted the right file?\n{e}".format(**locals()))
 
         title = etree.cssselect("title")
         if title:
@@ -58,7 +62,7 @@ class BZK(UploadScript):
             divs = _html.cssselect("#articleTable div")
         elif "intranet/rss" in t:
             divs = [div for div in _html.cssselect("#sort div") if "sort_" in div.get('id')]
-            
+
         for div in divs:
             article = HTMLDocument()
             article.props.html = div
@@ -82,7 +86,7 @@ class BZK(UploadScript):
 
         docdate = readDate(_html.cssselect("h1")[0].text.split("-")[1])
 
-        #split body by <hr>
+        # split body by <hr>
         items = []
         item = []
         tags = set()
@@ -94,7 +98,7 @@ class BZK(UploadScript):
             else:
                 item.append(child)
 
-        #first item is the index
+        # first item is the index
         items = items[1:]
 
         for item in items:
@@ -104,10 +108,10 @@ class BZK(UploadScript):
             yield article
 
     def parse_item(self, item):
-        #item: a list of html tags
+        # item: a list of html tags
         article = HTMLDocument()
         for tag in item:
-            if tag.tag in ("p","div"):
+            if tag.tag in ("p", "div"):
                 if hasattr(article.props, 'text'):
                     article.props.text.append(tag)
                 else:
@@ -147,39 +151,40 @@ class BZK(UploadScript):
 if __name__ == "__main__":
     from amcat.scripts.tools import cli
     cli.run_cli(BZK)
-        
-        
+
+
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
 
 from amcat.tools import amcattest
 
+
 class TestBZK(amcattest.AmCATTestCase):
+
     def setUp(self):
         from django.core.files import File
-        import os.path, json
+        import os.path
+        import json
         self.dir = os.path.join(os.path.dirname(__file__), 'test_files', 'bzk')
-        self.bzk = BZK(project = amcattest.create_test_project().id,
-                  file = File(open(os.path.join(self.dir, 'test.html'))),
-                  articleset = amcattest.create_test_set().id)
+        self.bzk = BZK(project=amcattest.create_test_project().id,
+                       file=File(open(os.path.join(self.dir, 'test.html'))),
+                       articleset=amcattest.create_test_set().id)
         self.result = self.bzk.run()
 
         def test_scrape_unit(self):
             self.assertTrue(self.result)
-        
+
         def test_scrape_file(self):
-            #props to check for:
+            # props to check for:
             # headline, text, pagenr, section, medium, date
             must_props = ('headline', 'text', 'medium', 'date')
-            may_props = ('pagenr','section')
+            may_props = ('pagenr', 'section')
             must_props = [[getattr(a.props, prop) for a in self.result] for prop in must_props]
             may_props = [[getattr(a.props, prop) for a in self.result] for prop in may_props]
 
             for proplist in must_props:
                 self.assertTrue(all(proplist))
             for proplist in may_props:
-                #assuming at least one of the articles has the property. if not, break
+                # assuming at least one of the articles has the property. if not, break
                 self.assertTrue(any(proplist))
-
-            

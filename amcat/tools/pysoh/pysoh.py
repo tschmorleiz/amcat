@@ -7,7 +7,9 @@ log = logging.getLogger(__name__)
 
 # TODO: query and update use http form instead of REST, what am I doing wrong?
 
+
 class SOHServer(object):
+
     def __init__(self, url, prefixes=None):
         self.url = url
         self.prefixes = {} if prefixes is None else prefixes
@@ -29,8 +31,8 @@ class SOHServer(object):
         url = "{self.url}/data?default".format(**locals())
         if isinstance(rdf, rdflib.Graph):
             rdf = rdf.serialize(format="turtle")
-            #print rdf
-        r = self.session.request(method, url, headers={'Content-Type' : format}, data=rdf)
+            # print rdf
+        r = self.session.request(method, url, headers={'Content-Type': format}, data=rdf)
         if r.status_code != 204:
             raise Exception(r.text)
 
@@ -52,10 +54,11 @@ class SOHServer(object):
             return r.text
 
     def _prefix_string(self, prefixes=None):
-        if prefixes is None: prefixes = self.prefixes
+        if prefixes is None:
+            prefixes = self.prefixes
         if isinstance(prefixes, dict):
             prefixes = "\n".join("PREFIX {k}: <{v}>".format(**locals())
-                                 for (k,v) in prefixes.iteritems())
+                                 for (k, v) in prefixes.iteritems())
         return prefixes
 
     def update(self, where="", insert="", delete="", prefixes=None):
@@ -68,13 +71,15 @@ class SOHServer(object):
         self.do_update(sparql)
 
     def query(self, select, where, orderby=None, prefixes=None, format='csv', parse=True):
-        prefixes=self._prefix_string(prefixes)
-        if isinstance(select, (list, tuple)): select = " ".join(select)
+        prefixes = self._prefix_string(prefixes)
+        if isinstance(select, (list, tuple)):
+            select = " ".join(select)
         sparql = """{prefixes}
                     SELECT {select}
                     WHERE {{ {where} }}
                  """.format(**locals())
         if orderby:
-            if isinstance(orderby, (list, tuple)): orderby = " ".join(orderby)
+            if isinstance(orderby, (list, tuple)):
+                orderby = " ".join(orderby)
             sparql += "ORDER BY {orderby}".format(**locals())
         return self.do_query(sparql, format=format, parse=parse)

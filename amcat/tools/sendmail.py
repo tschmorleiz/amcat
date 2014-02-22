@@ -26,14 +26,14 @@ from __future__ import unicode_literals, print_function, absolute_import
 
 from django.core.mail import EmailMultiAlternatives
 
+
 def sendmail(sender, recipient, subject, html, plain):
     msg = EmailMultiAlternatives(subject, plain, sender, [recipient])
     if html:
         msg.attach_alternative(html, "text/html")
     msg.send()
-    
+
 if __name__ == '__main__':
     # actual test in __name__ to prevent getting an email everytime the tests run
     sendmail("amcat.vu@gmail.com", "vanatteveldt@gmail.com", "Test mailtje 2345",
              "bla <b>nla!</b>", "bla bla")
-        

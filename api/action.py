@@ -24,7 +24,8 @@ Controller that handles calling plugin scripts as web services
 from django.shortcuts import render
 from django.http import HttpResponse
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 import json
 import traceback
@@ -37,11 +38,13 @@ from amcat.scripts.actions.get_queries import GetQueries
 from amcat.scripts.script import Script
 from amcat.scripts import scriptmanager
 
+
 def get_script(action):
     for name, obj in globals().iteritems():
         if name == action and issubclass(obj, Script):
             return obj
     raise ValueError("Action {action} could not be found".format(**locals()))
+
 
 def handler(request, action):
     script = get_script(action)
@@ -61,23 +64,24 @@ def handler(request, action):
                         result = converter().run(result)
                         mimetype = 'text/csv'
                     else:
-                        result =json.dumps(result)
+                        result = json.dumps(result)
                         mimetype = 'application/json'
                     return HttpResponse(result, status=201, mimetype=mimetype)
             except Exception as e:
                 log.exception("Error on running action: {script.__class__.__name__}".format(**locals()))
                 error = {
-                    'error-class' : e.__class__.__name__,
-                     'error-message' : str(e),
-                    'error-traceback' : traceback.format_exc()
-                    }
+                    'error-class': e.__class__.__name__,
+                    'error-message': str(e),
+                    'error-traceback': traceback.format_exc()
+                }
                 return HttpResponse(json.dumps(error),
                                     mimetype='application/json', status=500)
         else:
-            log.error("Error on form validation: \nPOST:{request.POST}\nform.data:{form.data}\nerrors:{form.errors}".format(**locals()))
+            log.error(
+                "Error on form validation: \nPOST:{request.POST}\nform.data:{form.data}\nerrors:{form.errors}".format(**locals()))
             return HttpResponse(json.dumps(form.errors),
                                 mimetype='application/json', status=400)
-            
+
     else:
         form = script.options_form
         help_text = script.__doc__

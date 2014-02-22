@@ -43,7 +43,7 @@ def create_objects(cls, values, key_attrs):
     # first create a cache containing the objects with any of the possible key values
     query = cls.objects.all()
     for attr in key_attrs:
-        query = query.filter(**{"{}__in".format(attr.replace("_id","")) : set(getattr(v, attr) for v in values)})
+        query = query.filter(**{"{}__in".format(attr.replace("_id", "")): set(getattr(v, attr) for v in values)})
 
     cache = dict((key(obj), obj) for obj in query)
 
@@ -56,12 +56,15 @@ def create_objects(cls, values, key_attrs):
             cache[key(l)] = l
             yield l
 
+
 def create_lemmata(tokenvalues):
     """Create a dict of {lemma_string, pos : Lemma} from the TokenValue objects"""
     return dict(((lemma.lemma, lemma.pos), lemma) for lemma in
-                 create_objects(Lemma, tokenvalues, ["lemma", "pos"]))
+                create_objects(Lemma, tokenvalues, ["lemma", "pos"]))
 
 _WordValues = collections.namedtuple("WordValues", ["lemma_id", "word"])
+
+
 @toolkit.wrapped(dict)
 def create_words(tokenvalues):
     """Create a dict of  {lemma_string, pos, word_wtring: Lemma} from the TokenValue objects,
@@ -72,16 +75,20 @@ def create_words(tokenvalues):
     for tv, word in zip(tokenvalues, words):
         yield (tv.lemma, tv.pos, tv.word), word
 
+
 def create_pos(tokenvalues):
     """Create a dict of {major, minor, pos_char : Pos} from the given tokenvalues"""
     return dict(((p.major, p.minor, p.pos), p) for p in
-                create_objects(Pos, tokenvalues, ["major","minor","pos"]))
+                create_objects(Pos, tokenvalues, ["major", "minor", "pos"]))
 
 _RelationValues = collections.namedtuple("RelationValues", ["label"])
+
+
 def create_relations(triplevalues):
     """Create a dict of {rel : Relation} from the given triplevalues"""
     relationvalues = [_RelationValues(r.relation) for r in triplevalues]
     return dict((rel.label, rel) for rel in create_objects(Relation, relationvalues, ["label"]))
+
 
 def create_tokens(tokenvalues):
     """Create a list of new Token objects from a language and tokenvalues sequence"""
@@ -89,12 +96,13 @@ def create_tokens(tokenvalues):
     words = create_words(tokenvalues)
     poss = create_pos(tokenvalues)
     sentences = dict((s.id, s) for s in
-        AnalysisSentence.objects.filter(pk__in=set(v.analysis_sentence for v in tokenvalues)))
+                     AnalysisSentence.objects.filter(pk__in=set(v.analysis_sentence for v in tokenvalues)))
     for v in tokenvalues:
         word = words[v.lemma, v.pos, v.word]
         pos = poss[v.major, v.minor, v.pos]
         yield v, Token.objects.create(sentence=sentences[v.analysis_sentence], position=v.position, word=word, pos=pos,
                                       namedentity=v.namedentity)
+
 
 def create_corefsets(analysed_article, tokenmap, coreferencesets):
     if coreferencesets:
@@ -103,7 +111,8 @@ def create_corefsets(analysed_article, tokenmap, coreferencesets):
             coref = CoreferenceSet.objects.create(analysed_article=analysed_article)
             coref.tokens.add(*(tokenmap[t] for t in corefset))
             yield coref
-        
+
+
 def store_analysis(analysed_article, tokenvalues, triplevalues=None, coreferencesets=None):
     """Create the requested tokens and (optionally) triples
 
@@ -111,7 +120,7 @@ def store_analysis(analysed_article, tokenvalues, triplevalues=None, coreference
     tokens = dict(create_tokens(tokenvalues))
     triples = {}
 
-    tokenmap = {(t.sentence_id, t.position) : t for t in tokens.values()}
+    tokenmap = {(t.sentence_id, t.position): t for t in tokens.values()}
 
     if triplevalues:
         triplevalues = [truncate_triplevalue(tv) for tv in triplevalues]
@@ -122,17 +131,19 @@ def store_analysis(analysed_article, tokenvalues, triplevalues=None, coreference
                                                     child=tokenmap[triple.analysis_sentence, triple.child])
 
     corefsets = list(create_corefsets(analysed_article, tokenmap, coreferencesets))
-    
+
     return tokens, triples, corefsets
 
 TOKEN_MAXLENGTHS = dict(
-    major = 100,
-    minor = 500,
-    word = 500,
-    lemma = 500)
+    major=100,
+    minor=500,
+    word=500,
+    lemma=500)
+
 
 def truncate_tokenvalue(tv):
-    if len(tv.pos) != 1: raise Exception("POS must be a single character")
+    if len(tv.pos) != 1:
+        raise Exception("POS must be a single character")
     update = {}
     for attr, maxlength in TOKEN_MAXLENGTHS.items():
         val = getattr(tv, attr)
@@ -144,6 +155,7 @@ def truncate_tokenvalue(tv):
         return tv
 
 TRIPLE_MAXLENGTH_REL = 100
+
 
 def truncate_triplevalue(tv):
     if len(tv.relation) > TRIPLE_MAXLENGTH_REL:
@@ -158,24 +170,25 @@ def truncate_triplevalue(tv):
 
 from amcat.tools import amcattest
 
+
 class TestWordCreator(amcattest.AmCATTestCase):
+
     def test_create_lemmata(self):
         from amcat.models.token import TokenValues
         lang = amcattest.get_test_language()
         l1 = Lemma.objects.create(lemma="a", pos="b")
         tokens = [TokenValues(None, None, None, lemma=l, pos="b", major=None, minor=None, namedentity=None)
-                  for l in "a"*10]
+                  for l in "a" * 10]
         tokens += [TokenValues(None, None, None, lemma=l, pos="c", major=None, minor=None, namedentity=None)
-                  for l in "ab"*5]
-        with self.checkMaxQueries(3): # 1 to cache, 2 to create with different poss
+                   for l in "ab" * 5]
+        with self.checkMaxQueries(3):  # 1 to cache, 2 to create with different poss
             lemmata = create_lemmata(tokens)
         # are existing lemmata 'recycled'?
-        self.assertEqual(lemmata["a","b"].id, l1.id)
+        self.assertEqual(lemmata["a", "b"].id, l1.id)
         # did we get the correct lemmata?
-        self.assertEqual(set(lemmata.keys()), set([("a","b"), ("a","c"), ("b","c")]))
+        self.assertEqual(set(lemmata.keys()), set([("a", "b"), ("a", "c"), ("b", "c")]))
         for (lemmastr, pos), lemma in lemmata.items():
             self.assertEqual(lemma.lemma, lemmastr)
-
 
     def test_create_words(self):
         from amcat.models.token import TokenValues
@@ -185,18 +198,18 @@ class TestWordCreator(amcattest.AmCATTestCase):
         w1 = Word.objects.create(lemma=l1, word="b")
         for lemma in "ab":
             for word in "bbcc":
-                tokens.append(TokenValues(None, None, word=word, lemma=lemma, pos="b", major=None, minor=None, namedentity=None))
-        with self.checkMaxQueries(8): # 2 to cache lemmata+words, 1 to create lemmata, 5 to create words
+                tokens.append(TokenValues(None, None, word=word, lemma=lemma,
+                              pos="b", major=None, minor=None, namedentity=None))
+        with self.checkMaxQueries(8):  # 2 to cache lemmata+words, 1 to create lemmata, 5 to create words
             words = create_words(tokens)
 
-        self.assertEqual(set(words.keys()), set([("a","b", "b"), ("a","b","c"), ("b","b", "b"), ("b","b","c")]))
+        self.assertEqual(set(words.keys()), set([("a", "b", "b"), ("a", "b", "c"), ("b", "b", "b"), ("b", "b", "c")]))
         for (lemmastr, pos, wordstr), word in words.items():
             self.assertEqual(word.word, wordstr)
             self.assertEqual(word.lemma.lemma, lemmastr)
 
         self.assertEqual(words["a", "b", "b"].id, w1.id)
         self.assertEqual(words["a", "b", "c"].lemma_id, l1.id)
-
 
     def test_create_tokens(self):
         from amcat.models.token import TokenValues
@@ -220,7 +233,6 @@ class TestWordCreator(amcattest.AmCATTestCase):
             self.assertEqual(tokenvalue.position, token.position)
             self.assertEqual(tokenvalue.lemma, token.word.lemma.lemma)
 
-
     def test_long_strings(self):
         """Test whether overly long lemmata, words, and pos are truncated"""
         from amcat.models.token import TokenValues, TripleValues
@@ -232,9 +244,9 @@ class TestWordCreator(amcattest.AmCATTestCase):
 
         nonepos = TokenValues(s.id, 0, word="a", lemma="l", pos="p", major="m", minor="m", namedentity=None)
 
-        longvals = TokenValues(s.id, 1, word="a"*9999, lemma="l"*9999, pos="p",
-                               major="m"*9999, minor="m"*9999, namedentity=None)
-        triple = TripleValues(s.id, 0, 1, "x"*9999)
+        longvals = TokenValues(s.id, 1, word="a" * 9999, lemma="l" * 9999, pos="p",
+                               major="m" * 9999, minor="m" * 9999, namedentity=None)
+        triple = TripleValues(s.id, 0, 1, "x" * 9999)
         store_analysis(s.analysed_article, [nonepos, longvals], [triple])
 
         # django validation for length
@@ -252,11 +264,11 @@ class TestWordCreator(amcattest.AmCATTestCase):
         # get tokenvalues etc from stanford test case
         aa = amcattest.create_test_analysed_article()
         as1, as2 = [amcattest.create_test_analysis_sentence(analysed_article=aa) for _i in range(2)]
-        
+
         from amcat.nlp import stanford
         tokens, triples, corefsets = stanford.interpret_xml([as1.id, as2.id], stanford.TestStanford._get_test_xml())
         store_analysis(aa, tokens, triples, corefsets)
-        
+
         self.assertEqual({str(t.word.lemma) for t in as1.tokens.all()}, {"Mary", "meet", "John"})
         self.assertEqual({(str(t.parent.word), str(t.child.word), str(t.relation)) for t in as2.triples},
                          {('likes', 'She', 'nsubj'), ('likes', 'him', 'dobj')})

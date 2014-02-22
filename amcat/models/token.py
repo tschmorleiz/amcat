@@ -24,17 +24,20 @@ from django.db import models
 from collections import namedtuple
 
 TripleValues = namedtuple("TripleValues", ["analysis_sentence", "child", "parent", "relation"])
-TokenValues = namedtuple("TokenValues", ["analysis_sentence", "position", "word", "lemma", "pos", "major", "minor", "namedentity"])
+TokenValues = namedtuple("TokenValues", ["analysis_sentence", "position",
+                         "word", "lemma", "pos", "major", "minor", "namedentity"])
+
 
 class Pos(AmcatModel):
     id = models.AutoField(primary_key=True, db_column='pos_id')
     major = models.CharField(max_length=100)
     minor = models.CharField(max_length=500, null=True)
-    pos =  models.CharField(max_length=1, null=True)
+    pos = models.CharField(max_length=1, null=True)
 
     class Meta():
         db_table = 'tokens_pos'
         app_label = 'amcat'
+
 
 class Token(AmcatModel):
     __label__ = 'word'
@@ -52,9 +55,10 @@ class Token(AmcatModel):
         app_label = 'amcat'
         unique_together = ("sentence", "position")
         ordering = ['sentence', 'position']
-        
+
     def __unicode__(self):
         return unicode(self.word)
+
 
 class Relation(AmcatModel):
     id = models.AutoField(db_column='relation_id', primary_key=True)
@@ -63,6 +67,7 @@ class Relation(AmcatModel):
     class Meta():
         db_table = 'tokens_triples_relations'
         app_label = 'amcat'
+
 
 class Triple(AmcatModel):
     id = models.AutoField(primary_key=True, db_column='triple_id')
@@ -92,9 +97,11 @@ class CoreferenceSet(AmcatModel):
 
 from amcat.tools import amcattest
 
+
 class TestTokens(amcattest.AmCATTestCase):
+
     def test_get_tokens_order(self):
         s = amcattest.create_test_analysis_sentence()
-        t1,t2,t3 = [amcattest.create_test_token(sentence=s, position=i) for i in [2,1,3]]
+        t1, t2, t3 = [amcattest.create_test_token(sentence=s, position=i) for i in [2, 1, 3]]
 
-        self.assertEqual(list(s.tokens.all()), [t2,t1,t3])
+        self.assertEqual(list(s.tokens.all()), [t2, t1, t3])

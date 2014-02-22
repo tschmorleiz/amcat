@@ -32,10 +32,13 @@ from amcat.models.articleset import ArticleSet
 import logging
 log = logging.getLogger(__name__)
 
+
 class SaveAsSetForm(forms.Form):
     setname = forms.CharField(required=False)
-    setproject = forms.ModelChoiceField(queryset=Project.objects.all(), required=False) # TODO: change to projects of user
-    existingset = forms.ModelChoiceField(queryset=ArticleSet.objects.all(), required=False) #TODO: change to articlesets inside project
+    # TODO: change to projects of user
+    setproject = forms.ModelChoiceField(queryset=Project.objects.all(), required=False)
+    # TODO: change to articlesets inside project
+    existingset = forms.ModelChoiceField(queryset=ArticleSet.objects.all(), required=False)
 
     def __init__(self, *args, **kwargs):
         project = kwargs.pop("project", None)
@@ -44,7 +47,7 @@ class SaveAsSetForm(forms.Form):
         # Due to the design of (web)scripts, it is not possible to access
         # POST data below. A workaround is used below (navigator stores
         # a request object in the threads local storage) to access it, but
-        # should be removed as soon as possible. 
+        # should be removed as soon as possible.
         try:
             from navigator.utils.auth import get_request
             request = get_request()
@@ -72,25 +75,25 @@ class SaveAsSetForm(forms.Form):
         self.fields['setproject'].initial = project
         self.fields['existingset'].queryset = ArticleSet.objects.filter(project=project)
 
-    
     def clean(self):
         cleanedData = self.cleaned_data
         if cleanedData['existingset']:
-            if 'setproject' in cleanedData: del cleanedData['setproject']
-            if 'setname' in cleanedData: del cleanedData['setname']
+            if 'setproject' in cleanedData:
+                del cleanedData['setproject']
+            if 'setname' in cleanedData:
+                del cleanedData['setname']
         else:
             if not cleanedData.get('setname'):
                 self._errors["setname"] = self.error_class(["Missing Set Name"])
             if not cleanedData.get('setproject'):
                 self._errors["setproject"] = self.error_class(["Missing Project"])
         return cleanedData
-        
+
 
 class SaveAsSetScript(script.Script):
     input_type = types.ArticleidList
     options_form = SaveAsSetForm
     output_type = ArticleSet
-
 
     def run(self, article_ids):
         if self.options['existingset']:
@@ -109,8 +112,8 @@ class SaveAsSetScript(script.Script):
 
         s.add_articles(article_ids, monitor=self.progress_monitor)
         return s
-    
-        
+
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli(SaveAsSetScript)

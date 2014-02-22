@@ -35,6 +35,7 @@ from amcat.tools.progress import NullMonitor
 
 
 class Script(object):
+
     """
     'Abstract' class representing a modular piece of
     functionality. Scripts have three key parameters, specified as class variables:
@@ -60,7 +61,6 @@ class Script(object):
             self.options = self.bound_form.cleaned_data
         self.progress_monitor = monitor
 
-
     def run(self, input=None):
         """Run is invoked with the input, which should be of type input_type,
         and should return a result of type output_type or raise an exception"""
@@ -72,7 +72,6 @@ class Script(object):
     def _validate_form(self):
         """Validate self.bound_form, raising an exception if invalid"""
         validate(self.bound_form)
-
 
     def _bind_form(self, options=None,  **kargs):
         """

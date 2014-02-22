@@ -25,13 +25,16 @@ from api.rest.viewset import AmCATViewSetMixin
 
 __all__ = ("SentenceSerializer", "SentenceViewSetMixin", "SentenceViewSet")
 
+
 class SentenceSerializer(AmCATModelSerializer):
     model = Sentence
+
 
 class SentenceViewSetMixin(AmCATViewSetMixin):
     model_serializer_class = SentenceSerializer
     model_key = "sentence"
     model = Sentence
+
 
 class SentenceViewSet(SentenceViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
     model = Sentence
@@ -39,5 +42,3 @@ class SentenceViewSet(SentenceViewSetMixin, DatatablesMixin, ReadOnlyModelViewSe
     def filter_queryset(self, queryset):
         qs = super(SentenceViewSet, self).filter_queryset(queryset)
         return qs.filter(article=self.article, id__in=sbd.get_or_create_sentences(self.article))
-
-

@@ -21,7 +21,11 @@
 Toolkit of methods to deal with python classes and modules
 """
 
-import os.path, sys, types, inspect
+import os.path
+import sys
+import types
+import inspect
+
 
 def import_attribute(module, attribute=None):
     """
@@ -39,6 +43,7 @@ def import_attribute(module, attribute=None):
     except AttributeError:
         raise ImportError("Module %r has no attribute %r" % (module, attribute))
 
+
 def guess_module(filename):
     """
     'Guess' te module name represented by the filename by getting its shortest route
@@ -47,7 +52,8 @@ def guess_module(filename):
     filename = os.path.abspath(filename)
 
     path = sys.path
-    if path[0] == os.getcwd(): del path[0]
+    if path[0] == os.getcwd():
+        del path[0]
     path = set(path)
     dirname, filename = os.path.split(filename)
     module = [os.path.splitext(filename)[0]]
@@ -56,7 +62,8 @@ def guess_module(filename):
         module.insert(0, head)
         if dirname in path:
             return ".".join(module)
-        if tail == dirname: raise ValueError("Cannot find module for %s" % filename)
+        if tail == dirname:
+            raise ValueError("Cannot find module for %s" % filename)
         dirname = tail
 
 
@@ -68,8 +75,10 @@ def get_classes_from_module(module, superclass=None):
     m = import_attribute(module)
     for name in dir(m):
         obj = getattr(m, name)
-        if not isinstance(obj, (type, types.ClassType)): continue
-        if superclass is not None and not issubclass(obj, superclass): continue
+        if not isinstance(obj, (type, types.ClassType)):
+            continue
+        if superclass is not None and not issubclass(obj, superclass):
+            continue
         if obj.__module__ == module:
             yield obj
 
@@ -84,7 +93,8 @@ def get_classes_from_package(package, superclass=None):
     for c in get_classes_from_module(package, superclass):
         yield c
     p = import_attribute(package)
-    if not "__init__.py" in p.__file__: return # not a package -> done
+    if not "__init__.py" in p.__file__:
+        return  # not a package -> done
     dirname = os.path.dirname(p.__file__)
     for item in os.listdir(dirname):
         fn = os.path.join(dirname, item)
@@ -106,14 +116,16 @@ def get_class_from_module(module, superclass=None):
         return obj
     raise ValueError("Cannot find a %s subclass in %r" % (superclass.__name__, module))
 
+
 def get_caller(depth=1):
     """Return the filename, lineno, function of the caller
 
     @param depth: A depth of 1 return the caller of the function calling this function;
                   depth 2 would be its caller etc.
     """
-    depth = depth + 1 # me, caller, caller's caller
+    depth = depth + 1  # me, caller, caller's caller
     return inspect.stack()[depth][1:4]
+
 
 def get_calling_module(depth=1):
     """Return the module name of the caller
@@ -121,8 +133,8 @@ def get_calling_module(depth=1):
     @param depth: A depth of 1 return caller of the function calling this function;
                   depth two would mean that function's caller etc.
     """
-    depth = depth + 1 # me, caller, caller's caller
-    caller = inspect.stack()[depth][0] # mod, file, line, function
+    depth = depth + 1  # me, caller, caller's caller
+    caller = inspect.stack()[depth][0]  # mod, file, line, function
     return caller.f_globals['__name__']
 
 
@@ -132,19 +144,22 @@ def get_calling_module(depth=1):
 
 from amcat.tools import amcattest
 
+
 class _TestClass(object):
     pass
+
 
 class TestClassTools(amcattest.AmCATTestCase):
 
     def test_get_caller(self):
         fn, line, func = get_caller(depth=0)
-        self.assertEqual(fn, __file__.replace(".pyc",".py"))
+        self.assertEqual(fn, __file__.replace(".pyc", ".py"))
         self.assertEqual(func, "test_get_caller")
+
         def _test():
             return get_caller()
         fn, line, func = _test()
-        self.assertEqual(fn, __file__.replace(".pyc",".py"))
+        self.assertEqual(fn, __file__.replace(".pyc", ".py"))
         self.assertEqual(func, "test_get_caller")
 
     def test_get_calling_module(self):

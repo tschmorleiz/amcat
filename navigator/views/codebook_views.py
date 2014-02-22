@@ -42,28 +42,25 @@ import json
 import itertools
 
 
-
-class CodebookListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin, ListView):
+class CodebookListView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, ListView):
     model = Codebook
     parent = ProjectDetailsView
     context_category = 'Coding'
     view_name = "coding codebook-list"
 
-
     def get_context_data(self, **kwargs):
         ctx = super(CodebookListView, self).get_context_data(**kwargs)
-        all_codebooks = Datatable(CodebookViewSet, rowlink='./{id}', url_kwargs={"project" : self.project.id})
+        all_codebooks = Datatable(CodebookViewSet, rowlink='./{id}', url_kwargs={"project": self.project.id})
         owned_codebooks = all_codebooks.filter(project=self.project)
         linked_codebooks = all_codebooks.filter(projects_set=self.project)
 
         ctx.update(locals())
         return ctx
 
+
 class CodebookDetailsView(ProjectDetailView):
     parent = CodebookListView
     view_name = "coding codebook-details"
-
-
 
 
 class ExportCodebook(TableExportMixin, ProjectScriptView):
@@ -95,6 +92,7 @@ class ExportCodebook(TableExportMixin, ProjectScriptView):
 
         return super(ExportCodebook, self).form_valid(form)
 
+
 class ExportCodebookXML(ProjectScriptView):
     script = ExportCodebookAsXML
     parent = CodebookDetailsView
@@ -114,6 +112,7 @@ class ExportCodebookXML(ProjectScriptView):
         response['Content-Disposition'] = 'attachment; filename="{filename}"'.format(**locals())
         return response
 
+
 class CodebookImportView(ProjectScriptView):
     script = ImportCodebook
     parent = CodebookListView
@@ -121,28 +120,26 @@ class CodebookImportView(ProjectScriptView):
 
     def get_initial(self):
         initial = super(CodebookImportView, self).get_initial()
-        initial["codebook"]=self.kwargs.get("codebookid")
+        initial["codebook"] = self.kwargs.get("codebookid")
         return initial
 
 
 class CodebookAddView(ProjectActionRedirectView):
+
     """
     Add codebook automatically creates an empty codebook and opens the edit codebook page
     """
     parent = CodebookListView
     url_fragment = "add"
 
-    
     def action(self, project_id):
         self.object = Codebook.objects.create(project_id=project_id, name='New codebook')
-        
+
     def get_redirect_url(self, **kwargs):
-        kwargs.update({"codebook_id" : self.object.id})
+        kwargs.update({"codebook_id": self.object.id})
         return CodebookDetailsView._get_breadcrumb_url(kwargs, self)
 
-        
 
-        
 class CodebookLinkView(ProjectFormView):
     parent = CodebookListView
     url_fragment = 'link'
@@ -163,6 +160,7 @@ class CodebookLinkView(ProjectFormView):
         self.request.session['notification'] = "Linked {n} codebook(s)".format(n=len(cbs))
         return super(CodebookLinkView, self).form_valid(form)
 
+
 class CodebookUnlinkView(ProjectActionRedirectView):
     parent = CodebookDetailsView
     url_fragment = "unlink"
@@ -174,7 +172,7 @@ class CodebookUnlinkView(ProjectActionRedirectView):
 
     def get_redirect_url(self, **kwargs):
         return CodebookListView._get_breadcrumb_url(kwargs, self)
-        
+
 
 class CodebookDeleteView(ProjectActionRedirectView):
     parent = CodebookDetailsView
@@ -187,31 +185,38 @@ class CodebookDeleteView(ProjectActionRedirectView):
         cb = Codebook.objects.get(pk=codebook_id)
         cb.recycle()
 
+
 class CodebookFormActionView(ProjectFormView):
+
     "Base class for simple form based actions on codebooks"
     parent = CodebookDetailsView
+
     def form_invalid(self, form):
         error = {
             'success': False,
             'errors': dict(form.errors.items()),
         }
-        
+
         return HttpResponse(json.dumps(error, indent=2),
                             content_type='application/json; charset=UTF-8',
                             status=500)
-        
+
     def form_valid(self, form):
         codebook = Codebook.objects.get(pk=self.kwargs["codebook_id"])
         result = self.action(codebook, form)
         return HttpResponse(content=result, status=200)
+
     def action(self, codebook, form):
         "Perform the action. An optional return value will become the HttpResponse 201 content"
         raise NotImplementedError()
-    
+
+
 class CodebookChangeNameView(CodebookFormActionView):
     url_fragment = "change-name"
+
     class form_class(forms.Form):
         codebook_name = forms.CharField()
+
     def action(self, codebook, form):
         codebook.name = form.cleaned_data["codebook_name"]
         codebook.save()
@@ -219,6 +224,7 @@ class CodebookChangeNameView(CodebookFormActionView):
 
 class CodebookSaveChangesetsView(CodebookFormActionView):
     url_fragment = "save-changesets"
+
     class form_class(forms.Form):
         moves = JSONFormField(required=False)
         hides = JSONFormField(required=False)
@@ -226,7 +232,7 @@ class CodebookSaveChangesetsView(CodebookFormActionView):
 
     def action(self, codebook, form):
         moves, hides, reorders = [form.cleaned_data.get(x, []) for x in ["moves", "hides", "reorders"]]
-        
+
         codebook.cache()
 
         # Keep a list of changed codebookcodes
@@ -262,11 +268,12 @@ class CodebookSaveChangesetsView(CodebookFormActionView):
             ccode._codebook_cache = codebook
             ccode.save(validate=False)
 
-        # Check for any cycles. 
+        # Check for any cycles.
         CodebookHierarchyResource.get_tree(Codebook.objects.get(id=codebook.id), include_labels=False)
 
 
 class CodebookSaveLabelsView(CodebookFormActionView):
+
     """
     View called by code-editor to store new labels. It requests
     two values in POST:
@@ -278,6 +285,7 @@ class CodebookSaveLabelsView(CodebookFormActionView):
     a new code and adds the given labels to it.
     """
     url_fragment = "save-labels"
+
     class form_class(forms.Form):
         labels = JSONFormField()
         parent = JSONFormField(required=False)
@@ -295,12 +303,12 @@ class CodebookSaveLabelsView(CodebookFormActionView):
             code = Code.objects.create()
             CodebookCode.objects.create(parent_id=parent, code=code, ordernr=ordernr, codebook=codebook)
         elif ordernr is not None:
-             return HttpResponseBadRequest(content="ordernr != null on existing codes not supported.")
+            return HttpResponseBadRequest(content="ordernr != null on existing codes not supported.")
         else:
             code = Code.objects.get(id=code)
 
         # Get changed, deleted and new labels
-        changed_labels_map = { int(lbl.get("id")) : lbl for lbl in labels if lbl.get("id") is not None}
+        changed_labels_map = {int(lbl.get("id")): lbl for lbl in labels if lbl.get("id") is not None}
         changed_labels = set(Label.objects.filter(id__in=changed_labels_map.keys()))
 
         created_labels = [Label(
@@ -326,15 +334,12 @@ class CodebookSaveLabelsView(CodebookFormActionView):
         content = json.dumps(dict(code_id=code.id))
         return HttpResponse(content=content, status=201, content_type="application/json")
 
-        
 
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-
-
-
 from amcat.tools import amcattest
+
 
 class TestCodebookViews(amcattest.AmCATTestCase):
 
@@ -344,7 +349,7 @@ class TestCodebookViews(amcattest.AmCATTestCase):
         self.client = Client()
         response = self.client.post('/accounts/login/', {'username': 'amcat', 'password': 'amcat'})
         self.assert_status(response, 302)
-    
+
     def assert_status(self, response, expect=200):
         if response.status_code != expect:
             try:
@@ -352,29 +357,24 @@ class TestCodebookViews(amcattest.AmCATTestCase):
             except:
                 error = response.content
             self.fail("{response.status_code} Error on action:\n {error}".format(**locals()))
-    
+
     def test_change_name(self):
         url = "/navigator/projects/{self.cb.project.id}/codebooks/{self.cb.id}/change-name/".format(**locals())
-        response = self.client.post(url, {"codebook_name" : "bla"})
+        response = self.client.post(url, {"codebook_name": "bla"})
         self.assert_status(response)
         cb = Codebook.objects.get(pk=self.cb.id)
         self.assertEqual(cb.name, "bla")
-         
-         
+
     def test_save_changesets(self):
         # nog geen inhoudelijke test
         url = "/navigator/projects/{self.cb.project.id}/codebooks/{self.cb.id}/save-changesets/".format(**locals())
-        data = {'moves' : json.dumps({"bla" : [1,2,{"meerbla" : "abc"}]})}
+        data = {'moves': json.dumps({"bla": [1, 2, {"meerbla": "abc"}]})}
         #response = self.client.post(url, data)
-        #self.assert_status(response)
-        
-        
+        # self.assert_status(response)
 
     def test_save_labels(self):
         # nog geen inhoudelijke test
         url = "/navigator/projects/{self.cb.project.id}/codebooks/{self.cb.id}/save-labels/".format(**locals())
         data = {}
         #response = self.client.post(url, data)
-        #self.assert_status(response)
-        
-        
+        # self.assert_status(response)

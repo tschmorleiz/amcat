@@ -28,20 +28,21 @@ import json
 
 log = logging.getLogger(__name__)
 
+
 class SaveAsSetWebScriptForm(SaveAsSetForm):
     output = forms.CharField(widget=forms.HiddenInput(), initial='json-html')
     length = forms.IntegerField(widget=forms.HiddenInput(), max_value=99999999, initial=99999999)
     start = forms.IntegerField(widget=forms.HiddenInput(), initial=0)
 
-    
+
 class SaveAsSet(WebScript):
     name = "Save as Set"
-    form_template = None#"api/webscripts/save_set_form.html"
+    form_template = None  # "api/webscripts/save_set_form.html"
     form = SaveAsSetWebScriptForm
     displayLocation = ('ShowSummary', 'ShowArticleList')
-    output_template = "api/webscripts/save_set.html" 
+    output_template = "api/webscripts/save_set.html"
     is_edit = True
-    
+
     def run(self):
         self.progress_monitor.update(1, "Listing articles")
         sf = SelectionForm(self.project, self.data)
@@ -53,5 +54,3 @@ class SaveAsSet(WebScript):
         result.save()
 
         return self.outputResponse(result, object)
-        
-    

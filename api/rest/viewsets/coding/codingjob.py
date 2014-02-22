@@ -20,7 +20,7 @@ from django.db.models import Count, Q
 from rest_framework import serializers
 from amcat.models.coding.codingjob import CodingJob
 from amcat.models.article import Article
-from amcat.models.sentence import  Sentence
+from amcat.models.sentence import Sentence
 from amcat.models.coding.codebook import Codebook
 from amcat.models.coding.codingrule import CodingRule
 from amcat.models.coding.codingschemafield import CodingSchemaField
@@ -46,7 +46,9 @@ __all__ = ("CodingJobViewSetMixin", "CodingJobSerializer", "CodingJobViewSet",
            "CodingJobHighlighterViewSet", "CodingJobCodingRuleViewSet",
            "CodingJobCodingSchemaFieldViewSet")
 
+
 class CodingJobSerializer(AmCATModelSerializer):
+
     """
     This serializer for codingjob includes the amount of total jobs
     and done jobs. Because it would be wholly inefficient to calculate
@@ -77,23 +79,26 @@ class CodingJobSerializer(AmCATModelSerializer):
         return dict(self._get_coded_articles().filter(status__id__in=STATUS_TODO)
                     .values("codingjob").annotate(n=Count("codingjob"))
                     .values_list("codingjob__id", "n"))
-    
+
     @cached
     def _get_n_articles(self):
         return dict(self._get_codingjobs().annotate(n=Count("articleset__articles")).values_list("id", "n"))
 
     def get_n_articles(self, obj):
-        if not obj: return 0
+        if not obj:
+            return 0
         return self._get_n_articles().get(obj.id, 0)
 
     def get_n_done_jobs(self, obj):
-        if not obj: return 0
+        if not obj:
+            return 0
         return self._get_n_done_jobs().get(obj.id, 0)
 
     def get_n_todo_jobs(self, obj):
-        if not obj: return 0
+        if not obj:
+            return 0
         return self._get_n_todo_jobs().get(obj.id, 0)
-    
+
     class Meta:
         model = CodingJob
 
@@ -103,6 +108,7 @@ class CodingJobViewSetMixin(AmCATViewSetMixin):
     model_key = "codingjob"
     model = CodingJob
 
+
 class CodingJobViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
     model = CodingJob
     model_serializer_class = CodingJobSerializer
@@ -110,6 +116,7 @@ class CodingJobViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, DatatablesMix
     def filter_queryset(self, jobs):
         jobs = super(CodingJobViewSet, self).filter_queryset(jobs)
         return jobs.filter(project=self.project)
+
 
 class CodingJobArticleViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, ArticleViewSetMixin,
                               DatatablesMixin, ReadOnlyModelViewSet):
@@ -119,6 +126,7 @@ class CodingJobArticleViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, Articl
         articles = super(CodingJobArticleViewSet, self).filter_queryset(articles)
         return articles.filter(id__in=self.codingjob.articleset.articles.all())
 
+
 class CodingJobArticleSentenceViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, ArticleViewSetMixin,
                                       SentenceViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
     model = Sentence
@@ -127,9 +135,11 @@ class CodingJobArticleSentenceViewSet(ProjectViewSetMixin, CodingJobViewSetMixin
         sentences = super(CodingJobArticleSentenceViewSet, self).filter_queryset(sentences)
         return sentences.filter(id__in=sbd.get_or_create_sentences(self.article))
 
+
 class HighlighterViewSetMixin(AmCATViewSetMixin):
     model = Codebook
     model_key = "highlighter"
+
 
 class CodingJobHighlighterViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, HighlighterViewSetMixin,
                                   DatatablesMixin, ReadOnlyModelViewSet):
@@ -138,9 +148,10 @@ class CodingJobHighlighterViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, Hi
     def filter_queryset(self, highlighters):
         highlighters = super(CodingJobHighlighterViewSet, self).filter_queryset(highlighters)
         return highlighters.filter(
-            Q(pk__in=self.codingjob.articleschema.highlighters.all())|
+            Q(pk__in=self.codingjob.articleschema.highlighters.all()) |
             Q(pk__in=self.codingjob.unitschema.highlighters.all())
         )
+
 
 class CodingJobCodingRuleViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, CodingRuleViewSetMixin,
                                  DatatablesMixin, ReadOnlyModelViewSet):
@@ -150,6 +161,7 @@ class CodingJobCodingRuleViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, Cod
     def filter_queryset(self, rules):
         rules = super(CodingJobCodingRuleViewSet, self).filter_queryset(rules)
         return rules.filter(codingschema__pk__in=(self.codingjob.unitschema_id, self.codingjob.articleschema_id))
+
 
 class CodingJobCodingSchemaFieldViewSet(ProjectViewSetMixin, CodingJobViewSetMixin, CodingSchemaFieldViewSetMixin,
                                         DatatablesMixin, ReadOnlyModelViewSet):
@@ -161,9 +173,12 @@ class CodingJobCodingSchemaFieldViewSet(ProjectViewSetMixin, CodingJobViewSetMix
             codingschema__pk__in=(self.codingjob.articleschema_id, self.codingjob.unitschema_id)
         )
 
+
 class TestCodingJobSerializer(AmCATTestCase):
     # Simulating request
+
     class View(object):
+
         def __init__(self, objs):
             if isinstance(objs, CodingJob):
                 self.object = objs
@@ -171,7 +186,7 @@ class TestCodingJobSerializer(AmCATTestCase):
                 self.object_list = objs
 
     def _get_serializer(self, codingjob):
-        return CodingJobSerializer(context={"view" : self.View(codingjob)})
+        return CodingJobSerializer(context={"view": self.View(codingjob)})
 
     def test_get_n_done_jobs(self):
         from amcat.tools import amcattest

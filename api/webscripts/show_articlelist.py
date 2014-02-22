@@ -31,19 +31,19 @@ from amcat.tools import keywordsearch
 import logging
 log = logging.getLogger(__name__)
 
-FORM_FIELDS_TO_ELASTIC = {'article_id' : "id", "medium_name" : "medium", "medium_id" : "mediumid",
-                          "pagenr" : "page"}
-    
+FORM_FIELDS_TO_ELASTIC = {'article_id': "id", "medium_name": "medium", "medium_id": "mediumid",
+                          "pagenr": "page"}
+
+
 class ShowArticleList(WebScript):
     name = "Article List"
     form_template = "api/webscripts/articlelistform.html"
     form = amcat.scripts.forms.ArticleColumnsForm
-    output_template = None 
-    
-    
+    output_template = None
+
     def run(self):
-        formData = self.data.copy() # copy needed since formData is inmutable
-        
+        formData = self.data.copy()  # copy needed since formData is inmutable
+
         if "articlesets" not in formData:
             artsets = [str(aset.id) for aset in Project.objects.get(id=formData['projects']).all_articlesets()]
             formData.setlist("articlesets", artsets)
@@ -53,17 +53,16 @@ class ShowArticleList(WebScript):
         else:
             project_id = int(self.data['projects'][0])
 
-        
         t = keywordsearch.getDatatable(self.data, rowlink_open_in="new")
         t = t.rowlink_reverse("project-article-details", args=[project_id, '{id}'])
-        cols = {FORM_FIELDS_TO_ELASTIC.get(f,f) for f in self.data.getlist('columns')}
+        cols = {FORM_FIELDS_TO_ELASTIC.get(f, f) for f in self.data.getlist('columns')}
         for f in list(t.get_fields()):
             if f not in cols:
                 t = t.hide(f)
 
         if 'kwic' in cols and not self.data.get('query'):
             raise Exception("Cannot provide Keyword in Context without query")
-                
+
         for col in cols & {'hits', 'text', 'lead', 'kwic'}:
             t = t.add_arguments(col=col)
         html = unicode(t)
@@ -75,4 +74,3 @@ class ShowArticleList(WebScript):
             return response
         else:
             return self.outputJsonHtml(html)
-

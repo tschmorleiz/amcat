@@ -31,58 +31,62 @@ from amcat.tools.djangotoolkit import get_or_create
 
 import csv
 
+
 class LexiconForm(forms.Form):
+
     """Form for scrapers"""
     language = forms.ModelChoiceField(queryset=Language.objects.all())
     lexicon = forms.CharField()
     noheader = forms.BooleanField(initial=False, required=False)
     delimiter = forms.CharField(initial=",")
 
-pos_map = {'ADV' : 'B',
-	   'ADJECTIEF' : 'A',
-	   'BIJWOORD' : 'B',
-	   'NAAM' : None,
-	   'NOUN' : 'N',
-	   'VERB' : 'V'}
+pos_map = {'ADV': 'B',
+           'ADJECTIEF': 'A',
+           'BIJWOORD': 'B',
+           'NAAM': None,
+           'NOUN': 'N',
+           'VERB': 'V'}
 
 sent_map = dict(negative=-1, positive=1, positief=1, negatief=-1)
 intense_map = dict(int=3)
 
+
 def dict_slice(dict, keys):
-    return {k : dict[k] for k in keys}
-    
+    return {k: dict[k] for k in keys}
+
+
 class ImportLexiconScript(Script):
     options_form = LexiconForm
     input_type = file
 
     def run(self, input):
-	language = self.options['language']
-	lexicon_name = self.options['lexicon']
-	delimiter = str(self.options['delimiter'])
-	lex = get_or_create(SentimentLexicon, language=language, label=lexicon_name)
+        language = self.options['language']
+        lexicon_name = self.options['lexicon']
+        delimiter = str(self.options['delimiter'])
+        lex = get_or_create(SentimentLexicon, language=language, label=lexicon_name)
 
-	if not self.options['noheader']:
-	    input.readline()
-	
-	for lemma, pos, value in csv.reader(input, delimiter=delimiter):
-	    pos = pos_map.get(pos.upper(), pos.upper())
-	    if pos is None: continue
-	    lemma = lemma.decode('latin-1')
+        if not self.options['noheader']:
+            input.readline()
 
-	    sent = sent_map.get(value.lower(), 0)
-	    intense = intense_map.get(value.lower(), 0)
+        for lemma, pos, value in csv.reader(input, delimiter=delimiter):
+            pos = pos_map.get(pos.upper(), pos.upper())
+            if pos is None:
+                continue
+            lemma = lemma.decode('latin-1')
 
-	    print lemma, pos, sent, intense
-	    
-	    if sent or intense:
-	    
-		l = get_or_create(Lemma, language=language,
-				  pos=pos, lemma=lemma)
+            sent = sent_map.get(value.lower(), 0)
+            intense = intense_map.get(value.lower(), 0)
 
-		SentimentLemma.objects.create(lexicon=lex, lemma=l,
-					      sentiment=sent, intensifier=intense)
-	    
-	    
+            print lemma, pos, sent, intense
+
+            if sent or intense:
+
+                l = get_or_create(Lemma, language=language,
+                                  pos=pos, lemma=lemma)
+
+                SentimentLemma.objects.create(lexicon=lex, lemma=l,
+                                              sentiment=sent, intensifier=intense)
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli

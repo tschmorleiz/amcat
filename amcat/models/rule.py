@@ -34,6 +34,7 @@ log = logging.getLogger(__name__)
 
 
 class RuleSet(AmcatModel):
+
     """
     Class representing a set of syntax transformation rule
     """
@@ -43,12 +44,12 @@ class RuleSet(AmcatModel):
     lexicon_codebook = models.ForeignKey("amcat.codebook", related_name="+")
     lexicon_language = models.ForeignKey("amcat.language", related_name="+")
 
-
     @property
     def lexicon(self):
         """Return a lemma : {lexclass, ..} dictionary"""
-        
+
         SOLR_KEYWORD_SET = {"AND", "OR", "NOT"}
+
         def _get_lexical_entries(label):
             return set(re.findall("[\w*]+", label)) - SOLR_KEYWORD_SET
         lexicon = getattr(self, "_cached_lexicon", None)
@@ -58,7 +59,7 @@ class RuleSet(AmcatModel):
             all_labels = defaultdict(list)
             for label in labels:
                 all_labels[label.code_id].append(label)
-            codes = {code_id : sorted(labels, key=lambda l:l.language_id)[0].label
+            codes = {code_id: sorted(labels, key=lambda l: l.language_id)[0].label
                      for (code_id, labels) in all_labels.items()}
 
             lexicon = defaultdict(set)
@@ -68,13 +69,14 @@ class RuleSet(AmcatModel):
                         lexicon[lemma].add(codes[label.code_id])
             self._cached_lexicon = lexicon
         return lexicon
-        
-    
+
     class Meta():
         db_table = 'rulesets'
         app_label = 'amcat'
 
+
 class Rule(AmcatModel):
+
     """
     Class representing a syntax transformation rule
     """

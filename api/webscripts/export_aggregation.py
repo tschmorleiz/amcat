@@ -22,10 +22,11 @@ from webscript import WebScript
 from amcat.scripts.searchscripts.aggregation import AggregationScript
 import amcat.scripts.forms
 
-    
+
 class ExportAggregationForm(amcat.scripts.forms.TableOutputForm):
     pass
     # output = forms.ChoiceField(choices=(('csv', 'CSV'),('excel', 'Excel (.xslx)'),('spss', 'SPSS (.sav)'), ('html', 'HTML')), initial='csv')
+
 
 class ExportAggregation(WebScript):
     name = "Export Aggregation"
@@ -34,23 +35,22 @@ class ExportAggregation(WebScript):
     displayLocation = ('ShowAggregation')
     output_template = None
     is_download = True
-    
+
     def run(self):
         aggrTable = AggregationScript(self.data).run()
         t = dict_to_columns(aggrTable)
         return self.outputResponse(t, AggregationScript.output_type, filename='Export Aggregation')
-            
 
 
 from amcat.tools.table import table3
 from functools import partial
+
+
 def dict_to_columns(table, rowheader_label="group", rowheader_type=str, cell_type=int):
     result = table3.ObjectTable(rows=table.getRows())
-    result.addColumn(table3.ObjectColumn(label=rowheader_label, cellfunc = lambda row:row,
-                                         fieldtype = rowheader_type))
+    result.addColumn(table3.ObjectColumn(label=rowheader_label, cellfunc=lambda row: row,
+                                         fieldtype=rowheader_type))
     for col in table.getColumns():
-        result.addColumn(table3.ObjectColumn(label=unicode(col), cellfunc = partial(table.getValue, column=col),
-                                             fieldtype = cell_type))
+        result.addColumn(table3.ObjectColumn(label=unicode(col), cellfunc=partial(table.getValue, column=col),
+                                             fieldtype=cell_type))
     return result
-
-    

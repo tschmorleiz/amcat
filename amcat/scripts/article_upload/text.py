@@ -24,11 +24,13 @@ Plugin for uploading plain text files
 
 from __future__ import unicode_literals
 
-import logging;
+import logging
 from django.core.exceptions import ValidationError
 
 log = logging.getLogger(__name__)
-import os.path, tempfile, subprocess
+import os.path
+import tempfile
+import subprocess
 
 from django import forms
 
@@ -42,31 +44,36 @@ from django.core.exceptions import ValidationError
 
 
 class TextForm(UploadScript.options_form, fileupload.ZipFileUploadForm):
-    file = forms.FileField(help_text="You can also upload a zip file containing the desired files. Uploading very large files can take a long time. If you encounter timeout problems, consider uploading smaller files", required=False)
-    
+    file = forms.FileField(
+        help_text="You can also upload a zip file containing the desired files. Uploading very large files can take a long time. If you encounter timeout problems, consider uploading smaller files", required=False)
+
     medium = forms.CharField(required=True)
-    headline = forms.CharField(required=False, help_text='If left blank, use filename (without extension and optional date prefix) as headline')
-    date = forms.DateField(required=False, help_text='If left blank, use date from filename, which should be of form "yyyy-mm-dd_name"')
+    headline = forms.CharField(
+        required=False, help_text='If left blank, use filename (without extension and optional date prefix) as headline')
+    date = forms.DateField(
+        required=False, help_text='If left blank, use date from filename, which should be of form "yyyy-mm-dd_name"')
     section = forms.CharField(required=False, help_text='If left blank, use directory name')
     text = forms.CharField(widget=forms.Textarea, required=False)
-    
+
     def get_entries(self):
         if 'file' in self.files:
             return super(TextForm, self).get_entries()
         return [None]
 
-    def clean_text(self):        
+    def clean_text(self):
         text = self.cleaned_data.get("text")
         if not (text and text.strip()):
             if 'file' not in self.files:
                 raise ValidationError("Please either upload a file or provide the text")
         return text
-        
+
+
 def _convert_docx(file):
     text, err = toolkit.execute("docx2txt", file.bytes)
     if not text.strip():
         raise Exception("No text from docx2txt. Error: {err}".format(**locals()))
     return text.decode("utf-8")
+
 
 def _convert_doc(file):
     with tempfile.NamedTemporaryFile(suffix=".doc") as f:
@@ -80,6 +87,7 @@ def _convert_doc(file):
 from PyPDF2 import PdfFileReader
 import StringIO
 
+
 def _convert_pdf(file):
     _file = StringIO.StringIO()
     _file.write(file.bytes)
@@ -88,6 +96,7 @@ def _convert_pdf(file):
     for page in pdf.pages:
         text += page.extractText()
     return text
+
 
 def _convert_multiple(file, convertors):
     errors = []
@@ -98,9 +107,11 @@ def _convert_multiple(file, convertors):
         except Exception, e:
             log.exception("Error on converting {file.name} using {convertor}".format(**locals()))
             errors.append("{convertor}:{e}".format(**locals()))
-    raise Exception("\n".join(errors)) 
+    raise Exception("\n".join(errors))
+
 
 class Text(UploadScript):
+
     """
     Plain text uploader.
 
@@ -118,9 +129,10 @@ class Text(UploadScript):
 
     def get_headline_from_file(self):
         hl = self.options['file'].name
-        if hl.endswith(".txt"): hl = hl[:-len(".txt")]
+        if hl.endswith(".txt"):
+            hl = hl[:-len(".txt")]
         return hl
-    
+
     def parse_document(self, file):
         if file:
             dirname, filename = os.path.split(file.name)
@@ -128,20 +140,20 @@ class Text(UploadScript):
         else:
             dirname, filename, ext = None, None, None
 
-        metadata = dict((k, v) for (k,v) in self.options.items()
+        metadata = dict((k, v) for (k, v) in self.options.items()
                         if k in ["headline", "project", "date", "section"])
         metadata["medium"] = Medium.get_or_create(self.options['medium'])
-        
+
         if not metadata["date"]:
             datestring, filename = filename.split("_", 1)
             metadata["date"] = toolkit.read_date(datestring)
-            
+
         if not metadata["headline"].strip():
             metadata["headline"] = filename
 
         if not metadata["headline"].strip():
             metadata["headline"] = filename
-            
+
         if not metadata["section"].strip():
             metadata["section"] = dirname
 
@@ -160,18 +172,18 @@ class Text(UploadScript):
                 text = file.text
         else:
             text = self.options['text']
-            
+
         return Article(text=text, **metadata)
 
     def explain_error(self, error):
         """Explain the error in the context of unit for the end user"""
         name = getattr(error.unit, "name", error.unit)
         return "Error in file {name} : {error.error!r}".format(**locals())
-    
+
 if __name__ == '__main__':
     from amcat.tools import amcatlogging
     amcatlogging.debug_module("amcat.scripts.article_upload.upload")
-    #amcatlogging.debug_module("amcat.scraping.scraper")
+    # amcatlogging.debug_module("amcat.scraping.scraper")
     from amcat.scripts.tools.cli import run_cli
     run_cli(handle_output=False)
 
@@ -184,7 +196,9 @@ import unittest
 from amcat.tools import amcatlogging
 amcatlogging.debug_module("amcat.scripts.article_upload.upload")
 
+
 class TestUploadText(amcattest.AmCATTestCase):
+
     @amcattest.use_elastic
     @unittest.skip("Controller is a complete mess")
     def test_article(self):
@@ -206,10 +220,9 @@ class TestUploadText(amcattest.AmCATTestCase):
             self.assertEqual(a.headline, 'simple test')
             self.assertEqual(a.date.isoformat()[:10], '2010-01-01')
             self.assertEqual(a.text, text)
-            
 
             # test autodect headline from filename
-            a, = Text(dict(date='2010-01-01', 
+            a, = Text(dict(date='2010-01-01',
                            file=File(open(f.name)), encoding=0, **base)).run()
             a = Article.objects.get(pk=a.id)
             self.assertEqual(a.headline, fn)
@@ -220,7 +233,7 @@ class TestUploadText(amcattest.AmCATTestCase):
             # test autodect date and headline from filename
             a, = Text(dict(file=File(open(f.name)), encoding=0, **base)).run()
             a = Article.objects.get(pk=a.id)
-            self.assertEqual(a.headline, fn.replace("1999-12-31_",""))
+            self.assertEqual(a.headline, fn.replace("1999-12-31_", ""))
             self.assertEqual(a.date.isoformat()[:10], '1999-12-31')
             self.assertEqual(a.text, text)
 
@@ -228,21 +241,19 @@ class TestUploadText(amcattest.AmCATTestCase):
         from tempfile import NamedTemporaryFile
         from django.core.files import File
         import zipfile
-        
+
         base = dict(project=amcattest.create_test_project().id,
                     articleset=amcattest.create_test_set().id,
                     medium=amcattest.create_test_medium().id)
 
-        
         with NamedTemporaryFile(prefix=u"upload_test", suffix=".zip") as f:
             with zipfile.ZipFile(f, "w") as zf:
                 zf.writestr("headline1.txt", "TEXT1")
                 zf.writestr("x/headline2.txt", "TEXT2")
             f.flush()
-            
-            s = Text(file=File(f),date='2010-01-01', **base)
+
+            s = Text(file=File(f), date='2010-01-01', **base)
             arts = s.run()
-            self.assertEqual({a.headline for a in arts}, {"headline1","headline2"})
-            self.assertEqual({a.section for a in arts}, {'',"x"})
+            self.assertEqual({a.headline for a in arts}, {"headline1", "headline2"})
+            self.assertEqual({a.section for a in arts}, {'', "x"})
             self.assertEqual({a.text for a in arts}, {"TEXT1", "TEXT2"})
-            

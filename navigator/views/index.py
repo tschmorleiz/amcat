@@ -23,7 +23,9 @@ from api.rest.datatable import Datatable
 from api.rest.resources import MediumResource
 from amcat.models.medium import Medium
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
+
 
 def index(request):
     return render(request, 'index.html')

@@ -26,13 +26,15 @@ from django.contrib import admin
 from django.conf import settings
 
 from os.path import abspath, dirname, join
-import os; from os.path import isdir
+import os
+from os.path import isdir
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from navigator.utils.error_handlers import handler404, handler500, handler403, handler503
 
-admin.autodiscover() 
+admin.autodiscover()
 
 urlpatterns = patterns(
     '',
@@ -43,12 +45,12 @@ urlpatterns = patterns(
     (r'^api/', include('api.urls')),
     (r'^annotator/', include('annotator.urls')),
     url(r'^restframework', include('rest_framework.urls', namespace='rest_framework'))
-    )
+)
 
 # Static files
 if settings.LOCAL_DEVELOPMENT:
     urlpatterns += patterns("django.views",
-        url(r"%s(?P<path>.*)$" % settings.MEDIA_URL[1:], "static.serve", {
-            "document_root": settings.MEDIA_ROOT,
-        })
-    )
+                            url(r"%s(?P<path>.*)$" % settings.MEDIA_URL[1:], "static.serve", {
+                                "document_root": settings.MEDIA_ROOT,
+                                })
+                            )

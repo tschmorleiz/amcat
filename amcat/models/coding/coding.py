@@ -38,13 +38,16 @@ from amcat.models.sentence import Sentence
 import logging
 log = logging.getLogger(__name__)
 
+
 def create_coding(codingjob, article, **kwargs):
     from amcat.models.coding.codedarticle import CodedArticle
     coded_article, _ = CodedArticle.objects.get_or_create(codingjob=codingjob, article=article)
     return Coding.objects.create(coded_article=coded_article, **kwargs)
 
+
 def coded_article_property(prop):
     """Returns property object fetches the given property on CodedArticle instaed of Coding."""
+
     def get_property(self):
         log.warning("Getting `{prop}` from Coding deprecated. Use CodedArticle.")
         raise Exception("!")
@@ -57,7 +60,9 @@ def coded_article_property(prop):
 
     return property(get_property, set_property)
 
+
 class Coding(AmcatModel):
+
     """
     Model class for codings. Codings provide the link between a Coding Job 
     and actual Coding Values. 
@@ -140,12 +145,12 @@ class Coding(AmcatModel):
         return self.coded_article.set_status(status)
 
 
-
 class CodingValue(AmcatModel):
+
     """
     Model class for coding values. 
     """
-    
+
     id = models.AutoField(primary_key=True, db_column='codingvalue_id')
 
     coding = models.ForeignKey(Coding, related_name='values')
@@ -155,7 +160,7 @@ class CodingValue(AmcatModel):
     intval = models.IntegerField(null=True)
 
     def save(self, *args, **kargs):
-        #Enforce constraint (strval IS NOT NULL) OR (intval IS NOT NULL)
+        # Enforce constraint (strval IS NOT NULL) OR (intval IS NOT NULL)
         if self.strval is None and self.intval is None:
             raise ValueError("codingvalue.strval and .intval cannot both be None")
         if self.strval is not None and self.intval is not None:
@@ -165,7 +170,7 @@ class CodingValue(AmcatModel):
     @property
     def serialised_value(self):
         return self.get_serialised_value()
-    
+
     def get_serialised_value(self, field=None):
         """Get the 'serialised' (raw) value for this codingvalue
         @param field: for optimization, specify the field if it is known
@@ -173,7 +178,8 @@ class CodingValue(AmcatModel):
         if field is None:
             field = next(f for f in self.coding.schema.fields.all() if f.id == self.field_id)
         stype = field.serialiser.deserialised_type
-        if stype == unicode: return self.strval
+        if stype == unicode:
+            return self.strval
         return self.intval
 
     @property
@@ -186,12 +192,13 @@ class CodingValue(AmcatModel):
         app_label = 'amcat'
         unique_together = ("coding", "field")
 
-    
+
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-        
+
 from amcat.tools import amcattest
+
 
 class TestCoding(amcattest.AmCATTestCase):
 
@@ -206,9 +213,9 @@ class TestCoding(amcattest.AmCATTestCase):
         self.c2 = amcattest.create_test_code(label="CODE2")
         self.codebook.add_code(self.c)
         self.codebook.add_code(self.c2)
-        
+
         self.job = amcattest.create_test_job(unitschema=self.schema, articleschema=self.schema)
-        
+
     def test_create(self):
         """Can we create an coding?"""
         schema2 = amcattest.create_test_schema()
@@ -229,7 +236,7 @@ class TestCoding(amcattest.AmCATTestCase):
 
         coding = amcattest.create_test_coding(codingjob=job, article=articles[0])
         self.assertEqual(0, coding.values.count())
-        coding.update_values({strf:"bla", intf:1, codef:codes["A1b"].id})
+        coding.update_values({strf: "bla", intf: 1, codef: codes["A1b"].id})
         self.assertEqual(3, coding.values.count())
         self.assertTrue(strf in dict(coding.get_values()))
         self.assertTrue(intf in dict(coding.get_values()))
@@ -237,12 +244,10 @@ class TestCoding(amcattest.AmCATTestCase):
         self.assertEqual(1, dict(coding.get_values())[intf])
 
         # Does update_values delete values not present in dict?
-        coding.update_values({strf:"blas"})
+        coding.update_values({strf: "blas"})
         self.assertEqual(1, coding.values.count())
         self.assertTrue(strf in dict(coding.get_values()))
         self.assertEqual("blas", dict(coding.get_values())[strf])
-
-
 
     def test_create_value(self):
         """Can we create an coding value?"""
@@ -250,7 +255,7 @@ class TestCoding(amcattest.AmCATTestCase):
         v = CodingValue.objects.create(coding=a, field=self.strfield, strval="abc")
         v2 = CodingValue.objects.create(coding=a, field=self.intfield, intval=1)
         v3 = CodingValue.objects.create(coding=a, field=self.codefield, intval=self.c.id)
-        
+
         self.assertIn(v, a.values.all())
         self.assertEqual(v.value, "abc")
         self.assertEqual(v2.value, 1)
@@ -263,4 +268,3 @@ class TestCoding(amcattest.AmCATTestCase):
         self.assertRaises(ValueError, CodingValue.objects.create,
                           coding=amcattest.create_test_coding(codingjob=self.job),
                           field=self.strfield)
-

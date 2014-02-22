@@ -27,7 +27,8 @@ from amcat.models.medium import Medium
 from amcat.scripts.script import Script
 from amcat.tools import toolkit, sendmail
 
-import logging;log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 import os
 from django import forms
 from datetime import date
@@ -43,12 +44,14 @@ MAIL_HTML = """<h3>Report for daily scraping on {datestr}</h3>
 """
 
 MAIL_ASCII = MAIL_HTML
-for tag in ['h3','p']:
+for tag in ['h3', 'p']:
     MAIL_ASCII = unicode(MAIL_ASCII.replace("<{}>".format(tag), "").replace("</{}>".format(tag), ""))
-    
+
+
 class ScrapingCheckForm(forms.Form):
     date = forms.DateField()
     mail_to = forms.CharField()
+
 
 class ScrapingCheck(Script):
     options_form = ScrapingCheckForm
@@ -67,47 +70,48 @@ class ScrapingCheck(Script):
             else:
                 exvalue = "{0:.2f}-{1:.2f}".format(r['expected'][0], r['expected'][1])
             table.addValue(
-                row = r['scraper'],
-                col = "expected range",
-                value = exvalue
-                )
+                row=r['scraper'],
+                col="expected range",
+                value=exvalue
+            )
             table.addValue(
-                row = r['scraper'],
-                col = "total scraped",
-                value = r['count']
-                )
+                row=r['scraper'],
+                col="total scraped",
+                value=r['count']
+            )
             table.addValue(
-                row = r['scraper'],
-                col = "successful",
-                value = r['success']
-                )
+                row=r['scraper'],
+                col="successful",
+                value=r['success']
+            )
         return table
 
-    def send_mail(self, result):        
-        table = self.make_table(result).output(rownames = True)
+    def send_mail(self, result):
+        table = self.make_table(result).output(rownames=True)
         n = sum([r['count'] for r in result])
         succesful = sum([r['success'] for r in result])
         total = len(result)
         datestr = toolkit.writeDate(self.options['date'])
-        subject = "Daily scraping for {datestr}: {n} articles, {succesful} out of {total} scrapers succesful".format(**locals())
+        subject = "Daily scraping for {datestr}: {n} articles, {succesful} out of {total} scrapers succesful".format(
+            **locals())
         _date = self.options['date']
         content = MAIL_ASCII.format(**locals())
         for addr in self.options['mail_to'].split(","):
             sendmail.sendmail("toon.alfrink@gmail.com",
-                     addr, subject, None, content)
+                              addr, subject, None, content)
 
     def get_result(self):
         result = []
-        for scraper in Scraper.objects.filter(active=True,run_daily=True):
+        for scraper in Scraper.objects.filter(active=True, run_daily=True):
             if scraper.statistics:
                 n_expected = scraper.statistics[self.options['date'].weekday()]
             else:
                 n_expected = "unknown"
             n_scraped = scraper.n_scraped_articles(
-                from_date = self.options['date'],
-                to_date = self.options['date'],
-                medium = Medium.get_or_create(scraper.get_scraper_class().medium_name)
-                )[self.options['date']]
+                from_date=self.options['date'],
+                to_date=self.options['date'],
+                medium=Medium.get_or_create(scraper.get_scraper_class().medium_name)
+            )[self.options['date']]
 
             if n_expected == "unknown":
                 if n_scraped > 0:
@@ -121,19 +125,19 @@ class ScrapingCheck(Script):
                     success = True
 
             scraper_result = {
-                'scraper':scraper,
-                'count':n_scraped,
-                'expected':n_expected,
-                'success':success
-                }
-                
+                'scraper': scraper,
+                'count': n_scraped,
+                'expected': n_expected,
+                'success': success
+            }
+
             log.info("""
 scraper: {scraper}
 \tcount: {count}
 \texpected: {expected}
 \tsuccess?: {success}
 """.format(**scraper_result))
-                    
+
             result.append(scraper_result)
 
         return result

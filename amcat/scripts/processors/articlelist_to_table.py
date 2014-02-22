@@ -30,30 +30,30 @@ import logging
 log = logging.getLogger(__name__)
 from functools import partial
 
+
 class ArticleListToTableForm(amcat.scripts.forms.ArticleColumnsForm):
     limitTextLength = forms.BooleanField(initial=True, required=False)
 
-    
+
 def lambdaHitFactory(query):
     return lambda a: a.hits.get(query)
+
 
 def gethits(row, query):
     return row.hits[query]
 
-    
+
 class ArticleListToTable(script.Script):
     input_type = types.ArticleIterator
     options_form = ArticleListToTableForm
     output_type = table.table3.Table
 
-
     def run(self, articles):
         if self.options['limitTextLength'] == True:
-            textLambda = lambda a:a.text[:31900]
+            textLambda = lambda a: a.text[:31900]
         else:
-            textLambda = lambda a:a.text
-             
-            
+            textLambda = lambda a: a.text
+
         hitsColumns = []
         if 'hits' in self.options['columns']:
             articles = list(articles)
@@ -63,51 +63,47 @@ class ArticleListToTable(script.Script):
                 for query in articles[0].hits:
                     hitsColumns.append(table.table3.ObjectColumn("Hit Count for: %s" % query[:100],
                                                                  partial(gethits, query=query)))
-                
-        
-        #log.info(hitsColumns)
-        
-        colDict = { # mapping of names to article object attributes
+
+        # log.info(hitsColumns)
+        colDict = {  # mapping of names to article object attributes
             'article_id': table.table3.ObjectColumn("Article ID", lambda a: a.id),
             'date': table.table3.ObjectColumn('Date', lambda a: a.date.strftime('%d-%m-%Y')),
-            'medium_id': table.table3.ObjectColumn('Medium ID', lambda a:a.mediumid),
-            'medium_name': table.table3.ObjectColumn('Medium Name', lambda a:a.medium),#TODO a.medium.name),
-            'project_id': table.table3.ObjectColumn('Project ID', lambda a:a.project_id),
-            'project_name': table.table3.ObjectColumn('Project Name', lambda a:a.project.name),
-            'pagenr': table.table3.ObjectColumn('Page number', lambda a:a.pagenr),
-            'section': table.table3.ObjectColumn('Section', lambda a:a.section),
-            'length': table.table3.ObjectColumn('Length', lambda a:a.length),
-            'url': table.table3.ObjectColumn('url', lambda a:a.url),
-            'parent_id': table.table3.ObjectColumn('Parent Article ID', lambda a:a.parent_id),
-            'externalid': table.table3.ObjectColumn('External ID', lambda a:a.externalid),
-            'additionalMetadata': table.table3.ObjectColumn('Additional Metadata', lambda a:a.metastring),
-            'headline': table.table3.ObjectColumn('Headline', lambda a:a.headline),
-            'byline': table.table3.ObjectColumn('Byline', lambda a:a.byline),
-            'author': table.table3.ObjectColumn('Author', lambda a:a.author),
+            'medium_id': table.table3.ObjectColumn('Medium ID', lambda a: a.mediumid),
+            'medium_name': table.table3.ObjectColumn('Medium Name', lambda a: a.medium),  # TODO a.medium.name),
+            'project_id': table.table3.ObjectColumn('Project ID', lambda a: a.project_id),
+            'project_name': table.table3.ObjectColumn('Project Name', lambda a: a.project.name),
+            'pagenr': table.table3.ObjectColumn('Page number', lambda a: a.pagenr),
+            'section': table.table3.ObjectColumn('Section', lambda a: a.section),
+            'length': table.table3.ObjectColumn('Length', lambda a: a.length),
+            'url': table.table3.ObjectColumn('url', lambda a: a.url),
+            'parent_id': table.table3.ObjectColumn('Parent Article ID', lambda a: a.parent_id),
+            'externalid': table.table3.ObjectColumn('External ID', lambda a: a.externalid),
+            'additionalMetadata': table.table3.ObjectColumn('Additional Metadata', lambda a: a.metastring),
+            'headline': table.table3.ObjectColumn('Headline', lambda a: a.headline),
+            'byline': table.table3.ObjectColumn('Byline', lambda a: a.byline),
+            'author': table.table3.ObjectColumn('Author', lambda a: a.author),
             'text': table.table3.ObjectColumn('Article Text', textLambda),
-            'interval':table.table3.ObjectColumn(
-                'Interval', lambda a:dateToInterval(a.date, self.options['columnInterval'])),
+            'interval': table.table3.ObjectColumn(
+                'Interval', lambda a: dateToInterval(a.date, self.options['columnInterval'])),
             'keywordInContext': [table.table3.ObjectColumn(
-                    'Context before', lambda a:a.keywordInContext.get('text',{}).get('before')),
-                                table.table3.ObjectColumn(
-                    'Context hit', lambda a:a.keywordInContext.get('text',{}).get('hit')),
-                                table.table3.ObjectColumn(
-                    'Context after', lambda a:a.keywordInContext.get('text',{}).get('after')),
-                                 ],
+                'Context before', lambda a:a.keywordInContext.get('text', {}).get('before')),
+                table.table3.ObjectColumn(
+                    'Context hit', lambda a: a.keywordInContext.get('text', {}).get('hit')),
+                table.table3.ObjectColumn(
+                    'Context after', lambda a: a.keywordInContext.get('text', {}).get('after')),
+            ],
             'hits': hitsColumns
         }
-        #print self.options
+        # print self.options
         columns = []
         for col in self.options['columns']:
-            col = colDict[col] 
+            col = colDict[col]
             if type(col) == list:
                 for c in col:
                     columns.append(c)
             else:
                 columns.append(col)
-        
+
         tableObj = table.table3.ObjectTable(articles, columns)
-        
+
         return tableObj
-        
-        

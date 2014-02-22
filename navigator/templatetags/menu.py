@@ -7,6 +7,7 @@ from django.conf import settings
 from django import template
 register = template.Library()
 
+
 @register.simple_tag(takes_context=True)
 def is_active(context, item_name, classnames="", var='context_category'):
     active_item = context.get(var)

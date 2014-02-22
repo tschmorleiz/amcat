@@ -7,9 +7,11 @@ from pysoh import SOHServer
 
 log = logging.getLogger(__name__)
 
-FUSEKI_HOME="/home/amcat/resources/fuseki"
+FUSEKI_HOME = "/home/amcat/resources/fuseki"
+
 
 class Fuseki(SOHServer):
+
     def __init__(self, fuseki_home=None, port=3030, dataset="/data"):
         if fuseki_home is None:
             fuseki_home = os.environ.get('FUSEKI_HOME', FUSEKI_HOME)
@@ -17,15 +19,16 @@ class Fuseki(SOHServer):
         cmd = ["/bin/bash", "fuseki-server", "--port", str(port), "--mem", "--update", dataset]
         log.debug("Starting Fuseki server from {fuseki_home} with {cmd}".format(**locals()))
         self.fuseki_process = subprocess.Popen(cmd, cwd=fuseki_home,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         out = []
         while True:
             line = self.fuseki_process.stdout.readline()
             out.append(line.strip())
-            if ":: Started " in line: break
+            if ":: Started " in line:
+                break
             if "ERROR" in line or '/bin/bash' in line or self.fuseki_process.poll() is not None:
                 raise Exception("\n".join(out))
-        time.sleep(.1) # give the 'port in use' exception time
+        time.sleep(.1)  # give the 'port in use' exception time
         if self.fuseki_process.poll() is not None:
             out.append(self.fuseki_process.stdout.read())
             raise Exception("\n".join(out))

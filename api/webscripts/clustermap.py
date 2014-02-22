@@ -27,8 +27,10 @@ from amcat.tools import keywordsearch
 import logging
 log = logging.getLogger(__name__)
 
+
 class ClusterMapForm(amcat.scripts.forms.InlineTableOutputForm):
     pass
+
 
 class ShowClusterMap(WebScript):
     name = "ClusterMap"
@@ -36,13 +38,12 @@ class ShowClusterMap(WebScript):
     form = ClusterMapForm
     output_template = 'api/webscripts/clustermap.html'
     solrOnly = True
-    displayLocation = ('ShowSummary','ShowArticleList')
-
+    displayLocation = ('ShowSummary', 'ShowArticleList')
 
     def run(self):
         form = self.data.copy()
         articleidDict = dict(keywordsearch.get_ids_per_query(form))
-        
+
         if self.output == 'html' or self.output == 'json-html':
             result = ClustermapScript(self.data).run(articleidDict)
             outputType = ClustermapScript.output_type

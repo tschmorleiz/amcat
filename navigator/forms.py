@@ -49,17 +49,21 @@ from amcat.forms import widgets, fields, forms
 
 import zipfile
 
-import logging; logger = logging.getLogger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 name_sort = lambda x: x[0].name.lower()
 
 ALLOWED_EXTENSIONS = ('txt', 'csv', 'dat')
 _ADMIN_ID = None
+
+
 def get_admin_id():
     global _ADMIN_ID
     if _ADMIN_ID is None:
         _ADMIN_ID = Role.objects.get(label="admin", projectlevel=False).id
     return _ADMIN_ID
+
 
 @cache_function(60)
 def gen_user_choices(project=None):
@@ -68,15 +72,16 @@ def gen_user_choices(project=None):
 
     See: https://docs.djangoproject.com/en/dev/ref/models/fields/#field-choices"""
     users = User.objects.all().select_related('userprofile__affiliation__name').only(
-        'username', 'first_name', 'last_name' 
+        'username', 'first_name', 'last_name'
     )
 
     if project:
-        users = users.filter(projectrole__project=project) 
+        users = users.filter(projectrole__project=project)
     vals = toolkit.multidict(((u.userprofile.affiliation, u) for u in users), ltype=list)
 
     for aff, users in sorted(vals.items(), key=name_sort):
         yield(aff, [(u.id, "%s - %s %s (%s)" % (u.id, u.first_name, u.last_name, u.username)) for u in users])
+
 
 @cache_function(60)
 def gen_roles():
@@ -84,12 +89,13 @@ def gen_roles():
     roles = Role.objects.filter(projectlevel=False)
     return ((r.id, r) for r in roles)
 
+
 @cache_function(60)
 def gen_coding_choices(user, model):
     # Get codebooks based on three
     objects = model.objects.filter(
         # User in project
-        Q(project__projectrole__user=user)|
+        Q(project__projectrole__user=user) |
         # User has access to project through guestrole
         Q(project__guest_role__id__gte=user.get_profile().role.id)
     ).distinct() if not user.get_profile().role.id >= get_admin_id() else model.objects.all()
@@ -100,16 +106,22 @@ def gen_coding_choices(user, model):
     for project, objs in sorted(objects.items(), key=name_sort):
         yield(project, [(x.id, x.name) for x in objs])
 
+
 class SplitArticleForm(forms.Form):
-    add_to_new_set = forms.CharField(required=False) 
-    add_to_sets = forms.ModelMultipleChoiceField(queryset=ArticleSet.objects.none(), widget=widgets.JQueryMultipleSelect, required=False)
+    add_to_new_set = forms.CharField(required=False)
+    add_to_sets = forms.ModelMultipleChoiceField(
+        queryset=ArticleSet.objects.none(), widget=widgets.JQueryMultipleSelect, required=False)
 
-    remove_from_sets = forms.ModelMultipleChoiceField(queryset=ArticleSet.objects.none(), widget=widgets.JQueryMultipleSelect, required=False)
-    remove_from_all_sets = forms.BooleanField(initial=True, required=False, help_text="Remove all instances of the original article in this project")
+    remove_from_sets = forms.ModelMultipleChoiceField(
+        queryset=ArticleSet.objects.none(), widget=widgets.JQueryMultipleSelect, required=False)
+    remove_from_all_sets = forms.BooleanField(
+        initial=True, required=False, help_text="Remove all instances of the original article in this project")
 
-    add_splitted_to_sets = forms.ModelMultipleChoiceField(queryset=ArticleSet.objects.none(), widget=widgets.JQueryMultipleSelect, required=False)
+    add_splitted_to_sets = forms.ModelMultipleChoiceField(
+        queryset=ArticleSet.objects.none(), widget=widgets.JQueryMultipleSelect, required=False)
     add_splitted_to_new_set = forms.CharField(required=False)
-    add_splitted_to_all = forms.BooleanField(initial=False, required=False, help_text="Add new (splitted) articles to all sets containing the original article")
+    add_splitted_to_all = forms.BooleanField(
+        initial=False, required=False, help_text="Add new (splitted) articles to all sets containing the original article")
 
     def __init__(self, project, article, *args, **kwargs):
         if not isinstance(project, Project):
@@ -122,6 +134,7 @@ class SplitArticleForm(forms.Form):
         self.fields["add_splitted_to_sets"].queryset = project.all_articlesets()
         self.fields["remove_from_sets"].queryset = project.all_articlesets().filter(articles=article)
         self.fields["add_to_sets"].queryset = project.all_articlesets()
+
 
 class UserForm(forms.ModelForm):
     affiliation = forms.ModelChoiceField(queryset=Affiliation.objects.all())
@@ -166,7 +179,9 @@ class UserForm(forms.ModelForm):
     class Meta:
         model = User
 
+
 class UserDetailsForm(UserForm):
+
     def __init__(self, request, *args, **kwargs):
         super(UserDetailsForm, self).__init__(request, True, *args, **kwargs)
         for name in ["password", "is_staff", "is_superuser", "last_login", "date_joined"]:
@@ -174,6 +189,7 @@ class UserDetailsForm(UserForm):
 
 
 class AddUserForm(UserForm):
+
     def __init__(self, request, *args, **kwargs):
         super(AddUserForm, self).__init__(request, False, *args, **kwargs)
 
@@ -181,26 +197,28 @@ class AddUserForm(UserForm):
         model = User
         fields = ('username', 'first_name', 'last_name', 'email')
 
+
 class AddMultipleUsersForm(AddUserForm):
     csv = fields.CSVField(label="CSV", columns={
-        'username' : fields.UserField(),
-        'email' : forms.EmailField(),
-        'last_name' : forms.CharField(),
-        'first_name' : forms.CharField(),
+        'username': fields.UserField(),
+        'email': forms.EmailField(),
+        'last_name': forms.CharField(),
+        'first_name': forms.CharField(),
     })
 
     delimiter = forms.CharField(initial=',',
-                    help_text="This field indicates how this CSV is splitted.")
+                                help_text="This field indicates how this CSV is splitted.")
 
     def __init__(self, request, *args, **kwargs):
         super(AddMultipleUsersForm, self).__init__(request, *args, **kwargs)
 
         for field in ("username", "email", "last_name", "first_name"):
             del self.fields[field]
-            
+
     def full_clean(self, *args, **kwargs):
         self.fields['csv'].set_delimiter(self.data.get('delimiter', ','))
         return super(AddMultipleUsersForm, self).full_clean(*args, **kwargs)
+
 
 class ProjectForm(forms.ModelForm):
     guest_role = forms.ModelChoiceField(queryset=Role.objects.filter(projectlevel=True),
@@ -221,6 +239,7 @@ class ProjectForm(forms.ModelForm):
         self.cleaned_data = User.objects.get(id=self.cleaned_data['owner'])
         return self.cleaned_data
 
+
 class AddProjectForm(ProjectForm):
     owner = forms.ChoiceField(widget=widgets.JQuerySelect)
 
@@ -232,9 +251,8 @@ class AddProjectForm(ProjectForm):
 class UploadScriptForm(forms.Form):
     file = forms.FileField(help_text="Supported archives: zip")
     encoding = forms.ChoiceField(choices=((1, "ISO-8859-15"), (2, "UTF-8"), (3, "LATIN-1")),
-                                 initial=1, help_text="Try to change this value when character"+
+                                 initial=1, help_text="Try to change this value when character" +
                                                       " issues arise.")
-
 
     exi_set = forms.ModelChoiceField(queryset=ArticleSet.objects.all(),
                                      label="Existing set", required=False)
@@ -272,7 +290,6 @@ class UploadScriptForm(forms.Form):
 
         return self.cleaned_data['new_set']
 
-
     def clean_file(self):
         data = self.cleaned_data['file']
         ext = unicode(data).split('.')[-1]
@@ -308,13 +325,18 @@ class UploadScriptForm(forms.Form):
 
         return enc
 
+
 class MediumForm(forms.ModelForm):
+
     class Meta:
         model = models.medium.Medium
 
+
 class MediumAliasForm(forms.ModelForm):
+
     class Meta:
         model = models.medium.MediumAlias
+
 
 class CodingJobForm(forms.ModelForm):
     unitschema = forms.ModelChoiceField(CodingSchema.objects.none(), widget=widgets.JQuerySelect)
@@ -366,17 +388,22 @@ class ImportCodingSchema(forms.Form):
 
 def add_error(form, field, error):
     form.errors[field] = form.errors.get(field, []) + [error]
+
+
 def remove_error(form, field, error):
     form.errors[field].remove(error)
-    if not form.errors[field]: del form.errors[field]
+    if not form.errors[field]:
+        del form.errors[field]
+
 
 class CodebookCodeForm(forms.ModelForm):
+
     def __init__(self, options=None, codebook=None):
         super(CodebookCodeForm, self).__init__(options)
         if codebook:
             self.fields["codebook"].initial = codebook
             self.fields["codebook"].widget = HiddenInput()
-            self.fields["parent"].required = False # why is this even required???
+            self.fields["parent"].required = False  # why is this even required???
             cids = codebook.get_code_ids()
             self.fields['parent'].queryset = self.fields['parent'].queryset.filter(id__in=cids)
             self.fields['code'].queryset = self.fields['code'].queryset.exclude(id__in=cids)
@@ -384,6 +411,7 @@ class CodebookCodeForm(forms.ModelForm):
     class Meta:
         model = CodebookCode
         fields = ('codebook', 'code', 'parent')
+
 
 class CodebookNewCodeForm(forms.Form):
     codebook = forms.ModelChoiceField(queryset=Codebook.objects.all())
@@ -403,18 +431,19 @@ class CodebookNewCodeForm(forms.Form):
         code = Code.create(label=self.cleaned_data['label'], language=self.cleaned_data['language'])
         self.cleaned_data['codebook'].add_code(code, self.cleaned_data.get('parent'))
 
-
     class Meta:
         model = CodebookCode
         fields = ('codebook', 'code', 'parent')
 
+
 class ArticleSetForm(forms.ModelForm):
+
     class Meta:
         model = ArticleSet
         fields = ('project', 'name', 'provenance')
 
+
 class CodingSchemaForm(forms.HideFieldsForm):
+
     class Meta:
         model = CodingSchema
-
-

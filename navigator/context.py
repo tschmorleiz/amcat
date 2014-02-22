@@ -8,13 +8,15 @@ ANNOUNCE_KEY = "last_announcement"
 COUNT_KEY = "last_announcement_count"
 
 # Extra context variables
+
+
 def extra(request):
     try:
         announcement = AmCAT.get_instance().global_announcement
     except:
         log.exception("Cannot get announcement")
         return dict(request=request)
-    
+
     last_announcement = request.session.get(ANNOUNCE_KEY)
     count = int(request.session.get(COUNT_KEY, 0)) + 1
 

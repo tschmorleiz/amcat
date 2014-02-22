@@ -24,7 +24,9 @@ See http://code.google.com/p/mate-tools/.
 import logging
 log = logging.getLogger(__name__)
 
-import requests, rdflib, collections
+import requests
+import rdflib
+import collections
 from amcat.models.token import TokenValues, TripleValues
 from amcat.nlp import sbd, wordcreator
 from amcat.models import AnalysisSentence, AnalysedArticle
@@ -34,7 +36,9 @@ GSTRUCT = rdflib.Namespace("http://cs.lth.se/ontologies/gstruct.owl#")
 
 from amcat.nlp.analysisscript import AnalysisScript
 
+
 class Mate(AnalysisScript):
+
     def submit_article(self, article):
         plugin = self.get_plugin()
         if isinstance(article, AnalysedArticle):
@@ -47,37 +51,37 @@ class Mate(AnalysisScript):
             article = AnalysedArticle.objects.create(article=article, plugin=plugin,
                                                      done=False, error=False)
         return article
-    
+
     def _do_retrieve_article(self, analysed_article):
         for sentence in sbd.get_or_create_sentences(analysed_article.article):
-            asent = AnalysisSentence.objects.create(analysed_article=analysed_article, sentence=sentence)            
+            asent = AnalysisSentence.objects.create(analysed_article=analysed_article, sentence=sentence)
             log.debug("Parsing {asent.id} : {asent.sentence.sentence!r}".format(**locals()))
             add_sentence(asent)
         return True
-            
+
+
 def parse_rdf(rdf):
     """
     Parses the mate rdf output and returns a (sentences, words) pair, where
     - sentences is an ordered list of sentence ids
     - words is a list of {sentence: .., pos: .., ...} word representations
-    """ 
-    sentence_inx = {} # index : sentence  
-    objs = collections.defaultdict(dict) # word : {sentence=x, pos=x, ...}
+    """
+    sentence_inx = {}  # index : sentence
+    objs = collections.defaultdict(dict)  # word : {sentence=x, pos=x, ...}
 
     word_ids = set()
     pred_ids = set()
-    
+
     g = rdflib.Graph()
     g.parse(rdf, format="n3")
-    for subject,predicate,obj in g:
+    for subject, predicate, obj in g:
         if predicate == RDF["type"]:
-            continue # don't need type info
+            continue  # don't need type info
         if not predicate.startswith(GSTRUCT):
             raise Exception("Unknown predicate: {predicate}".format(**locals()))
-        
+
         predicate = predicate[len(GSTRUCT):]
 
-        
         if predicate == "words":
             objs[obj]["sentence"] = unicode(subject)
             word_ids.add(obj)
@@ -87,10 +91,9 @@ def parse_rdf(rdf):
             objs[subject][predicate] = unicode(obj)
 
     words = [objs[wid] for wid in word_ids]
-    
-            
+
     return ([sentence_inx[inx] for inx in sorted(sentence_inx)],
-            sorted(words, key=lambda word : (word["sentence"], word["id"])))
+            sorted(words, key=lambda word: (word["sentence"], word["id"])))
 
 POSMAP = [
     # prefixes of pos tags and 'amcat' pos-letters
@@ -114,33 +117,37 @@ POSMAP = [
     ("T", "?"),
     ("X", "?"),
     ("$", "."),
-    ]
+]
 
-    
+
 def map_pos(pos):
     for pref, p in POSMAP:
         if pos.startswith(pref):
             return p
     raise Exception("Unknown POS: {pos}".format(**locals()))
 
+
 def create_values(sid, words):
     tokens = []
     triples = []
     for word in words:
-        tokens.append(TokenValues(sid, int(word["id"]), word["form"], word["lemma"], map_pos(word["pos"]), word["pos"], None, None))
+        tokens.append(TokenValues(sid, int(word["id"]), word["form"],
+                      word["lemma"], map_pos(word["pos"]), word["pos"], None, None))
         head = int(word["head"])
         if head:
             triples.append(TripleValues(sid, int(word['id']), head, word['deprel']))
     return tokens, triples
 
+
 def get_rdf(sent):
-    sent = sent.replace('"', "'") # mate gives invalid rdf for quotes
-    data= dict(sentence=sent,
-               returnType="rdf",
-               )
+    sent = sent.replace('"', "'")  # mate gives invalid rdf for quotes
+    data = dict(sentence=sent,
+                returnType="rdf",
+                )
     r = requests.post("http://parser.vanatteveldt.com/parse", data=data, stream=True)
 
     return r.raw
+
 
 def add_sentence(asent):
     rdf = get_rdf(asent.sentence.sentence)
@@ -150,11 +157,7 @@ def add_sentence(asent):
     open(fn, 'w').write(bytes)
     log.info("Parsing sent {asent.id} from {fn}".format(**locals()))
     rdf = open(fn)
-    
+
     sentences, words = parse_rdf(rdf)
     tokens, triples = create_values(asent.id, words)
     wordcreator.store_analysis(asent.analysed_article, tokens, triples)
-
-
-
-

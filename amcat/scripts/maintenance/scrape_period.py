@@ -30,17 +30,19 @@ from amcat.scraping.controller import Controller, ThreadedController
 from django import forms
 from datetime import date, timedelta
 
-import logging;log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
+
 
 class PeriodScraperForm(ScraperForm):
     first_date = forms.DateField()
     last_date = forms.DateField(required=False)
 
-    scraper_id = forms.ModelChoiceField(queryset = Scraper.objects.all(), required = False)
-    scraper_module = forms.CharField(required = False)
-    scraper_classname = forms.CharField(required = False)
-    scraper_username = forms.CharField(required = False)
-    scraper_password = forms.CharField(required = False)
+    scraper_id = forms.ModelChoiceField(queryset=Scraper.objects.all(), required=False)
+    scraper_module = forms.CharField(required=False)
+    scraper_classname = forms.CharField(required=False)
+    scraper_username = forms.CharField(required=False)
+    scraper_password = forms.CharField(required=False)
 
 
 class PeriodScraper(Script):
@@ -48,16 +50,16 @@ class PeriodScraper(Script):
 
     def get_scraper(self, date):
         scraper_options = {
-            'date' : date,
-            'project' : self.options['project'].id,
-            'articleset' : self.options['articleset'].id,
-            'username' : self.options['scraper_username'],
-            'password' : self.options['scraper_password']
-            }
+            'date': date,
+            'project': self.options['project'].id,
+            'articleset': self.options['articleset'].id,
+            'username': self.options['scraper_username'],
+            'password': self.options['scraper_password']
+        }
 
         if self.options['scraper_id']:
-    
-            scraper_model = Scraper.objects.get(pk = self.options['scraper_id'].id)
+
+            scraper_model = Scraper.objects.get(pk=self.options['scraper_id'].id)
             if scraper_model.username:
                 scraper_options['username'] = scraper_model.username
                 scraper_options['password'] = scraper_model.password
@@ -67,7 +69,7 @@ class PeriodScraper(Script):
 
             scraper_module = __import__(
                 self.options['scraper_module'],
-                fromlist = self.options['scraper_classname'])
+                fromlist=self.options['scraper_classname'])
             scraper_class = getattr(scraper_module, self.options['scraper_classname'])
 
             return scraper_class(**scraper_options)
@@ -75,17 +77,15 @@ class PeriodScraper(Script):
         else:
             raise ValueError("please submit either scraper_id or both scraper_module and scraper_classname")
 
-
     def run(self, _input):
         if not self.options['last_date']:
             self.options['last_date'] = date.today()
 
         n_days = (self.options['last_date'] - self.options['first_date']).days
-        days = [self.options['first_date'] + timedelta(days = x) for x in range(n_days + 1)]
+        days = [self.options['first_date'] + timedelta(days=x) for x in range(n_days + 1)]
         scrapers = [self.get_scraper(d) for d in days]
         [a for a in Controller().run(scrapers)]
-        #ThreadedController().run(scrapers)
-
+        # ThreadedController().run(scrapers)
 
 
 if __name__ == "__main__":

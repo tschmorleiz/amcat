@@ -33,6 +33,7 @@ from django import forms
 from amcat.forms.widgets import JQueryMultipleSelect
 from navigator.forms import gen_user_choices
 
+
 class ProjectRoleForm(forms.ModelForm):
     user = forms.MultipleChoiceField(widget=JQueryMultipleSelect)
 
@@ -53,8 +54,9 @@ class ProjectRoleForm(forms.ModelForm):
 
     class Meta:
         model = ProjectRole
-        
-class ProjectUserListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixin, DatatableMixin, ListView):
+
+
+class ProjectUserListView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, DatatableMixin, ListView):
     model = User
     parent = None
     base_url = "projects/(?P<project_id>[0-9]+)"
@@ -62,7 +64,7 @@ class ProjectUserListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixi
     url_fragment = "users"
     resource = ProjectRoleResource
     rowlink = './{id}'
-    
+
     @classmethod
     def get_view_name(cls):
         return "user-list"
@@ -72,7 +74,6 @@ class ProjectUserListView(HierarchicalViewMixin,ProjectViewMixin, BreadCrumbMixi
         context['add_user'] = ProjectRoleForm(self.project)
         return context
 
-    
     def filter_table(self, table):
         return table.filter(project=self.project).hide('project', 'id')
 
@@ -82,7 +83,7 @@ class ProjectUserAddView(ProjectViewMixin, HierarchicalViewMixin, RedirectView):
     parent = ProjectUserListView
     url_fragment = "add"
     model = User
-    
+
     def get_redirect_url(self, project_id):
         project = Project.objects.get(id=project_id)
         role = Role.objects.get(id=self.request.POST['role'], projectlevel=True)

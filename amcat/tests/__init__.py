@@ -25,9 +25,8 @@ location: either the module that it is testing (for straightforward test cases)
 or a special module in the amcat.tests package. 
 """
 #from amcat.tools import amcatlogging
-#amcatlogging.setup()
+# amcatlogging.setup()
 
 from amcat.tools.amcattest import get_test_classes
 for cls in get_test_classes("amcat"):
     locals()[cls.__name__] = cls
-

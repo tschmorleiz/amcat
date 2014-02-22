@@ -34,20 +34,16 @@ LOGIN_URL = "https://accounts.google.com/ServiceLoginAuth"
 API_URL = "http://www.google.com/reader/api/0/stream/contents/feed/{feed_url}?r=n&c={continuation}&n=40&ck={timestamp}&client=scroll"
 
 
-
-
-
-
 class GoogleReaderScraper(HTTPScraper, DBScraper):
     feedname = None
 
     def __init__(self, *args, **kwargs):
         if self.feedname == None:
-            raise ValueError("please specify self.feedname, with exactly the same characters as in the HTML on the page")
+            raise ValueError(
+                "please specify self.feedname, with exactly the same characters as in the HTML on the page")
         else:
             self.medium_name = self.feedname
         super(GoogleReaderScraper, self).__init__(*args, **kwargs)
-
 
     def _login(self, username, password):
         doc = self.getdoc(LOGIN_URL)
@@ -59,25 +55,25 @@ class GoogleReaderScraper(HTTPScraper, DBScraper):
     def get_feed_url(self, doc):
         js = doc.text_content()
         offset = js.find("_STREAM_LIST_SUBSCRIPTIONS")
-        start = js.find("{", offset);end = js.find("]};", start)
+        start = js.find("{", offset)
+        end = js.find("]};", start)
         _json = js[start:end]
         for sub in _json.split("},{"):
             s = sub.find("title:") + 6
-            title = sub[s:sub.find(",",s)].strip("\" ")
+            title = sub[s:sub.find(",", s)].strip("\" ")
             if title == self.feedname:
                 s = sub.find("id:") + 3
-                return sub[s:sub.find(",",s)].strip('"').lstrip("fed/")
-
+                return sub[s:sub.find(",", s)].strip('"').lstrip("fed/")
 
     def _get_units(self):
-        index = self.getdoc(INDEX_URL) 
-        
+        index = self.getdoc(INDEX_URL)
+
         feed_url = self.get_feed_url(index)
         if feed_url == None:
             raise ValueError("failed to obtain feed url, try adjusting self.feedname")
         timestamp = time.time()
-        
-        url = API_URL.format(continuation = "", **locals())
+
+        url = API_URL.format(continuation="", **locals())
         while url != None:
             _json = self.open(url).read()
             data = json.loads(_json)
@@ -87,14 +83,15 @@ class GoogleReaderScraper(HTTPScraper, DBScraper):
                 if _date == self.options['date']:
                     yield item
                 elif _date < self.options['date']:
-                    url = None;break
+                    url = None
+                    break
             if len(data['items']) < 40:
                 url = None
             if url != None:
                 timestamp = time.time()
                 url = API_URL.format(**locals())
 
-        
+
 if __name__ == '__main__':
     print("this scraper is intended to be inherited from, please specify a feedname property when doing so")
     print()
@@ -124,5 +121,3 @@ if __name__ == '__main__':
         "title":"NOS.nl nieuws","htmlUrl":"http://nos.nl/"
     }
 }""")
-
-

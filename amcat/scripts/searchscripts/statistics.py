@@ -39,8 +39,7 @@ class ArticleSetStatisticsScript(script.Script):
 
     def run(self, input=None):
         return keywordsearch.get_statistics(self.options)
-        
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli(ArticleSetStatisticsScript)
-

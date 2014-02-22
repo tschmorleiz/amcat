@@ -25,9 +25,11 @@ See: http://django-rest-framework.org/api-guide/fields.html
 
 import json
 
-from rest_framework.fields import Field 
+from rest_framework.fields import Field
+
 
 class DatatablesEchoField(Field):
+
     """
     Supports the echo-feature which is required by datatables. See the
     documentation of datatables for more information:
@@ -35,6 +37,7 @@ class DatatablesEchoField(Field):
       http://datatables.net/usage/server-side
 
     """
+
     def to_native(self, obj):
         dt_opts = self.context['request'].GET.get("datatables_options")
 
@@ -45,4 +48,3 @@ class DatatablesEchoField(Field):
 
         # Try to return sEcho to prevent XSS attacks
         return dt_opts.get('sEcho')
-

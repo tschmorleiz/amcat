@@ -36,7 +36,8 @@ from api.rest import filters
 
 
 FIELDS_EMPTY = (None, [])
-log=logging.getLogger(__name__)
+log = logging.getLogger(__name__)
+
 
 def order_by(field):
     """
@@ -48,7 +49,9 @@ def order_by(field):
         ("desc" if field.startswith("-") else "asc")
     )
 
+
 class Datatable(object):
+
     """
     Create HTML / Javascript code for a table based on `handler`. Optional
     options may be passed as `options` according to:
@@ -57,6 +60,7 @@ class Datatable(object):
 
     TODO: Remove Resource-references
     """
+
     def __init__(self, resource, rowlink=None, rowlink_open_in="same", options=None, hidden=None, url=None,
                  ordering=None, format="json", filters=None, extra_args=None, url_kwargs=()):
         """
@@ -77,14 +81,14 @@ class Datatable(object):
         self.resource = resource() if callable(resource) else resource
 
         self.options = options or dict()
-        self.rowlink = rowlink or getattr(self.resource, "get_rowlink", lambda  : None)()
+        self.rowlink = rowlink or getattr(self.resource, "get_rowlink", lambda: None)()
         self.rowlink_open_in = rowlink_open_in
         self.ordering = ordering
 
         self.format = format
         self.hidden = set(hidden) if isinstance(hidden, collections.Iterable) else set()
-        self.filters = filters or [] # list of name : value tuples for filtering
-        self.extra_args = extra_args or [] # list of name : value tuples for GET arguments
+        self.filters = filters or []  # list of name : value tuples for filtering
+        self.extra_args = extra_args or []  # list of name : value tuples for GET arguments
 
         if url is None:
             if isinstance(self.resource, AmCATResource):
@@ -158,19 +162,19 @@ class Datatable(object):
 
     def _get_copy_kwargs(self, **kwargs):
         kws = {
-            'rowlink' : self.rowlink,
-            'rowlink_open_in' : self.rowlink_open_in,
-            'options' : self.options,
-            'hidden' : self.hidden,
-            'url' : self.base_url,
-            'ordering' : self.ordering,
-            'filters' : self.filters,
-            'extra_args' : self.extra_args,
-            'format' : self.format,
+            'rowlink': self.rowlink,
+            'rowlink_open_in': self.rowlink_open_in,
+            'options': self.options,
+            'hidden': self.hidden,
+            'url': self.base_url,
+            'ordering': self.ordering,
+            'filters': self.filters,
+            'extra_args': self.extra_args,
+            'format': self.format,
         }
         kws.update(kwargs)
         return kws
-    
+
     def copy(self, **kwargs):
         """
         If called with no keyword arguments, this method will return a copy
@@ -179,7 +183,6 @@ class Datatable(object):
         """
         kwargs = self._get_copy_kwargs(**kwargs)
         return self.__class__(resource=self.resource, **kwargs)
-    
 
     def get_js(self):
         """Returns a string with rendered javascript"""
@@ -193,11 +196,11 @@ class Datatable(object):
         options['aoColumnDefs'] = self.get_aoColumnDefs()
 
         return get_template('api/datatables.js.html').render(Context({
-            'id' : self.name,
-            'rowlink' : self.rowlink,
-            'rowlink_open_in' : self.rowlink_open_in,
-            'url' : self.url,
-            'options' : options
+            'id': self.name,
+            'rowlink': self.rowlink,
+            'rowlink_open_in': self.rowlink_open_in,
+            'url': self.url,
+            'options': options
         }))
 
     def get_aoColumns(self):
@@ -205,6 +208,7 @@ class Datatable(object):
         Returns a list with (default) columns.
         """
         class jsbool(int):
+
             def __repr__(self):
                 return 'true' if self else "false"
 
@@ -235,17 +239,19 @@ class Datatable(object):
         # but at least this concentrates the badness in one place instead of hard
         # coding absolute urls all over the view code
         ID_REPLACE_NUMBER = 9999999999
-        replace = lambda arg: (ID_REPLACE_NUMBER if arg=='{id}' else arg)
-        if args: args = [replace(arg) for arg in args]
-        if kwargs: kwargs = {k : replace(v) for k,v in kwargs.iteritems()}
+        replace = lambda arg: (ID_REPLACE_NUMBER if arg == '{id}' else arg)
+        if args:
+            args = [replace(arg) for arg in args]
+        if kwargs:
+            kwargs = {k: replace(v) for k, v in kwargs.iteritems()}
 
         url = reverse(viewname, urlconf=urlconf, args=args, kwargs=kwargs, current_app=current_app)
         url = url.replace(str(ID_REPLACE_NUMBER), '{id}')
-        
-        return self.copy(rowlink = url)
+
+        return self.copy(rowlink=url)
 
     def _get_filter_class(self):
-        # There is probably a more standard way to do this        
+        # There is probably a more standard way to do this
         r = self.resource
         try:
             fc = r.filter_class
@@ -254,10 +260,10 @@ class Datatable(object):
         return fc()
 
     def can_order_by(self, field):
-        return any(f==field for (f, label) in self._get_filter_class().get_ordering_field().choices)
+        return any(f == field for (f, label) in self._get_filter_class().get_ordering_field().choices)
 
     def can_filter(self, field):
-        return any(f==field for f in self._get_filter_class().filters.keys())
+        return any(f == field for f in self._get_filter_class().filters.keys())
 
     def order_by(self, *fields):
         """
@@ -275,7 +281,6 @@ class Datatable(object):
                 raise ValueError("Cannot order by field '{}', column does not exist on this table".format(field))
 
         return self.copy(ordering=tuple(fields))
-
 
     def _filter(self, selector, value, check_can_filter=True):
         """
@@ -295,8 +300,8 @@ class Datatable(object):
 
         if isinstance(value, unicode):
             value = value.encode('utf-8')
-            
-        return urlencode({selector : value})
+
+        return urlencode({selector: value})
 
     def filter(self, **filters):
         """
@@ -311,55 +316,59 @@ class Datatable(object):
 
         """
         filters = filters.items()
-        filters = self.filters  + filters
+        filters = self.filters + filters
         return self.copy(filters=filters)
 
     def add_arguments(self, **args):
         """
         Add additional 'GET' arguments, e.g. cols or search queries 
         """
-        extra_args = self.extra_args  + args.items()
+        extra_args = self.extra_args + args.items()
         return self.copy(extra_args=extra_args)
 
     def set_format(self, format):
         return self.copy(format=format)
-    
+
     @property
     def url(self):
         url = self.base_url
-        url += "?format="+self.format
+        url += "?format=" + self.format
         url += "".join(['&%s' % self._filter(sel, val) for (sel, val) in self.filters])
         url += "".join(['&%s' % self._filter(sel, val, check_can_filter=False) for (sel, val) in self.extra_args])
         return url
-            
-    
+
     def __unicode__(self):
         links = {}
-        for fmt in ["api","csv","json", "xlsx", "spss"]:
+        for fmt in ["api", "csv", "json", "xlsx", "spss"]:
             t = self.set_format(fmt)
-            if fmt != "api": t = t.add_arguments(page_size=999999)
+            if fmt != "api":
+                t = t.add_arguments(page_size=999999)
             links[fmt] = t.url
         return get_template('api/datatables.html').render(Context({
-            'js' : self.get_js(),
-            'id' : self.name,
-            'cols' : self.fields,
-            'links' : links,
+            'js': self.get_js(),
+            'id': self.name,
+            'cols': self.fields,
+            'links': links,
         }))
 
     def __repr__(self):
         return u"DataTable(%r)" % self.resource
 
 
-
 class ReprString(unicode):
+
     """Unicode object were __repr__ == __unicode__"""
-    def __repr__(self): return unicode(self)
+
+    def __repr__(self):
+        return unicode(self)
+
 
 class FavouriteDatatable(Datatable):
+
     """
     Datatable that renders the favourite column as a star with set/unset actions
     """
-    
+
     def __init__(self, set_url, unset_url, label, *args, **kargs):
         """
         @param set_url: url for the GET request to set a target as favourite
@@ -375,20 +384,21 @@ class FavouriteDatatable(Datatable):
         kw = super(FavouriteDatatable, self)._get_copy_kwargs(**kwargs)
         kw.update(dict(set_url=self.set_url, unset_url=self.unset_url, label=self.label))
         return kw
-        
+
     def get_aoColumnDefs(self):
         template = get_template("api/favourite.js")
         js = template.render(Context(self.__dict__))
         return {
-            "aTargets" : ["favourite"],
-            "mRender" : ReprString(js),
+            "aTargets": ["favourite"],
+            "mRender": ReprString(js),
         }
-    
+
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
 
 from amcat.tools import amcattest
+
 
 class TestDatatable(amcattest.AmCATTestCase):
     PROJECT_FIELDS = {'id', 'name', 'description', 'insert_date', 'owner',
@@ -397,9 +407,10 @@ class TestDatatable(amcattest.AmCATTestCase):
     def test_viewset(self):
         """Can ViewSets also be used?"""
         from api.rest.viewsets import CodingSchemaFieldViewSet
-        dt = Datatable(CodingSchemaFieldViewSet, url_kwargs={"project" : 1})
+        dt = Datatable(CodingSchemaFieldViewSet, url_kwargs={"project": 1})
         self.assertTrue(dt.url.startswith("/api/v4/projects/1/codingschemafields/"))
-        self.assertEqual(dt.fields, ['id', 'codingschema', 'fieldnr', 'label', 'required', 'fieldtype', 'codebook', 'split_codebook', 'default', 'favourite'])
+        self.assertEqual(dt.fields, ['id', 'codingschema', 'fieldnr', 'label', 'required',
+                         'fieldtype', 'codebook', 'split_codebook', 'default', 'favourite'])
 
     def test_url(self):
         from api.rest.resources import UserResource
@@ -418,6 +429,7 @@ class TestDatatable(amcattest.AmCATTestCase):
 
         # Test order of fields.
         class TestSerializer(AmCATModelSerializer):
+
             class Meta:
                 model = Project
                 fields = ('name', 'description', 'id')
@@ -428,7 +440,6 @@ class TestDatatable(amcattest.AmCATTestCase):
 
         d = Datatable(TestResource)
         self.assertEqual(('name', 'description', 'id'), tuple(d.fields))
-
 
     def test_hide(self):
         from api.rest.resources import ProjectResource
@@ -460,12 +471,12 @@ class TestDatatable(amcattest.AmCATTestCase):
         d = d.filter(id=2)
         self.assertEqual(d.url, s + "&id=1&id=2")
 
-        d = Datatable(UserResource).filter(id=[1,2])
+        d = Datatable(UserResource).filter(id=[1, 2])
         self.assertEqual(d.url, s + "&id=1&id=2")
 
         # Test can allow illegal filter field as extra_arg
 
-        d = Datatable(UserResource).add_arguments(q=[1,2])
+        d = Datatable(UserResource).add_arguments(q=[1, 2])
         self.assertEqual(d.url, s + "&q=1&q=2")
 
     def test_js(self):
@@ -498,4 +509,3 @@ class TestDatatable(amcattest.AmCATTestCase):
 
         with self.assertRaises(ValueError):
             d.order_by("?name")
-

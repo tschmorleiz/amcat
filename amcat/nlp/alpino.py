@@ -30,37 +30,42 @@ from amcat.models import AnalysisSentence
 from amcat.nlp.analysisscript import VUNLPParser
 from amcat.nlp import sbd, wordcreator
 
+
 class AlpinoParser(VUNLPParser):
     parse_command = CMD
 
     def store_parse(self, analysed_article, data):
-        analysis_sentences = {sentence.id : AnalysisSentence.objects.create(analysed_article=analysed_article, sentence=sentence).id
+        analysis_sentences = {sentence.id: AnalysisSentence.objects.create(analysed_article=analysed_article, sentence=sentence).id
                               for sentence in sbd.get_or_create_sentences(analysed_article.article)}
         result = interpret_output(analysis_sentences, data)
         wordcreator.store_analysis(analysed_article, *result)
 
     def _sanitize(self, input):
         input = toolkit.stripAccents(input, latin1=True)
-        input = input.replace("\n", " ")# alpino will stop parsing on line break
-        input = input.replace("|", "-") # | is field separator and we don't care anyway
+        input = input.replace("\n", " ")  # alpino will stop parsing on line break
+        input = input.replace("|", "-")  # | is field separator and we don't care anyway
         input = input.encode('latin-1', 'ignore').decode('latin-1')
         return input
 
     def _get_text_to_submit(self, article):
         input = u"\n".join(u"{0}|{1}".format(sent.id, self._sanitize(sent.sentence))
                            for sent in self._get_sentences(article))
-        if not input.endswith("\n"): input += "\n"
+        if not input.endswith("\n"):
+            input += "\n"
         return input
+
 
 def interpret_output(sentences, data):
     tokens, triples = set(), []
     for line in data.split("\n"):
-        if not line.strip(): continue
+        if not line.strip():
+            continue
         parent, child, triple = interpret_line(sentences, line)
         tokens |= {parent, child}
         triples += [triple]
-    return tokens, triples    
-    
+    return tokens, triples
+
+
 def interpret_token(sid, lemma, word, begin, _end, dummypos, dummypos2, pos):
     if "(" in pos:
         major, minor = pos.split("(", 1)
@@ -87,46 +92,46 @@ def interpret_line(sentences, line):
     func, rel = data[7].split("/")
 
     triple = TripleValues(sid, child.position, parent.position, rel.strip())
-    
+
     return parent, child, triple
 
 ###########################################################################
 #                        U G L Y   C O N S T A N T                        #
 ###########################################################################
 
-POSMAP = {"pronoun" : 'O',
-          "verb" : 'V',
-          "noun" : 'N',
-          "preposition" : 'P',
-          "determiner" : "D",
-          "comparative" : "C",
-          "adverb" : "B",
-          'adv' : 'B',
-          "adjective" : "A",
-          "complementizer" : "C",
-          "punct" : ".",
-          "conj" : "C",
-          "tag" : "?",
+POSMAP = {"pronoun": 'O',
+          "verb": 'V',
+          "noun": 'N',
+          "preposition": 'P',
+          "determiner": "D",
+          "comparative": "C",
+          "adverb": "B",
+          'adv': 'B',
+          "adjective": "A",
+          "complementizer": "C",
+          "punct": ".",
+          "conj": "C",
+          "tag": "?",
           "particle": "R",
-          "name" : "M",
-          "part" : "R",
-          "intensifier" : "B",
-          "number" : "Q",
-          "cat" : "Q",
-          "n" : "Q",
+          "name": "M",
+          "part": "R",
+          "intensifier": "B",
+          "number": "Q",
+          "cat": "Q",
+          "n": "Q",
           "reflexive":  'O',
-          "conjunct" : 'C',
-          "pp" : 'P',
-          'anders' : '?',
-          'etc' : '?',
+          "conjunct": 'C',
+          "pp": 'P',
+          'anders': '?',
+          'etc': '?',
           'enumeration': '?',
           'np': 'N',
           'p': 'P',
           'quant': 'Q',
-          'sg' : '?',
-          'zo' : '?',
-          'max' : '?',
-          'mogelijk' : '?',
-          'sbar' : '?',
-          '--' : '?',
+          'sg': '?',
+          'zo': '?',
+          'max': '?',
+          'mogelijk': '?',
+          'sbar': '?',
+          '--': '?',
           }

@@ -33,16 +33,19 @@ log = logging.getLogger(__name__)
 
 PLUGIN_MODULE = plugins.__name__
 
+
 def get_plugin_types():
     """Return all classes which represent a plugintype"""
     return tuple(p.get_class() for p in PluginType.objects.all())
 get_plugin_types = memoize(get_plugin_types, {}, 0)
+
 
 def is_plugin(cls):
     """Determines whether given class represents a plugin.
 
     @type return: bool"""
     return (isclass(cls) and issubclass(cls, get_plugin_types())) and cls not in get_plugin_types()
+
 
 def is_module(path):
     """
@@ -56,24 +59,29 @@ def is_module(path):
         or os.path.isdir(path)
     )
 
+
 def _get_plugins(module_path, plugin_module):
     module_path = module_path[:-3] if module_path.endswith(".py") else module_path
     mod = importlib.import_module(".".join((plugin_module, os.path.basename(module_path))))
     attrs = (getattr(mod, a) for a in dir(mod) if not a.startswith('__'))
     return filter(is_plugin, attrs)
 
+
 def get_plugins(module_paths, plugin_module=PLUGIN_MODULE):
     """Return all classes which represent a plugin. Search modules `directories`."""
     return chain.from_iterable(imap(partial(_get_plugins, plugin_module=plugin_module), module_paths))
 
+
 def get_qualified_name(cls):
     return cls.__module__ + "." + cls.__name__
+
 
 def get_plugin_type(cls):
     """Returns PluginType instance based on given class."""
     for pt in get_plugin_types():
         if issubclass(cls, pt):
             return PluginType.objects.get(class_name=get_qualified_name(pt))
+
 
 class Command(BaseCommand):
     help = 'Syncs plugins available in amcat.contrib.plugins, and plugins currently in database.'
@@ -98,7 +106,8 @@ class Command(BaseCommand):
         plugin_files = os.listdir(os.path.dirname(plugins.__file__))
         plugin_paths = (os.path.join(os.path.dirname(plugins.__file__), p) for p in plugin_files)
         detected_plugins = get_plugins(filter(is_module, plugin_paths))
-        new_plugins = (p for p in detected_plugins if not Plugin.objects.filter(class_name=get_qualified_name(p)).exists())
+        new_plugins = (p for p in detected_plugins if not Plugin.objects.filter(
+            class_name=get_qualified_name(p)).exists())
 
         for p in new_plugins:
             log.info("Found new plugin: {p}".format(**locals()))
@@ -118,7 +127,9 @@ class Command(BaseCommand):
 
 from amcat.tools import amcattest
 
+
 class TestSyncPlugins(amcattest.AmCATTestCase):
+
     def test_get_plugin_types(self):
         all_types = set(p.get_class() for p in PluginType.objects.all())
 
@@ -128,8 +139,12 @@ class TestSyncPlugins(amcattest.AmCATTestCase):
 
     def test_is_plugin(self):
         pclass = get_plugin_types()[0]
-        class Test1(pclass): pass
-        class Test2(object): pass
+
+        class Test1(pclass):
+            pass
+
+        class Test2(object):
+            pass
 
         self.assertFalse(is_plugin(pclass))
         self.assertTrue(is_plugin(Test1))
@@ -147,8 +162,11 @@ class TestSyncPlugins(amcattest.AmCATTestCase):
         pt = PluginType.objects.all()[0]
         ptclass = pt.get_class()
 
-        class Test1(ptclass): pass
-        class Test2(object): pass
+        class Test1(ptclass):
+            pass
+
+        class Test2(object):
+            pass
 
         self.assertEquals(get_plugin_type(Test1), pt)
         self.assertEquals(get_plugin_type(Test2), None)
@@ -162,7 +180,6 @@ class TestSyncPlugins(amcattest.AmCATTestCase):
 
         self.assertEqual(set(), set(get_plugins([], plugin_module="plugin_test")))
         self.assertEqual(set(), set(get_plugins([testmod], plugin_module="plugin_test")))
-
 
     def test_get_plugins(self):
         import tempfile
@@ -180,5 +197,3 @@ class TestSyncPlugins(amcattest.AmCATTestCase):
         finally:
             shutil.rmtree(root)
             sys.path.remove(root)
-
-

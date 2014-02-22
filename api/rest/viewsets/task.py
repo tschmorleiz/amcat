@@ -25,7 +25,9 @@ from api.rest.serializer import AmCATModelSerializer
 
 __all__ = ("TaskSerializer", "TaskResultSerializer")
 
+
 class TaskSerializer(AmCATModelSerializer):
+
     """Represents a Task object defined in amcat.models.task.Task. Adds two
     fields to the model: status and ready."""
     status = serializers.SerializerMethodField('get_status')
@@ -73,16 +75,19 @@ class TaskResultSerializer(AmCATModelSerializer):
     def get_result(self, task):
         if not self.get_ready(task):
             return None
-        
+
         return task.get_result()
 
     class Meta:
         model = Task
         fields = ("uuid", "ready", "result")
 
+
 class TestTaskSerializer(amcattest.AmCATTestCase):
+
     def test_order(self):
         class MockTask:
+
             def __init__(self, ready=False, status="PENDING", result=None, callback=None):
                 self._ready = ready
                 self._status = status
@@ -90,17 +95,20 @@ class TestTaskSerializer(amcattest.AmCATTestCase):
                 self.callback = callback
 
             def ready(self):
-                if self.callback: self.callback("_ready")
+                if self.callback:
+                    self.callback("_ready")
                 return self._ready
 
             @property
             def status(self, **kwargs):
-                if self.callback: self.callback("_status")
+                if self.callback:
+                    self.callback("_status")
                 return self._status
 
             @property
             def result(self):
-                if self.callback: self.callback("_result")
+                if self.callback:
+                    self.callback("_result")
                 return self._result
 
             def get_async_result(self):
@@ -138,4 +146,3 @@ class TestTaskSerializer(amcattest.AmCATTestCase):
         self.assertEqual("PENDING", ts.get_status(mt4))
         self.assertEqual(False, ts.get_ready(mt4))
         self.assertEqual(True, mt4._ready)
-

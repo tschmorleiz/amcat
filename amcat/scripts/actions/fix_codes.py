@@ -19,13 +19,15 @@
 # License along with AmCAT.  If not, see <http://www.gnu.org/licenses/>.  #
 ###########################################################################
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from django import forms
 
 #from amcat.tools import dbtoolkit
 from amcat.scripts.script import Script
 from amcat.models import CodingJob, CodingValue, Code, Project, CodingSchemaField
+
 
 def get_fixed_code(labels, code_id):
     try:
@@ -37,12 +39,13 @@ def get_fixed_code(labels, code_id):
     except Code.DoesNotExist:
         return None
 
+
 def fix_field(job, field):
     log.info("Fixing {field} in job {job.id}:{job}".format(**locals()))
     problems = set()
     field.codebook.cache()
     field.codebook.cache_labels()
-    labels = {} # label -> code
+    labels = {}  # label -> code
     for c in field.codebook.get_codes():
         for label in c.labels.all():
             labels[label.label.strip().lower()] = c
@@ -59,14 +62,16 @@ def fix_field(job, field):
                 problems.add(cv.intval)
 
     return problems
-    
+
+
 class FixCodes(Script):
+
     """
     Checks whether the given job contains codes that do not occur in the
     codebook for the given field. If unknown codes are encountered, tries
     to replace them with a code from the codebook with the same label
     """
-    
+
     class options_form(forms.Form):
         job = forms.ModelChoiceField(queryset=CodingJob.objects.all(), required=False)
         project = forms.ModelChoiceField(queryset=Project.objects.all(), required=False)
@@ -87,7 +92,7 @@ class FixCodes(Script):
                 field = job.articleschema.fields.get(label=field_name)
             except CodingSchemaField.DoesNotExist:
                 continue
-            
+
             problems |= fix_field(job, field)
 
         print
@@ -97,8 +102,8 @@ class FixCodes(Script):
                 print problem
         else:
             print "All problems could be fixed"
-            
-    
+
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli()

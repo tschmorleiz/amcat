@@ -24,7 +24,9 @@ from django.db import models
 from amcat.tools.model import AmcatModel
 from amcat.tools import classtools
 
+
 class PluginType(AmcatModel):
+
     """
     Plugin Types list the types of plugins that are available. In general,
     Plugins are user controlled, and Plugin Types are fixed.
@@ -43,17 +45,19 @@ class PluginType(AmcatModel):
     @property
     def description(self):
         return self.get_class().__doc__
-    
+
     class Meta():
         app_label = 'amcat'
         db_table = 'plugintypes'
-        
+
+
 class Plugin(AmcatModel):
+
     """A Plugin is a piece of code that provide a specific function that can
     be added 'at runtime'"""
 
     id = models.AutoField(primary_key=True, db_column="plugin_id")
-    
+
     label = models.CharField(max_length=100, unique=True)
     class_name = models.CharField(max_length=100, unique=True)
     plugin_type = models.ForeignKey(PluginType, null=True, related_name='plugins')
@@ -70,7 +74,7 @@ class Plugin(AmcatModel):
         if self.class_name and not self.label:
             self.label = self.class_name.split(".")[-1]
         super(Plugin, self).save(*args, **kargs)
-    
+
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
@@ -79,7 +83,7 @@ from amcat.tools import amcattest
 
 
 class TestPlugin(amcattest.AmCATTestCase):
-    
+
     def test_get_classes(self):
         pt = PluginType.objects.create(class_name="amcat.models.Article")
         p1 = Plugin.objects.create(class_name="amcat.models.ArticleSet", plugin_type=pt)
@@ -87,4 +91,3 @@ class TestPlugin(amcattest.AmCATTestCase):
 
         from amcat.models import ArticleSet, Project
         self.assertEqual(set(pt.get_classes()), {ArticleSet, Project})
-

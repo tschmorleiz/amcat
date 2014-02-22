@@ -7,7 +7,9 @@
 
 import weakref
 
+
 class OrderedSet(object):
+
     """
     A linked-list with a uniqueness constraint and O(1) lookups/removal.
 
@@ -16,6 +18,7 @@ class OrderedSet(object):
     next element.  If you remove the next element, it will use the
     new next element.  If you remove both, you get an error.
     """
+
     def __init__(self, iterable=(), allow_move=False):
         self._map = {}
         self._start = _SentinalNode()
@@ -45,7 +48,7 @@ class OrderedSet(object):
                 curnode = nextnode
             else:
                 raise RuntimeError("OrderedSet modified inappropriately "
-                    "during iteration")
+                                   "during iteration")
 
             if type(curnode) is _SentinalNode:
                 return
@@ -64,7 +67,7 @@ class OrderedSet(object):
                 curnode = prevnode
             else:
                 raise RuntimeError("OrderedSet modified inappropriately "
-                    "during iteration")
+                                   "during iteration")
 
             if type(curnode) is _SentinalNode:
                 return
@@ -81,11 +84,11 @@ class OrderedSet(object):
     def append(self, element):
         """Add an element to the right side of the OrderedSet."""
         self._insertatnode(self._end.prev, element)
-        
+
     def add(self, element):
         """Add an element to the right side of the OrderedSet."""
         self._insertatnode(self._end.prev, element)
-        
+
     def appendleft(self, element):
         """Add an element to the left side of the OrderedSet."""
         self._insertatnode(self._start, element)
@@ -161,8 +164,10 @@ class _Node(object):
 
     def _prev_get(self):
         return self._prev()
+
     def _prev_set(self, value):
         self._prev = weakref.ref(value)
+
     def _prev_del(self):
         del self._prev
     prev = property(_prev_get, _prev_set, _prev_del)

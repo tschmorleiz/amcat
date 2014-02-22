@@ -33,7 +33,9 @@ __all__ = (
     "CodingValueViewSet", "CodingValueSerializer",
 )
 
+
 class CodingSerializer(AmCATModelSerializer):
+
     """
     Serialises Coding-objects, including their values.
     """
@@ -47,22 +49,23 @@ class CodingSerializer(AmCATModelSerializer):
 
         for coding_value in coding_values:
             coding_values_dict[coding_value.coding_id].append({
-                "id" : coding_value.id,
-                "field" : coding_value.field_id,
-                "strval" : coding_value.strval,
-                "intval" : coding_value.intval
+                "id": coding_value.id,
+                "field": coding_value.field_id,
+                "strval": coding_value.strval,
+                "intval": coding_value.intval
             })
 
         return coding_values_dict
 
-
     def get_coding_values(self, coding):
         return self._get_coding_values()[coding.pk]
+
 
 class CodingViewSetMixin(AmCATViewSetMixin):
     model_serializer_class = CodingSerializer
     model_key = "coding"
     model = Coding
+
 
 class CodingViewSet(ProjectViewSetMixin, CodingJobViewSetMixin,
                     CodedArticleViewSetMixin, CodingViewSetMixin,
@@ -78,10 +81,12 @@ class CodingViewSet(ProjectViewSetMixin, CodingJobViewSetMixin,
 class CodingValueSerializer(AmCATModelSerializer):
     model = CodingValue
 
+
 class CodingValueViewSetMixin(AmCATViewSetMixin):
     model_serializer_class = CodingValueSerializer
     model_key = "codingvalue"
     model = CodingValue
+
 
 class CodingValueViewSet(ProjectViewSetMixin, CodingJobViewSetMixin,
                          CodedArticleViewSetMixin, CodingViewSetMixin,
@@ -91,4 +96,3 @@ class CodingValueViewSet(ProjectViewSetMixin, CodingJobViewSetMixin,
     def filter_queryset(self, queryset):
         qs = super(CodingValueViewSet, self).filter_queryset(queryset)
         return qs.filter(coding__codingjob=self.codingjob, coding__article=self.coded_article)
-

@@ -42,11 +42,13 @@ ROLE_PROJECT_ADMIN = 13
 
 
 class AccessDenied(EnvironmentError):
+
     def __init__(self, user, privilege, project=None):
         projectstr = " on %s" % project if project else ""
         msg = "Access denied for privilege %s%s to %s\nRequired role %s, has role %s" % (
             privilege, projectstr, user, privilege.role, user.get_profile().role)
         EnvironmentError.__init__(self, msg)
+
 
 def check(user, privilege, project=None):
     """Check `user` for `privilege`.
@@ -69,7 +71,7 @@ def check(user, privilege, project=None):
         privilege = Privilege.objects.get(label=privilege, role__projectlevel=bool(project))
 
     if not user.is_superuser:
-        nrole = privilege.role # Needed role
+        nrole = privilege.role  # Needed role
 
         try:
             role = (Role.objects.get(projectrole__user=user, projectrole__project=project)
@@ -82,6 +84,7 @@ def check(user, privilege, project=None):
         if role.id < nrole.id:
             raise AccessDenied(user, privilege, project)
 
+
 class Role(AmcatModel):
     id = models.AutoField(primary_key=True, db_column='role_id')
     label = models.CharField(max_length=50)
@@ -91,6 +94,7 @@ class Role(AmcatModel):
         db_table = 'roles'
         app_label = 'amcat'
         unique_together = ("label", "projectlevel")
+
 
 class ProjectRole(AmcatModel):
     project = models.ForeignKey("amcat.Project", db_index=True)
@@ -110,6 +114,7 @@ class ProjectRole(AmcatModel):
 
     def can_delete(self, user):
         return user.get_profile().haspriv('manage_project_users', self.project)
+
 
 class Privilege(AmcatModel):
     id = models.AutoField(primary_key=True, db_column='privilege_id')

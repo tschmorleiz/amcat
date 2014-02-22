@@ -23,41 +23,42 @@ import amcat.scripts.forms
 from amcat.tools.table import table3
 from functools import partial
 
+
 class ExportAssociation(WebScript):
     name = "Export Association"
     form_template = None
     displayLocation = ('ShowAssociations')
     output_template = None
     is_download = True
-    
+
     form = amcat.scripts.forms.TableOutputForm
-    
+
     def run(self):
         from api.webscripts.associations import ShowAssociations
         table = ShowAssociations(data=self.data).get_table()
         table = self.get_table(table)
 
         return self.outputResponse(table, table3.Table, filename='Export Association')
-            
 
     def get_table(self, assocTable, rowheader_label="interval", rowheader_type=str, cell_type=float):
 
-        intervals = sorted({i for (i,q,q2,p) in assocTable})
-        assocs = {(x,y) for (i,x,y,s) in assocTable}
-        cols = {u"{x}\u2192{y}".format(x=x, y=y) : (x,y) for (x,y) in assocs}
-        scores = {(i,x,y) : s for (i,x,y,s) in assocTable}
+        intervals = sorted({i for (i, q, q2, p) in assocTable})
+        assocs = {(x, y) for (i, x, y, s) in assocTable}
+        cols = {u"{x}\u2192{y}".format(x=x, y=y): (x, y) for (x, y) in assocs}
+        scores = {(i, x, y): s for (i, x, y, s) in assocTable}
 
         colnames = sorted(cols)
-        
+
         result = table3.ObjectTable(rows=intervals)
-        result.addColumn(table3.ObjectColumn(label=rowheader_label, cellfunc = lambda row:row,
-                                             fieldtype = rowheader_type))
-        
-        for col, (x,y) in sorted(cols.iteritems()):
+        result.addColumn(table3.ObjectColumn(label=rowheader_label, cellfunc=lambda row: row,
+                                             fieldtype=rowheader_type))
+
+        for col, (x, y) in sorted(cols.iteritems()):
             result.addColumn(table3.ObjectColumn(label=unicode(col), fieldtype=cell_type,
-                                                 cellfunc = partial(getscore, scores, x, y)))
-            
+                                                 cellfunc=partial(getscore, scores, x, y)))
+
         return result
+
 
 def getscore(scores, x, y, i):
     return scores.get((i, x, y))

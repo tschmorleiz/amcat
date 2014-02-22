@@ -30,55 +30,52 @@ from django import forms
 import logging
 log = logging.getLogger(__name__)
 
-    
+
 class ArticleidsForm(amcat.scripts.forms.SelectionForm):
     start = forms.IntegerField(initial=0, min_value=0, widget=forms.HiddenInput, required=False)
     length = forms.IntegerField(initial=50, min_value=1, max_value=99999999, widget=forms.HiddenInput, required=False)
-    
+
     def clean_start(self):
         data = self.cleaned_data['start']
         if data == None:
             data = 0
         return data
-        
+
     def clean_length(self):
         data = self.cleaned_data['length']
         if data == None:
             data = 50
         if data == -1:
-            data = 99999999 # unlimited (well, sort of ;)
+            data = 99999999  # unlimited (well, sort of ;)
         return data
 
-        
+
 class ArticleidsScript(script.Script):
     input_type = None
     options_form = ArticleidsForm
     output_type = types.ArticleidList
 
-
-    def run(self, input=None): 
+    def run(self, input=None):
         start = self.options['start']
         length = self.options['length']
-        if self.bound_form.use_solr == False: # make database query
-            return database.get_queryset(**self.options)[start:start+length].values_list('id', flat=True)
+        if self.bound_form.use_solr == False:  # make database query
+            return database.get_queryset(**self.options)[start:start + length].values_list('id', flat=True)
         else:
             return solrlib.article_ids(self.options)
 
-            
+
 class ArticleidsDictScript(script.Script):
     input_type = None
     options_form = ArticleidsForm
     output_type = types.ArticleidDictPerQuery
 
-
     def run(self, input=None):
-        if self.bound_form.use_solr == False: # make database query
+        if self.bound_form.use_solr == False:  # make database query
             raise Exception('This works only for Solr searches')
         else:
             return solrlib.article_idsDict(self.options)
 
-        
-        
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli(ArticleidsScript)

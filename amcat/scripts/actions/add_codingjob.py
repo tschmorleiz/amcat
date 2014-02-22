@@ -22,20 +22,24 @@
 Script add a project
 """
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from django import forms
 from amcat.scripts.script import Script
 from amcat.models import CodingJob, User, ArticleSet
 from amcat.scripts.actions.create_sentences import CreateSentences
 
+
 class AddCodingJob(Script):
+
     class options_form(forms.ModelForm):
-        job_size = forms.IntegerField(help_text="If job size is given, multiple jobs of this size are created until all articles are assigned", required=False)
-        
+        job_size = forms.IntegerField(
+            help_text="If job size is given, multiple jobs of this size are created until all articles are assigned", required=False)
+
         class Meta:
             model = CodingJob
-            
+
         def __init__(self, *args, **kargs):
             project = kargs.pop("project", None)
             forms.ModelForm.__init__(self, *args, **kargs)
@@ -47,17 +51,17 @@ class AddCodingJob(Script):
                 self.fields["articleset"].queryset = project.all_articlesets()
             else:
                 schema_qs = self.fields["unitschema"].queryset
-            
+
             self.fields['unitschema'].queryset = schema_qs.filter(isarticleschema=False)
             self.fields['articleschema'].queryset = schema_qs.filter(isarticleschema=True)
 
-            
     def _run(self, job_size, articleset, name, project, **args):
         CreateSentences(dict(articlesets=[articleset.id])).run()
         job = self.bound_form.save(commit=False)
-        
+
         if not job_size:
-            job.articleset = ArticleSet.create_set(project=project, name=name, articles=articleset.articles.all(), favourite=False)
+            job.articleset = ArticleSet.create_set(
+                project=project, name=name, articles=articleset.articles.all(), favourite=False)
             job.save()
             return job
 
@@ -65,35 +69,35 @@ class AddCodingJob(Script):
         result = []
         for i, start in enumerate(range(0, n, job_size)):
             job.pk = None
-            articles = articleset.articles.all()[start : start + job_size]
-            set_name = "{name} - {j}".format(j=i+1, **locals())
+            articles = articleset.articles.all()[start: start + job_size]
+            set_name = "{name} - {j}".format(j=i + 1, **locals())
             job.articleset = ArticleSet.create_set(project=project, articles=articles, name=set_name, favourite=False)
-            job.name = "{name} - {j}".format(j=i+1, **locals())
+            job.name = "{name} - {j}".format(j=i + 1, **locals())
             job.save()
             result.append(CodingJob.objects.get(pk=job.pk))
         return result
-                          
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli()
 
-    
 
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-
 from amcat.tools import amcattest
 
+
 class TestAddJob(amcattest.AmCATTestCase):
+
     def _get_args(self, n_articles):
         s = amcattest.create_test_set(articles=n_articles)
         u = amcattest.create_test_user()
         uschema = amcattest.create_test_schema()
         aschema = amcattest.create_test_schema(isarticleschema=True)
         return dict(project=s.project.id, articleset=s.id, coder=u.id, articleschema=aschema.id, unitschema=uschema.id, insertuser=u.id)
-    
+
     def test_add(self):
         j = AddCodingJob.run_script(name="test", **self._get_args(10))
         self.assertEqual(j.articleset.articles.count(), 10)
@@ -105,4 +109,3 @@ class TestAddJob(amcattest.AmCATTestCase):
         self.assertEqual(len(jobs), 3)
         self.assertEqual(sorted(j.articleset.articles.count() for j in jobs), sorted([4, 4, 2]))
         self.assertEqual({j.name for j in jobs}, {"test - 1", "test - 2", "test - 3"})
-        

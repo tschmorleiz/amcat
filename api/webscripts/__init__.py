@@ -21,7 +21,7 @@
 #from webscript import WebScript
 
 from show_summary import ShowSummary
-from show_aggregation import ShowAggregation 
+from show_aggregation import ShowAggregation
 from show_articlelist import ShowArticleList
 from show_articlesetstats import ShowArticleSetStatistics
 from save_set import SaveAsSet
@@ -35,7 +35,8 @@ from associations import ShowAssociations
 from viewmodel import ViewModel
 
 mainScripts = [ShowSummary, ShowArticleList, ShowAggregation]
-actionScripts = [AssignCodingJob, ShowArticleSetStatistics, ExportAggregation, ShowClusterMap, ShowAssociations, SaveAsSet, ViewModel, ExportCodingjobs, ExportAssociation]
+actionScripts = [AssignCodingJob, ShowArticleSetStatistics, ExportAggregation, ShowClusterMap,
+                 ShowAssociations, SaveAsSet, ViewModel, ExportCodingjobs, ExportAssociation]
 allScripts = mainScripts + actionScripts
 
 webscriptNames = [cls.__name__ for cls in allScripts]

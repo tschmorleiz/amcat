@@ -28,10 +28,11 @@ from django.views.generic.edit import UpdateView
 from navigator.views.scriptview import ScriptView
 from amcat.scripts.actions.add_project import AddProject
 
+
 class ProjectListView(BreadCrumbMixin, DatatableMixin, ListView):
     model = Project
     template_name = "project/project_list.html"
-    
+
     def get_context_data(self, **kwargs):
         context = super(ProjectListView, self).get_context_data(**kwargs)
         context["what"] = self.kwargs.get('what', 'favourites')
@@ -48,7 +49,7 @@ class ProjectListView(BreadCrumbMixin, DatatableMixin, ListView):
             # (or use api request.user to add only current user's favourite status). But good enough for now...
             ids = self.request.user.get_profile().favourite_projects.all().values_list("id")
             ids = [id for (id, ) in ids]
-            if ids: 
+            if ids:
                 return table.filter(pk=ids, active=True)
             else:
                 return table.filter(name="This is a really stupid way to force an empty table (so sue me!)")
@@ -57,20 +58,21 @@ class ProjectListView(BreadCrumbMixin, DatatableMixin, ListView):
         elif what == "all":
             return table
 
-        
     def get_datatable(self):
         """Create the Datatable object"""
 
         url = reverse('project', args=[123])
         table = FavouriteDatatable(resource=self.get_resource(), label="project",
-                                   set_url=url + "?star=1", unset_url=url+"?star=0")
+                                   set_url=url + "?star=1", unset_url=url + "?star=0")
         table = table.rowlink_reverse('article set-list', args=['{id}'])
 
         table = self.filter_table(table)
         return table
 
 from django import forms
-from amcat.models import Role    
+from amcat.models import Role
+
+
 class ProjectDetailsView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixin, UpdateView):
     context_category = 'Settings'
     parent = None
@@ -82,38 +84,37 @@ class ProjectDetailsView(HierarchicalViewMixin, ProjectViewMixin, BreadCrumbMixi
         if (star is not None):
             favs = self.request.user.get_profile().favourite_projects
             (favs.add if int(star) else favs.remove)(self.project.id)
-                
+
         return super(ProjectDetailsView, self).get(*args, **kargs)
 
-    
     def get_success_url(self):
         return reverse(self.get_view_name(), args=(self.project.id,))
-
 
     @classmethod
     def _get_breadcrumb_url(cls, kwargs, view):
         return reverse("article set-list", args=(kwargs['project_id'],))
 
-        
     class form_class(forms.ModelForm):
+
         class Meta:
             model = Project
             exclude = ('codingschemas', 'codebooks', 'articlesets', 'favourite_articlesets')
-        guest_role = forms.ModelChoiceField(queryset = Role.objects.filter(projectlevel=True), required=False,
+        guest_role = forms.ModelChoiceField(queryset=Role.objects.filter(projectlevel=True), required=False,
                                             help_text="What level of access should people who are not added to the "
                                             "project have? If you select None, the project and its contents will "
                                             "not be visible to non-members")
+
 
 class ProjectAddView(BreadCrumbMixin, ScriptView):
     template_name = "script_base.html"
     script = AddProject
     model = Project
-    
+
     def get_context_data(self, **kwargs):
         context = super(ProjectAddView, self).get_context_data(**kwargs)
         context["cancel_url"] = reverse("projects")
         return context
-        
+
     def get_form(self, form_class):
         if self.request.method == 'GET':
             return form_class.get_empty(user=self.request.user)

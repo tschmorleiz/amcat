@@ -28,22 +28,28 @@ from amcat.tools.model import AmcatModel
 
 from django.db import models
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 
 class ValidationError(ValueError):
+
     """Error in validating a field"""
     pass
 
+
 class RequiredValueError(ValidationError):
+
     """Validation Error used when a required field is missing"""
     pass
 
+
 class CodingSchema(AmcatModel):
+
     """Model for table codingschemas: A coding schema used for manual coding"""
     id = models.AutoField(db_column='codingschema_id', primary_key=True)
     __label__ = 'name'
-    
+
     name = models.CharField(max_length=75)
     description = models.TextField(null=True)
 
@@ -65,10 +71,12 @@ class CodingSchema(AmcatModel):
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-        
+
 from amcat.tools import amcattest
 
+
 class TestCodingSchema(amcattest.AmCATTestCase):
+
     def test_create(self):
         """Test whether coding schema objects can be created"""
         s = amcattest.create_test_schema(name='test')

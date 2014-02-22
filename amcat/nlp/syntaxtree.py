@@ -32,17 +32,22 @@ AMCAT = "http://amcat.vu.nl/amcat3/"
 NS_AMCAT = Namespace(AMCAT)
 VIS_IGNORE_PROPERTIES = "position", "label"
 
-Triple = namedtuple("Triple", ["subject", "predicate","object"])
+Triple = namedtuple("Triple", ["subject", "predicate", "object"])
 from amcat.tools import dot
 
+
 class Node(object):
+
     """Flexible 'record-like' object with arbitrary attributes used for representing tokens"""
+
     def __unicode__(self):
-        return "Node(%s)" % ", ".join("%s=%r"%kv for kv in self.__dict__.iteritems())
+        return "Node(%s)" % ", ".join("%s=%r" % kv for kv in self.__dict__.iteritems())
+
     def __init__(self, **kargs):
         self.__dict__.update(kargs)
     __repr__ = __unicode__
-    
+
+
 class SyntaxTree(object):
 
     def __init__(self, soh, sentence_or_tokens=None):
@@ -59,7 +64,7 @@ class SyntaxTree(object):
             self.tokens = list(sentence_or_tokens.tokens.all())
         else:
             self.tokens = list(sentence_or_tokens)
-            
+
         g = Graph()
         g.bind("amcat", AMCAT)
         from amcat.tools import djangotoolkit
@@ -67,14 +72,12 @@ class SyntaxTree(object):
             g.add(triple)
         self.soh.add_triples(g, clear=True)
 
-
-
     def get_triples(self, ignore_rel=True, filter_predicate=None):
         """Retrieve the Node-predicate_string-Node triples for the loaded sentence"""
         if isinstance(filter_predicate, (str, unicode)):
             filter_predicate = [filter_predicate]
         nodes = {}
-        for s,p,o in self.soh.get_triples(parse=True):
+        for s, p, o in self.soh.get_triples(parse=True):
             child = nodes.setdefault(s, Node())
             pred = str(p).replace(AMCAT, "")
             if isinstance(o, Literal):
@@ -82,12 +85,15 @@ class SyntaxTree(object):
                     o = getattr(child, pred) + "; " + o
                 setattr(child, pred, unicode(o))
             else:
-                if ignore_rel and pred == "rel": continue
-                if filter_predicate and pred not in filter_predicate: continue
-                if pred == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": continue
+                if ignore_rel and pred == "rel":
+                    continue
+                if filter_predicate and pred not in filter_predicate:
+                    continue
+                if pred == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+                    continue
                 parent = nodes.setdefault(o, Node())
                 yield Triple(child, pred, parent)
-    
+
     def visualise(self, **kargs):
         return visualise_triples(list(self.get_triples()), **kargs)
 
@@ -95,7 +101,7 @@ class SyntaxTree(object):
         self.apply_lexicon(ruleset)
         for rule in ruleset.rules.all():
             self.apply_rule(rule)
-    
+
     def apply_rule(self, rule):
         """Apply the given amcat.models.rule.Rule"""
         self.soh.update(rule.where, rule.insert, rule.remove)
@@ -106,29 +112,35 @@ class SyntaxTree(object):
             for lemma, lexclasses in lexicon.iteritems():
                 if lexical_match(lemma, token):
                     self.apply_lexical_entry(token, lexclasses)
-                    
+
     def apply_lexical_entry(self, token, lexclasses):
         uri = _token_uri(token).replace(AMCAT, ":")
         insert = "\n;   ".join(':lexclass "{lexclass}"'.format(**locals()) for lexclass in lexclasses)
         self.soh.update(insert='{uri} {insert}'.format(**locals()))
 
-                    
+
 def lexical_match(lemma, token):
     l = token.word.lemma.lemma
-    if l == lemma: return True
-    if lemma.endswith("*") and l.startswith(lemma[:-1]): return True
-                    
+    if l == lemma:
+        return True
+    if lemma.endswith("*") and l.startswith(lemma[:-1]):
+        return True
 
-        
+
 def _id(obj):
     return obj if isinstance(obj, int) else obj.id
+
+
 def _token_uri(token):
     tokenstr = unicode(token).encode("ascii", "ignore")
     tokenstr = re.sub("\W", "", tokenstr)
     uri = NS_AMCAT["t_{token.position}_{tokenstr}".format(i=_id(token), **locals())]
     return uri
+
+
 def _rel_uri(rel):
     return NS_AMCAT["rel_{rel}".format(**locals())]
+
 
 def _tokens_to_rdf(tokens):
     """
@@ -138,8 +150,7 @@ def _tokens_to_rdf(tokens):
     triples = set()
     from amcat.tools import djangotoolkit
 
-
-    tokens_by_id = {} # prevent loading token again via triple.parent/child
+    tokens_by_id = {}  # prevent loading token again via triple.parent/child
     for token in tokens:
         tokens_by_id[token.id] = token
         uri = _token_uri(token)
@@ -152,7 +163,7 @@ def _tokens_to_rdf(tokens):
     for triple in triples:
         for pred in _rel_uri(triple.relation), NS_AMCAT["rel"]:
             child = tokens_by_id[triple.child_id]
-            parent = tokens_by_id[triple.parent_id]            
+            parent = tokens_by_id[triple.parent_id]
             yield _token_uri(child), pred, _token_uri(parent)
 
 
@@ -162,21 +173,22 @@ def visualise_triples(triples,  triple_args_function=None, ignore_properties=VIS
     TreeTransformer.get_triples
     """
     g = dot.Graph()
-    nodes = {} # Node -> dot.Node
+    nodes = {}  # Node -> dot.Node
     # create nodes
     nodeset = set(chain.from_iterable((t.subject, t.object) for t in triples))
     for n in nodeset:
         label = "%s: %s" % (n.position, n.label)
-        for k,v in n.__dict__.iteritems():
+        for k, v in n.__dict__.iteritems():
             if k not in ignore_properties:
                 label += "\\n%s: %s" % (k, v)
-        node = dot.Node(id="node_%s"%n.position, label=label)
+        node = dot.Node(id="node_%s" % n.position, label=label)
         g.addNode(node)
         nodes[n] = node
     # create edges
     for triple in triples:
-        kargs = triple_args_function(triple) if  triple_args_function else {}
-        if 'label' not in kargs: kargs['label'] = triple.predicate
+        kargs = triple_args_function(triple) if triple_args_function else {}
+        if 'label' not in kargs:
+            kargs['label'] = triple.predicate
         g.addEdge(nodes[triple.subject], nodes[triple.object], **kargs)
     # some theme options
     g.theme.graphattrs["rankdir"] = "BT"

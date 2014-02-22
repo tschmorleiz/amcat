@@ -1,5 +1,5 @@
 
-        
+
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework import parsers
@@ -9,6 +9,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 import datetime
+
 
 class AuthTokenSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -32,7 +33,6 @@ class AuthTokenSerializer(serializers.Serializer):
             raise serializers.ValidationError('Must include "username" and "password"')
 
 
-
 class ObtainAuthToken(APIView):
     throttle_classes = ()
     permission_classes = ()
@@ -46,7 +46,7 @@ class ObtainAuthToken(APIView):
         if serializer.is_valid():
             token, created = Token.objects.get_or_create(user=serializer.object['user'])
             if not created:
-                token.created =datetime.datetime.now()
+                token.created = datetime.datetime.now()
                 token.save()
 
             return Response({'token': token.key})

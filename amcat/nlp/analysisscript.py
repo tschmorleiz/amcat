@@ -27,7 +27,8 @@ and (2) check, retrieve, interpret and store the results of the
 external service.
 """
 
-import traceback, logging
+import traceback
+import logging
 log = logging.getLogger(__name__)
 
 from amcat.nlp.vunlpclient import Client
@@ -36,6 +37,7 @@ from amcat.models import AnalysedArticle
 from django.db import transaction
 
 from amcat.scripts.script import Script
+
 
 class AnalysisScript(Script):
 
@@ -69,7 +71,8 @@ class AnalysisScript(Script):
                     analysed_article.save()
                 return success
         except Exception, e:
-            log.exception("Error on retrieving/storing parse for ananalysed_article {analysed_article.id}".format(**locals()))
+            log.exception(
+                "Error on retrieving/storing parse for ananalysed_article {analysed_article.id}".format(**locals()))
             self._set_error(analysed_article, traceback.format_exc())
 
     def _set_error(self, analysed_article, error_msg):
@@ -77,7 +80,7 @@ class AnalysisScript(Script):
             analysed_article.error = True
             analysed_article.info = error_msg
             analysed_article.save()
-                
+
     def check_article(self, analysed_article):
         """
         Checks whether this article is ready to be retrieved. The method may raise an exception if the article
@@ -91,12 +94,14 @@ class AnalysisScript(Script):
             self._set_error(analysed_article, traceback.format_exc())
             raise
 
+
 class VUNLPParser(AnalysisScript):
+
     """Analysisscript subclass for parsers bound to a specific ('home') folder"""
 
     def __init__(self):
         self.client = Client()
-    
+
     def submit_article(self, article):
         plugin = self.get_plugin()
         handle = self.client.upload(self.parse_command, self._get_text_to_submit(article))
@@ -113,7 +118,6 @@ class VUNLPParser(AnalysisScript):
                                                      done=False, error=False, info=handle)
         return article
 
-
     def _get_sentences(self, article):
         """
         Return the sentences in the article, creating them if needed.
@@ -123,14 +127,13 @@ class VUNLPParser(AnalysisScript):
         if isinstance(article, AnalysedArticle):
             article = article.article
         return sbd.get_or_create_sentences(article)
-    
+
     def _get_text_to_submit(self, article):
         """
         Return the text to be submitted to the VUNLP web service
         @param article: an amcat.Article or AnalysedArticle model instance. 
         """
         return "\n".join(s.sentence for s in self._get_sentences(article))
-        
 
     def _do_retrieve_article(self, analysed_article):
         if self.check_article(analysed_article):
@@ -139,11 +142,11 @@ class VUNLPParser(AnalysisScript):
             if len(parse) == 0:
                 raise Exception("Empty article: downloading %i / %s yielded %r"
                                 % (analysed_article.id, analysed_article.info, parse))
-            
+
             self.store_parse(analysed_article, parse)
             log.info("Stored article  {analysed_article.id}".format(**locals()))
             return True
-            
+
     def _do_check_article(self, analysed_article):
         status = Client().check(analysed_article.info)
         log.info("Article  {analysed_article.id} has parse status {status}".format(**locals()))
@@ -151,7 +154,7 @@ class VUNLPParser(AnalysisScript):
         if status == "unknown":
             raise Exception("Article {analysed_article.id} has status 'unknown'"
                             .format(**locals()))
-        
+
         return (status == "ready")
 
 ###########################################################################
@@ -159,6 +162,7 @@ class VUNLPParser(AnalysisScript):
 ###########################################################################
 
 from amcat.tools import amcattest
+
 
 class TestAnalysisScript(amcattest.AmCATTestCase):
     pass

@@ -26,11 +26,14 @@ from amcat.tools.model import AmcatModel
 
 from django.db import models
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 ALL = ["CodingRuleAction", "CodingRule"]
 
+
 class CodingRuleAction(AmcatModel):
+
     """Model representing an action  """
     label = models.CharField(max_length=50)
     description = models.TextField()
@@ -39,7 +42,9 @@ class CodingRuleAction(AmcatModel):
         db_table = 'codingruleactions'
         app_label = 'amcat'
 
+
 class CodingRule(AmcatModel):
+
     """
     A CodingRule 
     """
@@ -54,4 +59,3 @@ class CodingRule(AmcatModel):
     class Meta():
         db_table = 'codingrules'
         app_label = 'amcat'
-

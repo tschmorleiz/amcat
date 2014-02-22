@@ -35,13 +35,15 @@ from amcat.models import CodingJob, Project, Article, CodingValue, Coding, Coded
 
 log = logging.getLogger(__name__)
 
+
 def index(request, project_id, codingjob_id):
     """returns the HTML for the main annotator page"""
     return render(request, "annotator/codingjob.html", {
         'codingjob': CodingJob.objects.get(id=codingjob_id),
         'project': Project.objects.get(id=project_id),
-        'coder' : request.user,
+        'coder': request.user,
     })
+
 
 @transaction.atomic
 def save(request, project_id, codingjob_id, coded_article_id):
@@ -54,9 +56,11 @@ def save(request, project_id, codingjob_id, coded_article_id):
 
     # sanity checks
     if coded_article.codingjob.project_id != int(project_id):
-        raise PermissionDenied("Given codingjob ({coded_article.codingjob}) does not belong to project ({coded_article.codingjob.project})!".format(**locals()))
+        raise PermissionDenied(
+            "Given codingjob ({coded_article.codingjob}) does not belong to project ({coded_article.codingjob.project})!".format(**locals()))
     if coded_article.codingjob_id != int(codingjob_id):
-        raise PermissionDenied("CodedArticle has codingjob_id={coded_article.codingjob_id} but {codingjob_id} given in url!")
+        raise PermissionDenied(
+            "CodedArticle has codingjob_id={coded_article.codingjob_id} but {codingjob_id} given in url!")
 
     if coded_article.codingjob.coder_id != request.user.id:
         # the user is not the assigned coder. Is s/he project admin?
@@ -75,8 +79,9 @@ def save(request, project_id, codingjob_id, coded_article_id):
 
     return HttpResponse(status=201)
 
+
 def redirect(request, codingjob_id):
     cj = CodingJob.objects.get(id=codingjob_id)
     return HttpResponseRedirect(reverse(index, kwargs={
-        "codingjob_id" : codingjob_id, "project_id" : cj.project_id
+        "codingjob_id": codingjob_id, "project_id": cj.project_id
     }))

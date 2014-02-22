@@ -27,13 +27,16 @@ __all__ = ("CodingSchemaFieldViewSetMixin", "CodingSchemaFieldSerializer", "Codi
 
 
 class CodingSchemaFieldSerializer(AmCATModelSerializer):
+
     class Meta:
         model = CodingSchemaField
+
 
 class CodingSchemaFieldViewSetMixin(AmCATViewSetMixin):
     model_serializer_class = CodingSchemaFieldSerializer
     model_key = "codingschemafield"
     model = CodingSchemaField
+
 
 class CodingSchemaFieldViewSet(ProjectViewSetMixin, CodingSchemaFieldViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
     model = CodingSchemaField
@@ -41,4 +44,3 @@ class CodingSchemaFieldViewSet(ProjectViewSetMixin, CodingSchemaFieldViewSetMixi
     def filter_queryset(self, fields):
         fields = super(CodingSchemaFieldViewSet, self).filter_queryset(fields)
         return fields.filter(codingschema__in=self.project.get_codingschemas())
-

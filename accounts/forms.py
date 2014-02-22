@@ -26,7 +26,9 @@ from amcat.forms import forms
 
 from django.contrib.auth.forms import PasswordResetForm
 
+
 class UserPasswordResetForm(PasswordResetForm):
+
     """
     Reset Password by filling in either email address or user name.
 
@@ -53,7 +55,7 @@ class UserPasswordResetForm(PasswordResetForm):
             return self.cleaned_data
         if username:
             self.users_cache = User.objects.filter(username=username)
-            if  len(self.users_cache) == 0:
+            if len(self.users_cache) == 0:
                 print "Add unknown user error\n"
                 msg = u"User unknown"
                 self._errors["username"] = self.error_class([msg])
@@ -67,4 +69,3 @@ class UserPasswordResetForm(PasswordResetForm):
                     print "UNEXPECTED not error email"
                 print repr(self.users_cache[0].email)
         return self.cleaned_data
-

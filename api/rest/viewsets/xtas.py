@@ -10,33 +10,30 @@ import json
 
 
 class XTasViewSet(ProjectViewSetMixin, ArticleSetViewSetMixin, ArticleViewSetMixin, ViewSet):
-    model_key = "xta"# HACK to get xtas in url. Sorry!
+    model_key = "xta"  # HACK to get xtas in url. Sorry!
 
     def retrieve(self, request, *args, **kargs):
         aid = int(kargs['article'])
         plugin = kargs['pk']
 
         result = amcates.ES().get(aid, doc_type=plugin)
-        
+
         member = self.request.QUERY_PARAMS.get("member")
         if member:
             result = result[member]
-        
-        
-        return Response({"results" : result})
-        
 
-    
+        return Response({"results": result})
+
     def list(self, request, *args, **kargs):
         aid = int(kargs['article'])
-        body = {"filter":{"and" : [
-                    {"term":{"_id":aid}},
-                    {"has_parent" : {"type" : "article",
-                                     "filter" : {"term":{"_id":aid}}
-                                     }
-                     }]}}
+        body = {"filter": {"and": [
+            {"term": {"_id": aid}},
+            {"has_parent": {"type": "article",
+                            "filter": {"term": {"_id": aid}}
+                            }
+             }]}}
         result = amcates.ES().search(body, doc_type=None, fields=[], size=9999)
 
         plugins = [h['_type'] for h in result['hits']['hits']]
-        
-        return Response({'available_parses' : plugins})
+
+        return Response({'available_parses': plugins})

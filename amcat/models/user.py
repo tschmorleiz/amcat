@@ -28,11 +28,12 @@ from amcat.models.authorisation import Role, ProjectRole, ADMIN_ROLE
 from amcat.models import authorisation as auth
 from amcat.models.project import Project
 
-import logging;
+import logging
 
 log = logging.getLogger(__name__)
 
-import string, random
+import string
+import random
 
 from django.db import models
 from amcat.tools.model import AmcatModel
@@ -40,6 +41,7 @@ LITTER_USER_ID = 1
 
 
 class Affiliation(AmcatModel):
+
     """
     Model for table affiliations. Users are categorised by affiliation, and
     some permissions are granted only for ones own  affiliation
@@ -57,7 +59,9 @@ class Affiliation(AmcatModel):
     def can_update(self, user):
         return user.haspriv('manage_users')
 
+
 class UserProfile(AmcatModel):
+
     """
     Additional user information is stored here
     """
@@ -68,7 +72,7 @@ class UserProfile(AmcatModel):
     role = models.ForeignKey(Role, default=0)
 
     favourite_projects = models.ManyToManyField("amcat.project", related_name="favourite_users")
-    
+
     @property
     def projects(self):
         return Project.objects.filter(projectrole__user=self.user)
@@ -88,7 +92,7 @@ class UserProfile(AmcatModel):
             return self.projects
 
         return Project.objects.filter(
-            Q(projectrole__user=self.user)|
+            Q(projectrole__user=self.user) |
             Q(guest_role__id__lte=role.id)
         )
 
@@ -100,12 +104,12 @@ class UserProfile(AmcatModel):
         """
         if self.role_id >= ADMIN_ROLE:
             return True
-            
+
         if isinstance(role, Role):
             role = role.id
         elif isinstance(role, (str, unicode)):
             role = Role.objects.get(label=role).id
-                            
+
         if onproject:
             actual_role_id = onproject.get_role_id(user=self.user)
         else:
@@ -113,10 +117,9 @@ class UserProfile(AmcatModel):
 
         log.info("{self.user.id}:{self.user.username} has role {actual_role_id} on project {onproject}, >=? {role}"
                  .format(**locals()))
-        
+
         return actual_role_id >= role
-        
-    
+
     def haspriv(self, privilege, onproject=None):
         """
         @type privilege: Privilege object, id, or str
@@ -126,7 +129,8 @@ class UserProfile(AmcatModel):
 
         @return: True or False
         """
-        try: auth.check(self.user, privilege, onproject)
+        try:
+            auth.check(self.user, privilege, onproject)
         except auth.AccessDenied:
             return False
         return True
@@ -135,7 +139,7 @@ class UserProfile(AmcatModel):
         profile = user.get_profile()
 
         return (self == profile) or\
-               (profile.affiliation == self.affiliation and\
+               (profile.affiliation == self.affiliation and
                 profile.haspriv("view_users_same_affiliation")) or\
                (profile.haspriv("view_users"))
 
@@ -143,7 +147,7 @@ class UserProfile(AmcatModel):
         profile = user.get_profile()
 
         return (self == profile) or\
-               (profile.affiliation == self.affiliation and\
+               (profile.affiliation == self.affiliation and
                 profile.haspriv("manage_users_same_affiliation")) or\
                (profile.haspriv("manage_users"))
 
@@ -157,11 +161,10 @@ class UserProfile(AmcatModel):
         # TODO / CHALLANGE: find the solution that doesn't skip a superclass
         return super(AmcatModel, self).save(**kwargs)
 
-        
-
     class Meta():
         db_table = 'auth_user_profile'
         app_label = "amcat"
+
 
 def create_user(username, first_name, last_name, email, affiliation, language, role,
                 password=None):
@@ -174,8 +177,8 @@ def create_user(username, first_name, last_name, email, affiliation, language, r
                  If the db user already existed, full_clean will raise an error
         """
         # create and validate the User object before creating the db user
-        fields = dict((k, v) for (k,v) in locals().items()
-                  if k in ("username","first_name", "last_name", "email"))
+        fields = dict((k, v) for (k, v) in locals().items()
+                      if k in ("username", "first_name", "last_name", "email"))
 
         # Create user
         password = password or _random_password()
@@ -204,8 +207,9 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 post_save.connect(create_user_profile, sender=User, dispatch_uid="create_user_profile")
 
+
 def _random_password(length=8, chars=string.letters + string.digits):
-    #http://code.activestate.com/recipes/59873/
+    # http://code.activestate.com/recipes/59873/
     return ''.join([random.choice(chars) for i in range(length)])
 
 ###########################################################################
@@ -214,7 +218,9 @@ def _random_password(length=8, chars=string.letters + string.digits):
 
 from amcat.tools import amcattest
 
+
 class TestUser(amcattest.AmCATTestCase):
+
     def test_create(self):
         """Test whether we can create a user"""
         u = amcattest.create_test_user()

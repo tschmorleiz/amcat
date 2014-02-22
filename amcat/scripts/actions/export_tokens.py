@@ -34,26 +34,30 @@ from django import forms
 
 from amcat.scripts.script import Script
 
+
 class ExportTokensForm(forms.Form):
     articleset = forms.ModelChoiceField(queryset=ArticleSet.objects.all())
-    
+
+
 class ExportTokens(Script):
+
     """Export tokens to json."""
 
     options_form = ExportTokensForm
     output_type = None
 
     def run(self, _input=None):
-        
+
         articles = self.options["articleset"].articles.only("uuid")
 
-        print "[" # manually output json so we don't need to keep all in memory
-        
+        print "["  # manually output json so we don't need to keep all in memory
+
         def sent_tuple(article, analysissentence):
             return (analysissentence.sentence.parnr, analysissentence.sentence.sentnr)
 
         for i, a in enumerate(articles):
-            if i: print ","
+            if i:
+                print ","
 
             print >>sys.stderr, "{i} / {n}: {a.id} / {a.uuid}".format(n=len(articles), **locals())
             sentences = list(a.sentences.all())
@@ -62,24 +66,23 @@ class ExportTokens(Script):
             tokens = list(Token.objects.filter(sentence__sentence__in=sentences)
                           .select_related("sentence__sentence", "word", "word__lemma", "pos"))
 
-            sent_tuples = {t : sent_tuple(a, t.sentence) for t in tokens}
-            
+            sent_tuples = {t: sent_tuple(a, t.sentence) for t in tokens}
+
             tokenvalues = [TokenValues(sent_tuples[t],
-                                        t.position, t.word.word, t.word.lemma.lemma,
-                                        t.pos.pos, t.pos.major, t.pos.minor, None)
-                            for t in tokens]
+                                       t.position, t.word.word, t.word.lemma.lemma,
+                                       t.pos.pos, t.pos.major, t.pos.minor, None)
+                           for t in tokens]
 
             triples = list(Triple.objects.filter(child__in=tokens)
                            .select_related("child", "parent", "relation"))
 
             triplevalues = [TripleValues(sent_tuples[t.child],
-                                         t.child.position, t.parent.position,t.relation.label)
+                                         t.child.position, t.parent.position, t.relation.label)
                             for t in triples]
             data = dict(article=a.uuid, sentences=sentencevalues, tokens=tokenvalues, triples=triplevalues)
 
             json.dump(data, sys.stdout)
             sys.stdout.flush()
-            
 
         print "]"
 

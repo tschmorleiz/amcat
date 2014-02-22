@@ -25,7 +25,8 @@ or to derive automatically generated search terms from.
 
 from __future__ import unicode_literals, print_function, absolute_import
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 from datetime import datetime
 from collections import OrderedDict
@@ -47,13 +48,17 @@ from itertools import product, chain, takewhile
 # Used in Codebook.get_tree()
 TreeItem = collections.namedtuple("TreeItem", ["code_id", "codebookcode_id", "children", "hidden", "label", "ordernr"])
 
+
 def sort_codebookcodes(ccodes):
-    ccodes.sort(key=lambda ccode : ccode.ordernr)
+    ccodes.sort(key=lambda ccode: ccode.ordernr)
+
 
 class CodebookCycleException(ValueError):
     pass
 
+
 class Codebook(AmcatModel):
+
     """Model class for table codebooks
 
     Codebook caches values, so please use the provided methods to add or remove
@@ -85,7 +90,7 @@ class Codebook(AmcatModel):
     def cached(self):
         return self._codebookcodes is not None
 
-    def cache(self,select_related=(), prefetch_related=(), only=None):
+    def cache(self, select_related=(), prefetch_related=(), only=None):
         """
         Cache this codebook and its codes, with various options. Iterating over
         self.codebookcode_set.all() won't hit the database. After executing this
@@ -145,7 +150,8 @@ class Codebook(AmcatModel):
         @param languages: languages to cache. If no given, we will cache all languages.
         @param codes: only cache labels for given codes.
         """
-        if not self.cached: self.cache()
+        if not self.cached:
+            self.cache()
 
         codes = kwargs.get("codes")
         if codes is None:
@@ -178,7 +184,7 @@ class Codebook(AmcatModel):
                 self._codes[code_id]._cache_label(lan_id, label)
                 self._labels[code_id][lan_id] = label
                 codes.remove((code_id, lan_id))
-                
+
             for code_id, lan_id in codes:
                 # These codes don't have a label. We need to explicitely cache them to prevent
                 # database trips.
@@ -197,39 +203,43 @@ class Codebook(AmcatModel):
 
     def get_codebookcodes(self, code):
         """Return a sequence of codebookcode objects for this code in the codebook"""
-        if self.cached: return self._codebookcodes[code.id]
+        if self.cached:
+            return self._codebookcodes[code.id]
         return (co for co in self.codebookcodes if co.code_id == code.id)
-
 
     def get_codebookcode(self, code, date=None):
         """Get the (unique or first) codebookcode from *this* codebook corresponding
         to the given code with the given date, or None if not found"""
-        if date is None: date = datetime.now()
+        if date is None:
+            date = datetime.now()
 
         for co in self.get_codebookcodes(code):
-            if co.validfrom and date < co.validfrom: continue
-            if co.validto and date >= co.validto: continue
+            if co.validfrom and date < co.validfrom:
+                continue
+            if co.validto and date >= co.validto:
+                continue
             return co
 
     def _get_hierarchy_ids(self, date=None, include_hidden=False):
         """Return id:id/None mappings for get_hierarchy."""
-        if date is None: date = datetime.now()
+        if date is None:
+            date = datetime.now()
 
         if not self.cached:
             valid_from = Q(validfrom=None) | Q(validfrom__lte=date)
             valid_to = Q(validto=None) | Q(validto__gt=date)
             codes = self.codebookcodes.filter(valid_from, valid_to)
-            if not include_hidden: codes = codes.filter(hide=False)
+            if not include_hidden:
+                codes = codes.filter(hide=False)
             return OrderedDict(codes.values_list("code_id", "parent_id"))
-            
+
         codes = (co for co in self.codebookcodes
-                    if not ((co.validfrom and date < co.validfrom) or
-                            (co.validto and date >= co.validto)))
+                 if not ((co.validfrom and date < co.validfrom) or
+                         (co.validto and date >= co.validto)))
 
         if include_hidden:
             return OrderedDict((co.code_id, co.parent_id) for co in codes)
         return OrderedDict((co.code_id, co.parent_id) for co in codes if not co.hide)
-
 
     def _get_node(self, include_labels, children, node, seen, labels=None):
         """
@@ -248,7 +258,7 @@ class Codebook(AmcatModel):
             children=self._walk(include_labels, children, children[node], seen),
             label=node.get_label(*(labels or self._cached_labels), fallback=labels is None) if include_labels else None
         )
-        
+
     def _walk(self, include_labels, children, nodes, seen, labels=None):
         return tuple(self._get_node(include_labels, children, n, seen, labels=labels) for n in nodes)
 
@@ -280,7 +290,6 @@ class Codebook(AmcatModel):
 
         return self._walk(include_labels, children, nodes, seen, get_labels)
 
-
     def get_hierarchy(self, date=None, include_hidden=False):
         """Return a sequence of code, parent pairs that forms the hierarchy of this codebook
 
@@ -303,7 +312,7 @@ class Codebook(AmcatModel):
 
         return (
             (codes[cid] if cid in codes else None, codes[pid] if pid in codes else None)
-                for cid, pid in hierarchy.iteritems()
+            for cid, pid in hierarchy.iteritems()
         )
 
     def get_code_ids(self, include_hidden=False, include_parents=False):
@@ -332,7 +341,7 @@ class Codebook(AmcatModel):
         codes = Code.objects.filter(pk__in=ids)
 
         if self.cached:
-            codes._result_cache = [self._codes[aid] for aid in ids] 
+            codes._result_cache = [self._codes[aid] for aid in ids]
 
         return codes
 
@@ -347,7 +356,7 @@ class Codebook(AmcatModel):
             return self.codebookcodes.select_related("code").get(code_id=code_id).code
         except CodebookCode.DoesNotExist:
             raise Code.DoesNotExist()
-    
+
     @property
     def codes(self):
         """Property for the codes included and not hidden in this codebook and its parents"""
@@ -355,7 +364,8 @@ class Codebook(AmcatModel):
 
     def _code_in_codebook(self, code):
         """Returns whether a CodebookCode exists with code=code"""
-        if self.cached: return code.id in self._codes
+        if self.cached:
+            return code.id in self._codes
         return CodebookCode.objects.filter(codebook=self, code=code).exists()
 
     def add_codes(self, codes):
@@ -366,14 +376,15 @@ class Codebook(AmcatModel):
         optionally None for roots). If parents are given, all parent Codes should exist in the codebook
         or be included as a code in the codes list.
         """
-        if len(codes) == 0: return
+        if len(codes) == 0:
+            return
 
         # Create pairs with all parents empty if this is a list of codes
         if isinstance(codes[0], Code):
-            codes = [(c, None) for c in codes]           
+            codes = [(c, None) for c in codes]
 
-        ccodes = {code.id : CodebookCode(codebook=self, code=code) for code in 
-                    chain(*codes) if code and not self._code_in_codebook(code)}
+        ccodes = {code.id: CodebookCode(codebook=self, code=code) for code in
+                  chain(*codes) if code and not self._code_in_codebook(code)}
 
         # Set parents for all codes
         for child, parent in codes:
@@ -395,11 +406,13 @@ class Codebook(AmcatModel):
             codes just given. cache_labels() will be called with languages = currently
             cached languages.
         """
-        if isinstance(parent, CodebookCode): parent = parent.code
-        if isinstance(code, CodebookCode): code = code.code
+        if isinstance(parent, CodebookCode):
+            parent = parent.code
+        if isinstance(code, CodebookCode):
+            code = code.code
 
         child = CodebookCode.objects.create(codebook=self, code=code, parent=parent, **kargs)
-    
+
         # Parent should also be in this codebook, else caching will fail
         if parent and not self._code_in_codebook(parent):
             _parent = CodebookCode.objects.create(codebook=self, code=parent)
@@ -409,13 +422,14 @@ class Codebook(AmcatModel):
 
                 # Keep ordering according to ordernr
                 sort_codebookcodes(self._codebookcodes[parent.id])
-                
+
         # Update child (`code`) caching
         if self.cached:
             self._codebookcodes[code.id].append(child)
             sort_codebookcodes(self._codebookcodes[code.id])
             code = child._code_cache = self._codes[code.id] = self._codes.get(code.id, code)
-            if parent: child._parent_cache = self._codes[parent.id]
+            if parent:
+                child._parent_cache = self._codes[parent.id]
 
         # Update label cache for added codes
         if self.cached and update_label_cache and self._cached_labels:
@@ -431,7 +445,7 @@ class Codebook(AmcatModel):
         """
 
         return self.add_code(Code.create(label, language), parent=parent, **kargs)
-        
+
     def delete_codebookcode(self, codebookcode):
         """Delete this CodebookCode from this Codebook."""
         if self.cached:
@@ -467,10 +481,10 @@ class Codebook(AmcatModel):
             children.add(child)
 
         # Keep ordering by using order of hierarchy
-        roots |= parents - children - {None,}
+        roots |= parents - children - {None, }
         hierarchy = OrderedDict(hierarchy)
         codes = hierarchy.keys() + hierarchy.values()
-        codes = { code : i for i, code in enumerate(codes)}
+        codes = {code: i for i, code in enumerate(codes)}
         return sorted(roots, key=codes.get)
 
     def get_children(self, code, **kargs):
@@ -478,7 +492,7 @@ class Codebook(AmcatModel):
         @return: the children of code in this codebook
         @param kargs: passed to get_hierarchy (e.g. date, include_hidden)
         """
-        return (c for (c, p) in self.get_hierarchy(**kargs) if p==code)
+        return (c for (c, p) in self.get_hierarchy(**kargs) if p == code)
 
     def get_ancestor_ids(self, code_id):
         """
@@ -486,6 +500,7 @@ class Codebook(AmcatModel):
         @parem code: a Code object in this codebook
         """
         hierarchy = self._get_hierarchy_ids()
+
         def _get_parent(code):
             for child, parent in hierarchy.iteritems():
                 if child == code:
@@ -496,7 +511,7 @@ class Codebook(AmcatModel):
         while True:
             yield code_id
             seen.add(code_id)
-            parent = hierarchy[code_id]#_get_parent(code_id)
+            parent = hierarchy[code_id]  # _get_parent(code_id)
             if parent is None:
                 return
             elif parent in seen:
@@ -510,20 +525,24 @@ class Codebook(AmcatModel):
         from amcat.models.project import LITTER_PROJECT_ID
         self.project_id = LITTER_PROJECT_ID
         self.save()
-            
+
+
 class Function(AmcatModel):
+
     """Specification of code book parent-child relations"""
     id = models.IntegerField(primary_key=True, db_column='function_id')
     label = models.CharField(max_length=100, null=False, unique=True)
     description = models.TextField(null=True)
 
     __label__ = 'label'
+
     class Meta():
         db_table = 'codebooks_functions'
         app_label = 'amcat'
 
 
 class CodebookCode(AmcatModel):
+
     """Many-to-many field (codebook : code) with additional properties"""
     id = models.AutoField(primary_key=True, db_column='codebook_object_id')
 
@@ -557,10 +576,14 @@ class CodebookCode(AmcatModel):
                              .format(self.validfrom, self.validto))
         # uniqueness constraints:
         for co in self.codebook.codebookcodes:
-            if co == self: continue #
-            if co.code_id != self.code_id: continue
-            if self.validfrom and co.validto and self.validfrom >= co.validto: continue
-            if self.validto and co.validfrom and self.validto <= co.validfrom: continue
+            if co == self:
+                continue
+            if co.code_id != self.code_id:
+                continue
+            if self.validfrom and co.validto and self.validfrom >= co.validto:
+                continue
+            if self.validto and co.validfrom and self.validto <= co.validfrom:
+                continue
             raise ValueError("Codebook code {!r} overlaps with {!r}".format(self, co))
 
     def __unicode__(self):
@@ -579,7 +602,9 @@ class CodebookCode(AmcatModel):
 
 from amcat.tools import amcattest
 
+
 class TestCodebook(amcattest.AmCATTestCase):
+
     def test_create(self):
         """Can we create objects?"""
         c = amcattest.create_test_codebook()
@@ -591,8 +616,6 @@ class TestCodebook(amcattest.AmCATTestCase):
         self.assertIn(co, c.codebookcodes)
         #self.assertIn(o, c.codes)
         self.assertEqual(co2.parent, o)
-
-
 
     def standardize(self, codebook, **kargs):
         """return a dense hierarchy serialiseation for easier comparisons"""
@@ -606,7 +629,6 @@ class TestCodebook(amcattest.AmCATTestCase):
 
         a, b, c, d, e, f = [amcattest.create_test_code(label=l) for l in "abcdef"]
 
-
         # A: b (validto = 2010)
         #    +a
         #
@@ -614,7 +636,7 @@ class TestCodebook(amcattest.AmCATTestCase):
         Z = amcattest.create_test_codebook(name="Z")
         Z.add_code(code=b, validto=datetime.datetime(2010, 1, 1))
         Z.add_code(code=a, parent=b)
-        tree = Z.get_tree(datetime.datetime(2013,1,1))
+        tree = Z.get_tree(datetime.datetime(2013, 1, 1))
         self.assertEqual(tree[0].children[0].label, 'a')
 
         # A: a
@@ -639,12 +661,12 @@ class TestCodebook(amcattest.AmCATTestCase):
         """Test whether codebookcode validation works"""
         a, b, c, d = [amcattest.create_test_code(label=l) for l in "abcd"]
         A = amcattest.create_test_codebook(name="A")
-        self.assertTrue(A.add_code(a,b,hide=True) != None)
+        self.assertTrue(A.add_code(a, b, hide=True) != None)
 
         # Delete code added in previous statement
         A.delete_codebookcode(CodebookCode.objects.get(codebook=A, code=a, parent=b))
         A.delete_codebookcode(CodebookCode.objects.get(codebook=A, code=b))
-        
+
         self.assertRaises(ValueError, A.add_code, a, validfrom=datetime(2010, 1, 1),
                           validto=datetime(1900, 1, 1))
         A.add_code(a)
@@ -666,7 +688,6 @@ class TestCodebook(amcattest.AmCATTestCase):
         B.add_code(a)
         B.add_code(c, a)
 
-
     def test_get_timebound_functions(self):
         """Test whether time-bound functions are returned correctly"""
         a, b, c = [amcattest.create_test_code(label=l) for l in "abc"]
@@ -681,7 +702,6 @@ class TestCodebook(amcattest.AmCATTestCase):
         self.assertEqual(self.standardize(A, date=datetime(2010, 1, 1)), 'a:None;b:None;c:a')
         self.assertEqual(self.standardize(A, date=datetime(2010, 1, 2)), 'a:None;b:None;c:a')
 
-
     def test_codes(self):
         """Test the codes property"""
         a, b, c, d = [amcattest.create_test_code(label=l) for l in "abcd"]
@@ -694,7 +714,7 @@ class TestCodebook(amcattest.AmCATTestCase):
         self.assertEqual(set(A.codes), {a, b, c})
 
         B = amcattest.create_test_codebook(name="B")
-        
+
         B.add_code(d, b)
         self.assertEqual(set(B.codes), {d, b})
 
@@ -719,7 +739,6 @@ class TestCodebook(amcattest.AmCATTestCase):
 
         self.assertRaises(ValueError, A.add_codes, [e])
         self.assertRaises(ValueError, A.add_codes, [(e, b)])
-        
 
     def test_codebookcodes(self):
         """Test the get_codebookcodes function"""
@@ -727,7 +746,6 @@ class TestCodebook(amcattest.AmCATTestCase):
             """Get (child, parent) pairs for codebookcodes"""
             for co in codebook.get_codebookcodes(code):
                 yield co.code, co.parent
-
 
         a, b, c, d, e = [amcattest.create_test_code(label=l) for l in "abcde"]
 
@@ -800,9 +818,9 @@ class TestCodebook(amcattest.AmCATTestCase):
                     self.cache()
                 return orig(self, name)
             return wrapped
-            
+
         ga = Codebook.__getattribute__
-        Codebook.__getattribute__ = _getattr(ga) 
+        Codebook.__getattribute__ = _getattr(ga)
 
         try:
             self.test_create()
@@ -816,8 +834,8 @@ class TestCodebook(amcattest.AmCATTestCase):
             self.test_add_codes()
             self.test_ordering()
         finally:
-            Codebook.__getattribute__ = ga 
-            
+            Codebook.__getattribute__ = ga
+
     def test_cache_labels_language(self):
         """Does caching labels for multiple language work
         esp. caching non-existence of a label"""
@@ -827,7 +845,8 @@ class TestCodebook(amcattest.AmCATTestCase):
         l2 = Language.objects.get(pk=2)
         b = amcattest.create_test_code(label="b", language=l2)
         A = amcattest.create_test_codebook(name="A")
-        A.add_code(a); A.add_code(b)
+        A.add_code(a)
+        A.add_code(b)
 
         with self.checkMaxQueries(3, "Cache labels"):
             # 1 for "normal" caching, and 1 for each cache_labels()
@@ -871,7 +890,7 @@ class TestCodebook(amcattest.AmCATTestCase):
         """
         cb = amcattest.create_test_codebook()
         code_a, code_b, code_c = (amcattest.create_test_code() for i in range(3))
-        
+
         ccode_c = cb.add_code(code_c, ordernr=3)
         ccode_b = cb.add_code(code_b, ordernr=2)
         ccode_a = cb.add_code(code_a, ordernr=1)
@@ -892,7 +911,6 @@ class TestCodebook(amcattest.AmCATTestCase):
         self.assertEquals(tuple(cb.codebookcodes), (ccode_a, ccode_c, ccode_b))
         roots = [ti.code_id for ti in cb.get_tree()]
         self.assertEquals(roots, [code_a.id, code_c.id, code_b.id])
-
 
 
 if __name__ == '__main__':

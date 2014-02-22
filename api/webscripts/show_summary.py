@@ -5,12 +5,12 @@ from amcat.tools import keywordsearch
 from amcat.scripts.searchscripts.articlelist import ArticleListScript
 from amcat.scripts.forms import SelectionForm
 
-    
+
 class ShowSummary(WebScript):
     name = "Summary"
     form_template = None
     form = None
-    
+
     def run(self):
         self.progress_monitor.update(1, "Creating summary")
 
@@ -28,6 +28,5 @@ class ShowSummary(WebScript):
             a.hack_project_id = project_id
         self.output_template = 'api/webscripts/articlelist.html'
         self.progress_monitor.update(40, "Created summary")
-            
+
         return self.outputResponse(dict(articlelist=articles, n=n, page=self.data.get('start')), ArticleListScript.output_type)
-        

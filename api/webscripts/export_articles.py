@@ -27,20 +27,20 @@ import amcat.scripts.forms
 import logging
 log = logging.getLogger(__name__)
 
-class ExportArticlesForm(amcat.scripts.forms.ArticleColumnsForm, amcat.scripts.forms.TableOutputForm):
-    length = forms.ChoiceField(choices=((100,'100'),(1000,'1.000'),(10000,'10.000'),(100000,'100.000'),(9999999, 'No limit')), initial=1000)
-    limitTextLength = forms.BooleanField(initial=True, required=False)
-    
 
-    
+class ExportArticlesForm(amcat.scripts.forms.ArticleColumnsForm, amcat.scripts.forms.TableOutputForm):
+    length = forms.ChoiceField(choices=((100, '100'), (1000, '1.000'), (10000, '10.000'),
+                               (100000, '100.000'), (9999999, 'No limit')), initial=1000)
+    limitTextLength = forms.BooleanField(initial=True, required=False)
+
+
 class ExportArticles(WebScript):
     name = "Export Articles"
     form_template = "api/webscripts/exportArticlesForm.html"
     form = ExportArticlesForm
     displayLocation = ('ShowSummary', 'ShowArticleList')
-    output_template = None 
-    
-    
+    output_template = None
+
     def run(self):
         articles = ArticleListScript(self.data).run()
         table = ArticleListToTable(self.data).run(articles)

@@ -40,9 +40,12 @@ from django.db import models
 from amcat.models.user import LITTER_USER_ID
 from amcat.models.project import LITTER_PROJECT_ID
 
-import logging; log = logging.getLogger(__name__)
-            
+import logging
+log = logging.getLogger(__name__)
+
+
 class CodingJob(AmcatModel):
+
     """
     Model class for table codingjobs. A Coding Job is a container of sets of articles
     assigned to coders in a project with a specified unit and article schema
@@ -62,7 +65,7 @@ class CodingJob(AmcatModel):
 
     coder = models.ForeignKey(User)
     articleset = models.ForeignKey(ArticleSet, related_name="codingjob_set")
-    
+
     class Meta():
         db_table = 'codingjobs'
         app_label = 'amcat'
@@ -84,7 +87,8 @@ class CodingJob(AmcatModel):
     def get_coded_article(self, article):
         # probably want to use a cached value if it exists?
         return self.coded_articles.get(article=article)
-                
+
+
 @receiver(post_save, sender=CodingJob)
 def create_coded_articles(sender, instance=None, created=None, **kwargs):
     """
@@ -92,29 +96,36 @@ def create_coded_articles(sender, instance=None, created=None, **kwargs):
     present. This signal receiver creates the necessary objects after a
     codingjob is created.
     """
-    if not created: return
+    if not created:
+        return
 
     # Singal gets called multiple times, workaround:
-    if CodedArticle.objects.filter(codingjob=instance).exists(): return
+    if CodedArticle.objects.filter(codingjob=instance).exists():
+        return
 
     aids = instance.articleset.articles.all().values_list("id", flat=True)
     coded_articles = (CodedArticle(codingjob=instance, article_id=aid) for aid in aids)
     CodedArticle.objects.bulk_create(coded_articles)
 
+
 class SchemaFieldColumn(table3.ObjectColumn):
+
     def __init__(self, field):
         super(SchemaFieldColumn, self).__init__(field.label)
         self.field = field
+
     def getCell(self, coding):
         return coding.get_value(field=self.field)
-    
+
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-        
+
 from amcat.tools import amcattest
 
+
 class TestCodingJob(amcattest.AmCATTestCase):
+
     def test_create(self):
         """Can we create a coding job with articles?"""
         from amcat.models.project import Project
@@ -125,9 +136,8 @@ class TestCodingJob(amcattest.AmCATTestCase):
         j.articleset.add(amcattest.create_test_article())
         j.articleset.add(amcattest.create_test_article())
         j.articleset.add(amcattest.create_test_article())
-        self.assertEqual(1+3, len(j.articleset.articles.all()))
+        self.assertEqual(1 + 3, len(j.articleset.articles.all()))
 
     def test_post_create(self):
         job = amcattest.create_test_job(10)
         self.assertEqual(CodedArticle.objects.filter(codingjob=job).count(), 10)
-

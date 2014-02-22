@@ -29,5 +29,3 @@ log = logging.getLogger(__name__)
 class PluginResource(AmCATResource):
     model = Plugin
     extra_filters = ["plugin_type"]
-
-

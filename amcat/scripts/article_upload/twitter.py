@@ -25,9 +25,10 @@ from django import forms
 from amcat.scraping.scraper import ScraperForm, Scraper
 from amcat.models import Article
 
+
 class Twitter(Scraper):
     medium_name = "twitter"
-    
+
     class options_form(ScraperForm):
         key = forms.CharField(required=True, help_text='Twitter API key')
         keyword = forms.CharField(required=True, help_text='Keyword to search')
@@ -38,7 +39,7 @@ class Twitter(Scraper):
                 return self.data.get('keyword')
             else:
                 return ScraperForm.clean_articleset_name(self)
-        
+
     def _initialize(self):
         key = self.options['key']
         print "Connecting to twitter with key", key
@@ -47,7 +48,6 @@ class Twitter(Scraper):
         tweets = ["list", "from", "api"]
         for tweet in tweets:
             yield Article(text=tweet, headline=tweet, date='2010-01-01')
-
 
     def get_errors(self):
         return []

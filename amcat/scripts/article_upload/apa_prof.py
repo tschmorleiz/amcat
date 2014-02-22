@@ -57,11 +57,13 @@ import lxml.html
 import htmlentitydefs
 
 import StringIO
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
 
 FS20 = "\\fs20"
 PAGE_BREAK = "page-break"
-STOP_AT = re.compile(ur"((Gespeicherter Anhang:)|(Der gegenst\xc3\xa4ndliche Text ist eine Abschrift)|(Gespeicherte Anh\xc3\xa4nge))")
+STOP_AT = re.compile(
+    ur"((Gespeicherter Anhang:)|(Der gegenst\xc3\xa4ndliche Text ist eine Abschrift)|(Gespeicherte Anh\xc3\xa4nge))")
 
 # 11.05.2004
 _RE_DATE = "(?P<day>\d{2})\.(?P<month>\d{2})\.(?P<year>\d{4})"
@@ -94,17 +96,22 @@ UNDECODED_UNICODE = bytes(b"NON_DECODED_UNICODE_CHARACTER")
 RE_UNICHAR = re.compile(ur"(?P<match>\\u(?P<hex>[0-9]+)\?)", re.UNICODE)
 
 ### FIXING AND PARSING ###
+
+
 def _fix_fs20(s):
     last = 0
     while True:
-        pos = s.find(FS20, last+len(FS20))
-        if pos == -1: break
-        yield s[last:pos+len(FS20)]
+        pos = s.find(FS20, last + len(FS20))
+        if pos == -1:
+            break
+        yield s[last:pos + len(FS20)]
         last = pos + len(FS20)
     yield s[last:]
 
+
 def fix_fs20(s):
     return bytes(" ").join(_fix_fs20(s))
+
 
 def fix_rtf(s):
     """
@@ -116,25 +123,27 @@ def fix_rtf(s):
     @param s: bytes containing rtf
     @return: rtf bytes
     """
-    s = fix_fs20(s.replace('_'*67, '\\page'))
+    s = fix_fs20(s.replace('_' * 67, '\\page'))
 
     for match, correct in get_unencoded_unicode(s):
         s = s.replace(match, UNDECODED_UNICODE, 1)
 
     return "".join(UNDECODED if ord(b) >= 128 else b for b in s)
 
+
 def get_unencoded(s):
     """Get characters with a value higher than 128 (non-ASCII characters)"""
     return (bytes(b) for b in s if ord(b) >= 128)
 
+
 def get_unencoded_unicode(s):
-    for groups in (m.groupdict() for m in  RE_UNICHAR.finditer(s)):
+    for groups in (m.groupdict() for m in RE_UNICHAR.finditer(s)):
         yield bytes(groups['match']), unichr(int(groups['hex']))
-        
+
+
 def to_html(original_rtf, fixed_rtf):
     html = None
     from sh import unrtf
-
 
     with NamedTemporaryFile() as xml:
         xml.write(fixed_rtf)
@@ -153,9 +162,10 @@ def to_html(original_rtf, fixed_rtf):
 
     return html
 
+
 def parse_html(html):
     # See issue #574. Splitting the RTF in multiple documents considered too
-    # much work compared with this hack. 
+    # much work compared with this hack.
     limit = sys.getrecursionlimit()
     sys.setrecursionlimit(3000)
 
@@ -164,13 +174,16 @@ def parse_html(html):
     finally:
         sys.setrecursionlimit(limit)
 
+
 def _get_pages(elements):
-    return list(itertools.takewhile(lambda el : el.tag != "hr", elements))
+    return list(itertools.takewhile(lambda el: el.tag != "hr", elements))
+
 
 def get_pages(doc):
     elements = doc.iterdescendants()
     pages = len(doc.cssselect("hr")) + 1
     return (_get_pages(elements) for i in range(pages))
+
 
 def get_descendants(elements):
     """Given a list of elements yield all descendants and the element itself"""
@@ -178,6 +191,7 @@ def get_descendants(elements):
         yield element
         for e in element.iterdescendants():
             yield e
+
 
 def remove_tree(elements, tags):
     """
@@ -187,8 +201,10 @@ def remove_tree(elements, tags):
     tag_elements = (e for e in elements if e.tag in tags)
     elements -= set(get_descendants(tag_elements))
 
+
 def get_nonempty(elements):
     return {e for e in elements if e.text is not None}
+
 
 def get_roots(elements):
     non_roots = set()
@@ -196,8 +212,10 @@ def get_roots(elements):
         non_roots |= set(get_descendants(el))
     return set(elements) - non_roots
 
+
 def do_stop(e):
     return not STOP_AT.search(e.text or "")
+
 
 def get_text(elements):
     """"""
@@ -207,6 +225,7 @@ def get_text(elements):
         elif element.text is not None:
             yield element.text
 
+
 def _get_metadata(metadata, element):
     for expr in META_RE:
         match = expr.search(element.text)
@@ -214,13 +233,15 @@ def _get_metadata(metadata, element):
             metadata.update(match.groupdict())
             yield expr
 
+
 def get_metadata(metadata, element):
     """
     Matches metadata expressions against the text attribute of `element`
     and updates `metadata` accordingly.
     
     @return: True if metadata found, False if not"""
-    if not element.text: return False
+    if not element.text:
+        return False
 
     it = _get_metadata(metadata, element)
     try:
@@ -230,6 +251,7 @@ def get_metadata(metadata, element):
     list(it)
     return True
 
+
 def parse_page(doc_elements):
     """Parses an APA page given in a list of Etree elements."""
     doc, elements = doc_elements
@@ -238,7 +260,7 @@ def parse_page(doc_elements):
     headline = set(get_descendants(doc.cssselect("b"))) & set(elements)
     meta = (set(get_descendants(doc.cssselect("i"))) & set(elements)) - headline
     text = set(elements) - (headline | meta)
-    headline = sorted(get_roots(headline), key=lambda e:elements.index(e))
+    headline = sorted(get_roots(headline), key=lambda e: elements.index(e))
 
     if not headline:
         raise ValueError("No possible headlines found.")
@@ -248,7 +270,7 @@ def parse_page(doc_elements):
 
     # Some text in italics is no metadata. We only use text before headline elements
     # for metadata.
-    lesser_than_headline = lambda e:elements.index(e) <= elements.index(headline[0])
+    lesser_than_headline = lambda e: elements.index(e) <= elements.index(headline[0])
     meta = get_nonempty(filter(lesser_than_headline, meta))
 
     # Parse metadata
@@ -264,7 +286,8 @@ def parse_page(doc_elements):
     _date = {}
     for prop in ("year", "month", "day", "hour", "minute"):
         _date[prop] = int(metadata.get(prop, 0))
-        if prop in metadata: del metadata[prop]
+        if prop in metadata:
+            del metadata[prop]
     metadata["date"] = datetime.datetime(**_date)
 
     # Clean data and get headline
@@ -277,12 +300,13 @@ def parse_page(doc_elements):
     metadata["headline"] = headline
 
     # Get text. Since ordering is lost in sets, restore original order of elements
-    return metadata, "".join(get_text(sorted(text, key=lambda e:elements.index(e)))).strip()
+    return metadata, "".join(get_text(sorted(text, key=lambda e: elements.index(e)))).strip()
 
 
 ### NAVIGATOR INTEGRATION ###
 class APAForm(UploadScript.options_form, fileupload.ZipFileUploadForm):
     pass
+
 
 class APA(UploadScript):
     options_form = APAForm

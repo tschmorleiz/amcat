@@ -19,7 +19,7 @@
 
 from __future__ import unicode_literals, print_function, absolute_import
 import os
-import logging;
+import logging
 
 from django.core.cache import cache
 from django.db import models
@@ -30,8 +30,8 @@ from amcat.tools.model import AmcatModel
 log = logging.getLogger(__name__)
 
 WARNING_NOT_PRODUCTION = ("This is {server}. "
-                           "Use <a href='http://amcat.vu.nl'>amcat.vu.nl</a> "
-                           "unless you explicitly want to use this server. "
+                          "Use <a href='http://amcat.vu.nl'>amcat.vu.nl</a> "
+                          "unless you explicitly want to use this server. "
                           "Changes made here will probably <b>not</b> be saved")
 
 SINGLETON_ID = 1
@@ -41,8 +41,9 @@ SINGLETON_ID = 1
 CURRENT_DB_VERSION = 21
 
 MEDIUM_CACHE_ENABLED = "medium_cache_enabled"
-TIMEOUT_INFINITY = 31536000 # One year, actually. By then we should have upgraded to Django
+TIMEOUT_INFINITY = 31536000  # One year, actually. By then we should have upgraded to Django
                             # 1.6, which allows 'real' infinite caching.
+
 
 class AmCAT(AmcatModel):
     id = models.BooleanField(primary_key=True, db_column="singleton_pk")
@@ -90,8 +91,7 @@ class AmCAT(AmcatModel):
             return cls.objects.get(pk=SINGLETON_ID)
         except AmCAT.DoesNotExist:
             # create singleton here - don't use initial data as that will override db_version on syncdb
-            return AmCAT.objects.create(db_version = CURRENT_DB_VERSION, id=SINGLETON_ID)
-            
+            return AmCAT.objects.create(db_version=CURRENT_DB_VERSION, id=SINGLETON_ID)
 
     class Meta():
         db_table = 'amcat_system'
@@ -104,15 +104,16 @@ class AmCAT(AmcatModel):
 
 from amcat.tools import amcattest
 
+
 class TestAmCAT(amcattest.AmCATTestCase):
+
     def test_get_instance(self):
         a = AmCAT.get_instance()
         self.assertEqual(type(a), AmCAT)
 
-        os.environ['AMCAT_SERVER_STATUS']=""
+        os.environ['AMCAT_SERVER_STATUS'] = ""
         self.assertEqual(a.server_warning,
-                         WARNING_NOT_PRODUCTION.format(server = "not the production server"))
+                         WARNING_NOT_PRODUCTION.format(server="not the production server"))
 
-        os.environ['AMCAT_SERVER_STATUS']="production"
+        os.environ['AMCAT_SERVER_STATUS'] = "production"
         self.assertEqual(a.server_warning, None)
-

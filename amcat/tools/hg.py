@@ -31,14 +31,18 @@ published, documented, and stable API: the command line interface
 import subprocess
 import os.path
 
+
 def get_repo(fn):
     """
     Get the repository to which file/folder fn belongs
     by recursing up the folder tree until the root is found
     """
-    if os.path.exists(os.path.join(fn, ".hg")): return fn
-    parent = os.path.dirname(fn) #dirname("/") == "/"
-    if parent != fn: return get_repo(parent) 
+    if os.path.exists(os.path.join(fn, ".hg")):
+        return fn
+    parent = os.path.dirname(fn)  # dirname("/") == "/"
+    if parent != fn:
+        return get_repo(parent)
+
 
 def get_version_name(fn=None):
     r = Repository(fn)
@@ -47,6 +51,7 @@ def get_version_name(fn=None):
         return 'development'
     else:
         return b
+
 
 class Repository(object):
 
@@ -58,9 +63,9 @@ class Repository(object):
             import amcat
             repo = amcat.__file__
         self.repo = get_repo(repo)
-        
+
     def list_branches(self):
-        cmd = ['hg', 'branches','-R',self.repo]
+        cmd = ['hg', 'branches', '-R', self.repo]
         for line in self._run_hg('branches').split('\n'):
             yield line.split(' ')[0]
 
@@ -90,11 +95,9 @@ class Repository(object):
     def _run_hg(self, cmd):
         cmd = ['hg', cmd, '-R', self.repo]
         return subprocess.check_output(cmd).strip()
-        
 
 
 if __name__ == '__main__':
     import sys
     fn = sys.argv[1] if len(sys.argv) > 1 else None
     print get_version_name(fn)
-

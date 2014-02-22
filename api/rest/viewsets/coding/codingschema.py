@@ -27,7 +27,7 @@ from api.rest.viewsets.project import ProjectViewSetMixin
 from api.rest.viewsets.coding.codingjob import CodingJobViewSetMixin
 
 __all__ = ("CodingSchemaViewSetMixin", "CodingSchemaSerializer", "CodingSchemaViewSet",
-            "CodingJobCodingSchemaViewSet", "_CodingSchemaFieldViewSet")
+           "CodingJobCodingSchemaViewSet", "_CodingSchemaFieldViewSet")
 
 
 class CodingSchemaSerializer(AmCATModelSerializer):
@@ -38,6 +38,7 @@ class CodingSchemaSerializer(AmCATModelSerializer):
 
     class Meta:
         model = CodingSchema
+
 
 class CodingSchemaViewSetMixin(AmCATViewSetMixin):
     model_serializer_class = CodingSchemaSerializer
@@ -56,6 +57,7 @@ class CodingJobCodingSchemaViewSet(ProjectViewSetMixin, CodingJobViewSetMixin,
             id__in=(self.codingjob.unitschema_id, self.codingjob.articleschema_id)
         )
 
+
 class CodingSchemaViewSet(ProjectViewSetMixin, CodingSchemaViewSetMixin, DatatablesMixin, ReadOnlyModelViewSet):
     model = CodingSchema
     model_serializer_class = CodingSchemaSerializer
@@ -63,6 +65,7 @@ class CodingSchemaViewSet(ProjectViewSetMixin, CodingSchemaViewSetMixin, Datatab
     def filter_queryset(self, codingschemas):
         codingschemas = super(CodingSchemaViewSet, self).filter_queryset(codingschemas)
         return codingschemas.filter(id__in=self.project.get_codingschemas()).prefetch_related("highlighters")
+
 
 class _CodingSchemaFieldViewSet(ProjectViewSetMixin, CodingSchemaViewSetMixin, CodingSchemaFieldViewSetMixin,
                                 DatatablesMixin, ReadOnlyModelViewSet):

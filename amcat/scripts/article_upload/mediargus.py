@@ -24,7 +24,6 @@ Plugin for uploading mediargus text files
 """
 
 
-
 from __future__ import unicode_literals, absolute_import
 
 import csv
@@ -43,8 +42,8 @@ class Mediargus(UploadScript):
 
     def split_file(self, file):
         text = self.decode(file.read())
-        text = text.replace('\r\n','\n')
-        text = text.replace('\r','\n')
+        text = text.replace('\r\n', '\n')
+        text = text.replace('\r', '\n')
 
         partitions = text.partition('\n\n\n\n\n\n')
         metas = partitions[0].split('\n\n\n')
@@ -58,20 +57,20 @@ class Mediargus(UploadScript):
         kargs = {}
         kargs['externalid'] = int(meta[0].split('.')[0].lstrip('?'))
         kargs['headline'] = meta[0].partition('. ')[2]
-        
+
         medium_name, date, pagenr, length = meta[2].split(', ')
         kargs['medium'] = Medium.get_or_create(medium_name)
         kargs['date'] = readDate(date)
         kargs['pagenr'] = int(pagenr.strip('p.'))
-        kargs['length']  = int(length.strip('w.'))
-        
+        kargs['length'] = int(length.strip('w.'))
+
         body = body.split('\n')
         kargs['section'] = body[2]
-        
+
         kargs['text'] = '\n'.join(body[5:])
-        
+
         kargs['project'] = self.options['project']
-        
+
         return Article(**kargs)
 
 if __name__ == '__main__':
@@ -79,12 +78,11 @@ if __name__ == '__main__':
     a = cli.run_cli(Mediargus, handle_output=False)
 
 
-
 ###########################################################################
 #                          U N I T   T E S T S                            #
 ###########################################################################
-
 from amcat.tools import amcattest
+
 
 class TestMediargus(amcattest.AmCATTestCase):
 

@@ -31,18 +31,15 @@ log = logging.getLogger(__name__)
 class ViewModelForm(forms.Form):
     pass
     #modelname = forms.CharField()
-    
-    
+
+
 class ViewModel(WebScript):
     name = "View Model"
     form = ViewModelForm
     displayLocation = ()
-    
-    
+
     def run(self):
         objects = FindObjectsScript(self.data).run()
         result = ObjectsToTable(self.data).run(objects)
 
         return self.outputResponse(result, ObjectsToTable.output_type)
-        
-    

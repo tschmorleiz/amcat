@@ -22,7 +22,6 @@ Plugin for uploading csv files
 """
 
 
-
 from __future__ import unicode_literals, absolute_import
 
 import csv
@@ -46,17 +45,18 @@ FIELDS = ("text", "date", "medium", "pagenr", "section", "headline", "byline",  
 REQUIRED = [True] * 2 + [False] * (len(FIELDS) - 2)
 
 PARSERS = {
-    "date" : readDate,
-    "pagenr" : int,
-    "externalid" : int,
-    "parent_externalid" : int,
-    "medium" : Medium.get_or_create
+    "date": readDate,
+    "pagenr": int,
+    "externalid": int,
+    "parent_externalid": int,
+    "medium": Medium.get_or_create
 }
 
 HELP_TEXTS = {
-    "parent_url" : "Column name for the URL of the parent article, which should be in the same CSV file",
-    "parent_externalid" : "Column name for the External ID of the parent article, which should be in the same CSV file",
-    }
+    "parent_url": "Column name for the URL of the parent article, which should be in the same CSV file",
+    "parent_externalid": "Column name for the External ID of the parent article, which should be in the same CSV file",
+}
+
 
 def is_nullable(field_name):
     try:
@@ -64,10 +64,11 @@ def is_nullable(field_name):
     except FieldDoesNotExist:
         return True
 
+
 class CSVForm(UploadScript.options_form, fileupload.CSVUploadForm):
     medium_name = forms.CharField(
         max_length=Article._meta.get_field_by_name('medium')[0].max_length,
-        required = False)
+        required=False)
     medium_existing = forms.ModelChoiceField(
         queryset=Medium.objects.all(), required=False,
         help_text="Use this option if you want to choose one medium for all uploaded articles."
@@ -75,7 +76,7 @@ class CSVForm(UploadScript.options_form, fileupload.CSVUploadForm):
 
     addressee_from_parent = forms.BooleanField(required=False, initial=False, label="Addressee from parent",
                                                help_text="If set, will set the addressee field to the author of the parent article")
-    
+
     def clean_medium_name(self):
         cd = self.cleaned_data
         name = self.cleaned_data['medium_name']
@@ -84,7 +85,7 @@ class CSVForm(UploadScript.options_form, fileupload.CSVUploadForm):
             raise forms.ValidationError("Please specify either medium, medium_existing or medium_name")
 
         return name
-    
+
     def __init__(self, *args, **kargs):
         super(CSVForm, self).__init__(*args, **kargs)
         for fieldname, required in reversed(zip(FIELDS, REQUIRED)):
@@ -97,21 +98,20 @@ class CSVForm(UploadScript.options_form, fileupload.CSVUploadForm):
                     help_text += ", or leave blank to leave unspecified"
 
             initial = fieldname if required else None
-    
-            field = forms.CharField(help_text = help_text, required=required,
+
+            field = forms.CharField(help_text=help_text, required=required,
                                     initial=initial, label=label)
             self.fields.insert(7, fieldname, field)
-    
-    
+
     def clean_parent_url(self):
         idfield = self.cleaned_data['parent_url']
         if idfield and self.cleaned_data['parent_externalid']:
             raise forms.ValidationError("Cannot specify both external id and URL for parents")
         return idfield
-        
 
 
 class CSV(UploadScript):
+
     """
     Upload CSV files to AmCAT.
 
@@ -136,15 +136,14 @@ class CSV(UploadScript):
     pictures there, the best way to share the file that you are having difficulty with (if it is not private)
     is to upload it to dropbox or a file sharing website and paste the link into the issue.
     """
-    
-    
+
     options_form = CSVForm
 
     def explain_error(self, error):
         if isinstance(error.error, KeyError):
             return "Field {error.error} not found in row {error.i}. Check field name and/or csv dialect".format(**locals())
         return super(CSV, self).explain_error(error)
-    
+
     def run(self, *args, **kargs):
 
         if self.options['parent_url']:
@@ -153,13 +152,13 @@ class CSV(UploadScript):
             self.id_field, self.parent_field = 'externalid', 'parent_externalid'
         else:
             self.id_field, self.parent_field = None, None
-            
+
         if self.parent_field:
-            self.parents = {} # id/url : id/url
-            self.articles = {} # id/url : article
-        
+            self.parents = {}  # id/url : id/url
+            self.articles = {}  # id/url : article
+
         return super(CSV, self).run(*args, **kargs)
-    
+
     @property
     def _medium(self):
         if self.options["medium"]:
@@ -174,14 +173,14 @@ class CSV(UploadScript):
             return med
 
         raise ValueError("No medium specified!")
-    
+
     def parse_document(self, row):
-        kargs = dict(medium = self._medium, metastring = {})
+        kargs = dict(medium=self._medium, metastring={})
         csvfields = [(fieldname, self.options[fieldname]) for fieldname in FIELDS if self.options[fieldname]]
         for fieldname, csvfield in csvfields:
             val = row[csvfield]
             if fieldname == 'date' and isinstance(val, datetime.datetime):
-                pass # no need to parse
+                pass  # no need to parse
             elif val.strip():
                 if fieldname in PARSERS:
                     val = PARSERS[fieldname](val)
@@ -189,7 +188,7 @@ class CSV(UploadScript):
                 val = None
             else:
                 val = val.strip()
-                
+
             kargs[fieldname] = val
 
         # Metadata to metastring
@@ -208,7 +207,7 @@ class CSV(UploadScript):
             parent_id = kargs.pop(self.parent_field)
             if parent_id:
                 self.parents[doc_id] = parent_id
-            
+
         article = Article(**kargs)
         if self.parent_field:
             self.articles[doc_id] = article
@@ -222,10 +221,10 @@ class CSV(UploadScript):
                 doc.parent = self.articles[parent_id]
                 if not doc.addressee and self.options['addressee_from_parent']:
                     doc.addressee = doc.parent.author
-                
+
                 doc.save()
 
-    
+
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli(CSV)
@@ -310,49 +309,45 @@ class TestCSV(amcattest.AmCATTestCase):
         articles = _run_test_csv(header, data, text="tekst", headline="kop", date="datum",
                                  externalid='id',  parent_externalid='parent', author='van')
 
-
         # for strange reasons, it seems that the order is sometimes messed up
         # since this is not something we care about, we order the results
         articles = sorted(articles, key=lambda a: a.externalid)
-        
+
         self.assertEqual(len(articles), 2)
         self.assertEqual(articles[0].parent, articles[1])
         self.assertEqual(articles[0].externalid, 7)
         self.assertEqual(articles[0].author, 'piet')
         self.assertEqual(articles[0].addressee, None)
 
-        
         self.assertEqual(articles[1].parent, None)
         self.assertEqual(articles[1].externalid, 12)
         self.assertEqual(articles[1].author, 'jan')
         self.assertEqual(articles[1].addressee, None)
 
-        
         articles = _run_test_csv(header, data, text="tekst", headline="kop", date="datum",
                                  externalid='id',  parent_externalid='parent', author='van',
                                  addressee_from_parent=True)
 
         # see above
         articles = sorted(articles, key=lambda a: a.externalid)
-        
+
         self.assertEqual(articles[0].author, 'piet')
         self.assertEqual(articles[0].addressee, 'jan')
         self.assertEqual(articles[1].author, 'jan')
         self.assertEqual(articles[1].addressee, None)
 
-
     @amcattest.use_elastic
     def test_date_format(self):
         # Stump class to test future 'date format' option, if needed. Currently just checks that
-        # a variety of formats load correctly. 
+        # a variety of formats load correctly.
         header = "date", "text"
 
         for datestr, dateformat, expected in [
             ("2001-01-01", None, "2001-01-01"),
             ("10/03/80", None, "1980-03-10"),
             ("15/08/2008", None, "2008-08-15"),
-            ]:
-        
+        ]:
+
             data = [(datestr, "text")]
             a, = _run_test_csv(header, data, date="date", text="text")
             self.assertEqual(a.date.isoformat()[:10], expected)

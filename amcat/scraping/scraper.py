@@ -39,24 +39,28 @@ from amcat.scraping import toolkit
 from amcat.scraping.htmltools import HTTPOpener
 from amcat.scraping.document import Document
 
-import logging; log = logging.getLogger(__name__)
+import logging
+log = logging.getLogger(__name__)
+
 
 class ScraperForm(forms.Form):
+
     """Form for scrapers"""
     project = forms.ModelChoiceField(queryset=Project.objects.all())
 
-    articleset = forms.ModelChoiceField(queryset=ArticleSet.objects.all(), required=False, help_text="If you choose an existing articleset, the articles will be appended to that set. If you leave this empty, a new articleset will be created using either the name given below, or using the file name")
+    articleset = forms.ModelChoiceField(queryset=ArticleSet.objects.all(), required=False,
+                                        help_text="If you choose an existing articleset, the articles will be appended to that set. If you leave this empty, a new articleset will be created using either the name given below, or using the file name")
     articleset_name = forms.CharField(
         max_length=ArticleSet._meta.get_field_by_name('name')[0].max_length,
-        required = False,
-)
+        required=False,
+    )
 
     def clean_articleset_name(self):
         name = self.cleaned_data['articleset_name']
         if not bool(name) ^ bool(self.cleaned_data['articleset']):
             raise forms.ValidationError("Please specify either articleset or articleset_name")
         return name
-    
+
     @classmethod
     def get_empty(cls, project=None, post=None, files=None, **_options):
         f = cls(post, files) if post is not None else cls()
@@ -66,6 +70,7 @@ class ScraperForm(forms.Form):
 
             f.fields['articleset'].queryset = ArticleSet.objects.filter(project=project)
         return f
+
 
 class Scraper(Script):
     output_type = Article
@@ -84,11 +89,10 @@ class Scraper(Script):
                 self.options[k] = v.decode('utf-8')
 
         # avoid django problem/bug with repr(File(open(uncode-string)))
-        # https://code.djangoproject.com/ticket/8156   
-        o2 = {k:v for k,v in self.options.iteritems() if k != 'file'}
+        # https://code.djangoproject.com/ticket/8156
+        o2 = {k: v for k, v in self.options.iteritems() if k != 'file'}
         log.debug(u"Articleset: {self.articleset!r}, options: {o2}"
                   .format(**locals()))
-
 
     @property
     def articleset(self):
@@ -99,8 +103,8 @@ class Scraper(Script):
             self.options['articleset'] = aset
             return aset
         return
-        
-    def run(self,input=None):
+
+    def run(self, input=None):
         from amcat.scraping.controller import Controller
         list(Controller().run(self))
 
@@ -154,7 +158,6 @@ class Scraper(Script):
                 comment = True
             article = article.create_article()
 
-
         if comment:
             _set_default(article, "medium", self.comment_medium)
         else:
@@ -168,41 +171,54 @@ class Scraper(Script):
 
 
 class AuthForm(ScraperForm):
+
     """
     Form for scrapers that require a login
     """
     username = forms.CharField()
     password = forms.CharField()
 
+
 class ArchiveForm(ScraperForm):
+
     """
     Form for scrapers that scrape multiple dates
     """
     first_date = forms.DateField()
     last_date = forms.DateField()
-    
+
+
 class DateForm(ScraperForm):
+
     """
     Form for scrapers that operate on a date
     """
     date = forms.DateField()
 
+
 class DatedScraper(Scraper):
+
     """Base class for scrapers that work for a certain date"""
     options_form = DateForm
+
     def _postprocess_article(self, article):
         article = super(DatedScraper, self)._postprocess_article(article)
         _set_default(article, "date", self.options['date'])
         return article
+
     def __unicode__(self):
         return "[%s for %s]" % (self.__class__.__name__, self.options['date'])
 
-class DBScraperForm(DateForm,AuthForm):
+
+class DBScraperForm(DateForm, AuthForm):
+
     """
     Form for dated scrapers that need credentials
     """
 
+
 class DBScraper(DatedScraper):
+
     """Base class for (dated) scrapers that require a login"""
     options_form = DBScraperForm
 
@@ -214,14 +230,18 @@ class DBScraper(DatedScraper):
     def _initialize(self):
         self._login(self.options['username'], self.options['password'])
 
+
 class HTTPScraper(Scraper):
+
     """Base class for scrapers that require an http opener"""
+
     def __init__(self, *args, **kargs):
         super(HTTPScraper, self).__init__(*args, **kargs)
         # TODO: this should be moved to _initialize, but then _initialize should
         # be moved to some sort of listener-structure as HTTPScraper is expected to
         # be inherited from besides eg DBScraper in a "diamon-shaped" multi-inheritance
         self.opener = HTTPOpener()
+
     def getdoc(self, url, encoding=None):
         try:
             return self.opener.getdoc(url, encoding)
@@ -241,20 +261,19 @@ class HTTPScraper(Scraper):
                 return self.opener.opener.open(uri, encoding)
         else:
             req = url
-            log.info('Retrieving "{url}"'.format(url = req.get_full_url()))
+            log.info('Retrieving "{url}"'.format(url=req.get_full_url()))
             return self.opener.opener.open(req, encoding)
-     
 
 
 def _set_default(obj, attr, val):
     try:
-        if getattr(obj, attr, None) is not None: return
+        if getattr(obj, attr, None) is not None:
+            return
     except ObjectDoesNotExist:
-        pass # django throws DNE on x.y if y is not set and not nullable
+        pass  # django throws DNE on x.y if y is not set and not nullable
     setattr(obj, attr, val)
-   
+
 
 if __name__ == '__main__':
     from amcat.scripts.tools import cli
     cli.run_cli(Scraper)
-

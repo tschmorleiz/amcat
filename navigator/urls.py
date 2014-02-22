@@ -35,9 +35,9 @@ from navigator.views.rule_views import *  # noqa
 
 urlpatterns = patterns(
     '',
-     url(r'^$', 'navigator.views.index.index', name="index"),
+    url(r'^$', 'navigator.views.index.index', name="index"),
 
-     # Users
+    # Users
     url(r'^user/(?P<id>[0-9]+)?$', 'navigator.views.user.view', name='user'),
     url(r'^user/edit/(?P<id>[0-9]+)$', 'navigator.views.user.edit', name='user-edit'),
     url(r'^user/add$', 'navigator.views.user.add', name='user-add'),
@@ -53,31 +53,31 @@ urlpatterns = patterns(
         )),
 
 
-    url(r'^codingjobs/(?P<coder_id>\d+)?$' ,'navigator.views.codingjob.index', name='codingjobs'),
+    url(r'^codingjobs/(?P<coder_id>\d+)?$', 'navigator.views.codingjob.index', name='codingjobs'),
 
 )
 
 
 for view in [ProjectDetailsView, ArticleSetListView, ArticleSetDetailsView,
              ArticleSetArticleDetailsView, ProjectArticleDetailsView, ArticleRemoveFromSetView,
-             ArticleSetUploadView,ArticleSetUploadListView,
-             QueryView, ArticleSetSampleView, ArticleSetEditView,ArticleSetImportView,ArticleSetRefreshView,
-             ArticleSetDeleteView,ArticleSetUnlinkView,
+             ArticleSetUploadView, ArticleSetUploadListView,
+             QueryView, ArticleSetSampleView, ArticleSetEditView, ArticleSetImportView, ArticleSetRefreshView,
+             ArticleSetDeleteView, ArticleSetUnlinkView,
              ArticleSplitView,
              CodebookListView, CodebookDetailsView, CodebookImportView, CodebookLinkView, ExportCodebook,
              CodebookUnlinkView, CodebookDeleteView, CodebookAddView,
-             CodebookChangeNameView, CodebookSaveChangesetsView,CodebookSaveLabelsView,
+             CodebookChangeNameView, CodebookSaveChangesetsView, CodebookSaveLabelsView,
              CodingSchemaListView, CodingSchemaDetailsView, CodingSchemaDeleteView, CodingSchemaCreateView,
-             CodingSchemaEditView,CodingSchemaEditFieldsView,CodingSchemaEditRulesView, CodingSchemaNameView,
-             CodingSchemaCopyView,CodingSchemaLinkView,CodingSchemaUnlinkView,
-             CodingJobListView, CodingJobAddView, CodingJobDetailsView,CodingJobDeleteView,CodingJobEditView,
+             CodingSchemaEditView, CodingSchemaEditFieldsView, CodingSchemaEditRulesView, CodingSchemaNameView,
+             CodingSchemaCopyView, CodingSchemaLinkView, CodingSchemaUnlinkView,
+             CodingJobListView, CodingJobAddView, CodingJobDetailsView, CodingJobDeleteView, CodingJobEditView,
              CodingJobExportSelectView, CodingJobExportView,
              ProjectUserListView, ProjectUserAddView,
-         ]:
+             ]:
     for pattern in view.get_url_patterns():
         urlpatterns += patterns('',
                                 url(pattern, view.as_view(), name=view.get_view_name())
-                            )
+                                )
 
 urlpatterns += patterns('',
                         url("^projects/(?P<project_id>[0-9]+)/$", ArticleSetListView.as_view(), name="project"),

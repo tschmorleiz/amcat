@@ -21,26 +21,31 @@ import random
 import string
 import types
 from hashlib import sha1
-import logging;
+import logging
 
 from django.core.cache import cache
 
 log = logging.getLogger(__name__)
 
+
 def gen_random(n=8):
     return ''.join(random.choice(string.ascii_uppercase) for x in range(n))
 
+
 class UUIDLogMiddleware(object):
+
     def process_request(self, request):
         request.uuid = gen_random(10)
         ppid, pid = os.getppid(), os.getpid()
         url = "?".join((request.META["PATH_INFO"], request.META["QUERY_STRING"]))
-        log.info("Start of request {request.uuid} ({ppid}, {pid}): {url}".format(**locals()), extra={"request":request})
+        log.info("Start of request {request.uuid} ({ppid}, {pid}): {url}".format(**locals()),
+                 extra={"request": request})
 
     def process_response(self, request, response):
         if hasattr(request, "uuid"):
             log.info("End of request {}".format(request.uuid))
         return response
+
 
 def session_pop(session, key, default=None):
     """
@@ -54,6 +59,7 @@ def session_pop(session, key, default=None):
         return session.pop(key)
     except KeyError:
         return default
+
 
 def cache_function(length):
     """

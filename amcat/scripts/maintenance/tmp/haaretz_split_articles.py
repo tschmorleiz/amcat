@@ -1,6 +1,7 @@
 from amcat.models.article import Article
 from amcat.models.medium import get_or_create_medium
-articles_2025 = Article.objects.filter(articlesetarticle__articleset = 2025)
+articles_2025 = Article.objects.filter(articlesetarticle__articleset=2025)
+
 
 def run():
     i = 0
@@ -16,7 +17,7 @@ def run():
             article.medium = get_or_create_medium("Haaretz")
 
         print(article.medium)
-        #article.save()
+        # article.save()
 
 if __name__ == "__main__":
     run()

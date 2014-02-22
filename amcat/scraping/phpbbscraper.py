@@ -22,25 +22,26 @@ A Scraper for the most common internet forum.
 """
 
 from amcat.scraping.document import HTMLDocument
-from amcat.scraping.scraper import HTTPScraper,DatedScraper
+from amcat.scraping.scraper import HTTPScraper, DatedScraper
 from urlparse import urljoin, urlunsplit, parse_qs, urlsplit
 from urllib import urlencode
 from lxml import etree
 from amcat.tools import toolkit
 
+
 class PhpBBScraper(HTTPScraper):
     index_url = None
     medium_name = "PhpBB - forum"
-    
+
     def _login(self, username, password):
         form = self.getdoc(self.index_url).cssselect('form')[0]
 
         self.opener.open(form.get('action'), urlencode({
-            'user' : username,
-            'passwrd' : password,
-            'cookielength' : '-1'
+            'user': username,
+            'passwrd': password,
+            'cookielength': '-1'
         })).read()
-    
+
     def _get_units(self):
         """
         PhpBB forum scraper
@@ -54,36 +55,36 @@ class PhpBBScraper(HTTPScraper):
                         url = urljoin(self.index_url, li.cssselect("a.topictitle")[0].get('href'))
                         _date = etree.tostring(li.cssselect("dd.lastpost")[0]).split("br />")[1]
                         date = toolkit.readDate(_date)
-                        yield {'date':date, 'object':HTMLDocument(headline=li.cssselect("a.topictitle")[0].text, url=url, category=cat_title)}
+                        yield {'date': date, 'object': HTMLDocument(headline=li.cssselect("a.topictitle")[0].text, url=url, category=cat_title)}
 
     def get_pages(self, page):
         """Get each page specified in pagination division."""
-        
-        yield page # First page, is always available
-        
+
+        yield page  # First page, is always available
+
         nav = page.cssselect('.pagination')[0]
 
         if len(nav.cssselect('a')) > 1:
-            # Pagination available    
+            # Pagination available
 
             try:
                 pages = int(nav.cssselect('a')[-1].text)
-            except ValueError: # "volgende", "next" etc.
+            except ValueError:  # "volgende", "next" etc.
                 pages = int(nav.cssselect('a')[-2].text)
 
             spage = nav.cssselect('a')[0].get('href')
-            
+
             url = list(urlsplit(spage))
-            query = dict([(k, v[-1]) for k,v in parse_qs(url[3]).items()])
+            query = dict([(k, v[-1]) for k, v in parse_qs(url[3]).items()])
             try:
                 ppp = int(query['start'])
             except:
                 ppp = 0
-            
+
             for pag in range(1, pages):
-                query['start'] = pag*ppp
+                query['start'] = pag * ppp
                 url[3] = urlencode(query)
-                
+
                 yield self.getdoc(urljoin(self.index_url, urlunsplit(url)))
 
     def get_categories(self, index):
@@ -95,19 +96,19 @@ class PhpBBScraper(HTTPScraper):
         for href in hrefs:
             url = urljoin(self.index_url, href.get('href'))
             yield href.text, self.getdoc(url)
-    
+
     def _scrape_unit(self, thread):
         thread = thread['object']
-        fipo = True # First post
+        fipo = True  # First post
         thread.doc = self.getdoc(thread.props.url)
         for page in self.get_pages(thread.doc):
             for post in page.cssselect('.post'):
                 ca = thread if fipo else thread.copy(parent=thread)
                 ca.props.date = toolkit.readDate(post.cssselect('.author')[0].text_content()[-22:])
                 ca.props.text = post.cssselect('.content')
-                
+
                 title = unicode(post.cssselect('.postbody h3 a')[0].text)
-                
+
                 if fipo and title:
                     optitle = title
                 elif fipo:
@@ -115,7 +116,7 @@ class PhpBBScraper(HTTPScraper):
                 if title:
                     ca.props.headline = title
                 else:
-                    ca.props.headline = 'Re: {}'.format( optitle )
+                    ca.props.headline = 'Re: {}'.format(optitle)
 
                 try:
                     ca.props.author = unicode(post.cssselect('.author strong')[0].text_content())
@@ -131,14 +132,14 @@ class PhpBBScraper(HTTPScraper):
                 fipo = False
 
 
-
 class DatedPhpBBScraper(PhpBBScraper, DatedScraper):
+
     def _scrape_unit(self, thread):
-        for ca in super(DatedPhpBBScraper,self)._scrape_unit(thread):
-            if ca.props.date.date() == self.options['date']:        
+        for ca in super(DatedPhpBBScraper, self)._scrape_unit(thread):
+            if ca.props.date.date() == self.options['date']:
                 yield ca
+
     def _get_units(self):
         for unit in super(DatedPhpBBScraper, self)._get_units():
             if unit['date'].date() == self.options['date']:
                 yield unit
-            

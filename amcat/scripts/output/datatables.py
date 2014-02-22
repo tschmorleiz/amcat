@@ -27,20 +27,22 @@ from amcat.tools.toolkit import writeDateTime
 
 class DataTableForm(forms.Form):
     sEcho = forms.IntegerField(required=False)
-    
-    
+
+
 import logging
 log = logging.getLogger(__name__)
 
+
 def _default_json(obj):
-    if not isinstance(obj, datetime.datetime): return unicode(obj)
+    if not isinstance(obj, datetime.datetime):
+        return unicode(obj)
     return writeDateTime(obj, year=True, seconds=False, time=False)
+
 
 class TableToDatatable(script.Script):
     input_type = table3.Table
     options_form = DataTableForm
     output_type = types.DataTableJsonData
-
 
     def run(self, tableObj):
         tableData = []
@@ -49,14 +51,14 @@ class TableToDatatable(script.Script):
             for column in tableObj.getColumns():
                 rowList.append(tableObj.getValue(row, column))
             tableData.append(rowList)
-            
-        tableColumns = [{'sTitle':column, 'sName':column} for column in tableObj.getColumns()] 
-           
+
+        tableColumns = [{'sTitle': column, 'sName': column} for column in tableObj.getColumns()]
+
         dictObj = {}
         dictObj['aaData'] = tableData
         dictObj['aoColumns'] = tableColumns
         dictObj['iTotalRecords'] = 9999
         dictObj['iTotalDisplayRecords'] = 9999 if len(tableData) > 0 else 0
         dictObj['sEcho'] = self.options['sEcho']
-        
+
         return json.dumps(dictObj, default=_default_json)

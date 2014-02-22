@@ -24,18 +24,13 @@ from webscript import WebScript
 from amcat.scripts.searchscripts.statistics import ArticleSetStatisticsScript
 
 
-
-    
 class ShowArticleSetStatistics(WebScript):
     name = "Article Set Statistics"
     form_template = None
     form = None
-    output_template = "api/webscripts/articlesetStats.html" 
+    output_template = "api/webscripts/articlesetStats.html"
     displayLocation = []
-    
-    
+
     def run(self):
         stats = ArticleSetStatisticsScript(self.data).run()
         return self.outputResponse(stats, ArticleSetStatisticsScript.output_type)
-
-        

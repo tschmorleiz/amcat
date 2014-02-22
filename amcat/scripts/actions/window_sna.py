@@ -33,7 +33,9 @@ from amcat.scripts.script import Script
 
 log = logging.getLogger(__name__)
 
+
 class WindowedSNAScript(Script):
+
     """"
     Create an object-object network based on a scrolling window of tokens
 
@@ -42,14 +44,13 @@ class WindowedSNAScript(Script):
     windower outputs code-code edges based on window size etc.
     """
 
-    
     class options_form(forms.Form):
         articleset = forms.ModelChoiceField(queryset=ArticleSet.objects.all())
         plugin = forms.ModelChoiceField(queryset=Plugin.objects.all())
         codebook = forms.ModelChoiceField(queryset=Codebook.objects.all())
         lexicon_language = forms.ModelChoiceField(queryset=Language.objects.all())
         window_size = forms.IntegerField()
-        
+
     def run(self):
         tokenstream = self.get_tokenstream()
         classifier = self.get_classifier()
@@ -68,7 +69,7 @@ class WindowedSNAScript(Script):
             for sentence in article.sentences.all():
                 for token in sentence.tokens.all():
                     yield token
-            
+
     def get_classifier(self):
         """
         Get the token classifier based on the codebook and language
@@ -91,11 +92,13 @@ class WindowedSNAScript(Script):
         Get the windower <- better term?
         @return: a function that transforms a sequence of {Code,} sets to a sequence of Edge
         """
-        return Windower(window_size = self.options["window_size"]).get_edges
-            
+        return Windower(window_size=self.options["window_size"]).get_edges
+
 Edge = collections.namedtuple("Edge", ["subject", "object", "weight"])
-            
+
+
 class Windower(object):
+
     def __init__(self, window_size=10):
         self.window_size = window_size
 
@@ -116,9 +119,11 @@ class Windower(object):
 
     def get_edges_from_stack(self, stack):
         for i, codes1 in enumerate(stack):
-            if not codes1: continue
-            for codes2 in stack[(i+1):]:
-                if not codes2: continue
+            if not codes1:
+                continue
+            for codes2 in stack[(i + 1):]:
+                if not codes2:
+                    continue
 
                 log.debug(".. Getting codes from {codes1} : {codes2}".format(**locals()))
                 for c1 in codes1:
@@ -127,11 +132,12 @@ class Windower(object):
                         yield Edge(c1, c2, 1)
                         if c1 != c2:
                             yield Edge(c2, c1, 1)
-        
+
 
 class TokenClassifier(object):
+
     """Determine whether codes occur in given tokens"""
-    
+
     def __init__(self, codebook, language):
         self.codebook = codebook
         self.language = language
@@ -139,7 +145,7 @@ class TokenClassifier(object):
 
     def get_labels(self):
         return ((c, c.get_label(self.language)) for c in self.codebook.get_codes())
-        
+
     def get_codes(self, token):
         w = token.word.word
         for code, label in self.get_labels():
@@ -152,12 +158,15 @@ class TokenClassifier(object):
 
 from amcat.tools import amcattest
 
+
 class TestWindowedSNA(amcattest.AmCATTestCase):
+
     def _get_test_tokens(self, aa, words):
         s = amcattest.create_test_analysis_sentence(analysed_article=aa)
-        if not words: words = "abcde"
+        if not words:
+            words = "abcde"
         return [amcattest.create_test_token(sentence=s, position=i, word=amcattest.create_test_word(word=w))
-                for (i,w) in enumerate(words)]
+                for (i, w) in enumerate(words)]
 
     def _get_test_codebook(self, lexicon_language, codes):
         """@param codes: a dict of label : lexical entry"""
@@ -177,12 +186,11 @@ class TestWindowedSNA(amcattest.AmCATTestCase):
         return WindowedSNAScript(articleset=aset.id, plugin=aa.plugin.id,
                                  codebook=cb.id, lexicon_language=lexicon_lang.id,
                                  window_size=window_size)
-        
-    
+
     def test_tokenstream(self):
         script = self._get_test_script(words="this is a test".split())
         tokenstream = list(script.get_tokenstream())
-        self.assertEqual([t.word.word for t in tokenstream], ["this","is","a","test"])
+        self.assertEqual([t.word.word for t in tokenstream], ["this", "is", "a", "test"])
 
     def test_classifier(self):
         lang = Language.objects.get(pk=2)
@@ -195,7 +203,7 @@ class TestWindowedSNA(amcattest.AmCATTestCase):
         words = "dit is een test".split()
         codes = dict(det="dit", dit="dit", test="test")
         script = self._get_test_script(words, codes)
-        
+
         codes = list(script.get_codestream(script.get_tokenstream(), script.get_classifier()))
 
         codes = [{c.get_label(1) for c in element} for element in codes]
@@ -213,8 +221,8 @@ class TestWindowedSNA(amcattest.AmCATTestCase):
 
     def test_script(self):
         #from amcat.tools import amcatlogging
-        #amcatlogging.setup()
-        #amcatlogging.debug_module()
+        # amcatlogging.setup()
+        # amcatlogging.debug_module()
         words = "dit is een mooie test".split()
         codes = dict(d1="dit", d2="dit", e="een", t="test")
         script = self._get_test_script(words, codes, window_size=3)

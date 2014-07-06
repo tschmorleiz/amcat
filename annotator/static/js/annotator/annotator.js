@@ -149,6 +149,7 @@ annotator = (function(self){
         self.copy_btn = $("#copy-coding-button");
         self.delete_btn = $("#delete-button");
         self.help_btn = $("#help-button");
+        self.hide_articles_btn = $("#hide-articles-button")
 
         self.next_btn.click(self.select_next_article);
         self.prev_btn.click(self.select_prev_article);
@@ -158,12 +159,14 @@ annotator = (function(self){
         self.irrelevant_btn.click(self.irrelevant_and_continue);
         self.copy_btn.click(self.copy);
         self.help_btn.click(function(){ self.help_dialog.dialog("open"); });
+        self.hide_articles_btn.click(self.hide_articles)
 
         $(".coding-part").hide();
         $(".sentence-options").hide();
         $(window).scroll(self.window_scrolled);
         $(window).resize(self.window_resized);
         $(window).trigger("resize");
+
     };
 
     self.show_unsaved_changes = function(continue_func){
@@ -209,6 +212,20 @@ annotator = (function(self){
     self.from_api = function(url){
         return $.getJSON("{0}?page_size={1}".f(url, self.API_PAGE_SIZE));
     };
+
+    self.hide_articles = function() {
+        self.hide_articles_btn.find("i")
+            .toggleClass("fa-chevron-up")
+            .toggleClass("fa-chevron-down")
+        if (self.article_table_container.is(':hidden')) {
+            self.article_table_container.show();
+            self.hide_articles_btn.attr("title", "Hide articles")
+        } else {
+            self.article_table_container.hide();
+            self.hide_articles_btn.attr("title", "Show articles")
+        }
+        
+    }
 
     /*
      * Counts currently selection of words in article.
@@ -284,8 +301,8 @@ annotator = (function(self){
             );
         });
 
-
         $.when.apply(undefined, self._requests).then(function (codingjob, rules, codebooks, schemas, schemafields, actions) {
+
                 // Check if all request completed successfully. (If not, an
                 // error is already thrown, but we need not continue processing
                 // the data.
@@ -325,8 +342,10 @@ annotator = (function(self){
                 self.initialise_sentence_codings_table();
                 self.setup_wordcount();
                 self.loading_dialog.dialog("close");
+
             }
         );
+        
 
     };
 
@@ -363,7 +382,8 @@ annotator = (function(self){
         var table = $("<table>")
             .attr("annotator_coding_id", self.state.article_coding.annotator_id)
             .addClass("coding");
-
+        $("#coding").show()
+        self.hide_articles();
         return table.append($.map(widgets.get_html(schemafields, null), function(widget, i){
             var schemafield = schemafields[i];
             var label = widgets.get_label_html(schemafield, widget);
@@ -388,37 +408,22 @@ annotator = (function(self){
                 .append($("<td>").append(label))
                 .append($("<td>").append(widget));
         }));
+
     };
 
     /*
      * Initialises table headers (sentence + fields + action) (columns)
      */
     self.initialise_sentence_codings_table = function () {
+        amcat.datatables.done = true;
         var table_header = $("<tr>");
-        table_header.append($("<th>").text("Sentence"));
-        table_header.append(
-            $.map(self.sentence_schemafields, function(schemafield){
-                if (schemafield.keywords)
-                    var nice_keywords = schemafield.keywords.split(",").join(", ");
-                else
-                    var nice_keywords = "<i>No keywords.</i>"
-                if (schemafield.description)
-                    var nice_description = schemafield.description
-                else
-                    var nice_description = "<i>No description.</i>"
-                return $("<th>")
-                    .attr("data-keywords", nice_keywords)
-                    .attr("data-description", nice_description)
-                    .text(schemafield.label);
-            })
-        );
 
         // Used to 'steal' focus so we know we need to add another row / switch to next row
         table_header.append($("<th>"));
 
         self.sentence_codings_container.find("table")
-            .append($("<thead>").append(table_header))
-            .append($("<tbody>"));
+            .append($("<thead>"))
+            .append($("<tbody>").append(table_header));
     };
 
 
@@ -438,7 +443,43 @@ annotator = (function(self){
      */
     self.append_sentence_coding = function(coding){
         var coding_el = self.get_sentence_coding_html(coding);
-        self.sentence_codings_container.find("tbody").append(coding_el);
+        var sentence_input = $(coding_el).find("> input")
+        var sentence_variables = $(coding_el).find("> td").slice(0, -1);
+        self.sentence_codings_container.find("tbody").
+            append($("<tr>")
+                .append($("<td>")
+                    .append($("<label>")
+                        .append($("<u>")
+                            .append("Sentence:")
+                        )
+                    )
+                )
+                .append($("<td>")
+                    .append(sentence_input)
+                )
+            );
+        sentence_variables.each(function(i, bar) {
+            var schemafield = self.sentence_schemafields[i];
+            if (schemafield.keywords)
+                    var nice_keywords = schemafield.keywords.split(",").join(", ");
+                else
+                    var nice_keywords = "<i>No keywords.</i>"
+                if (schemafield.description)
+                    var nice_description = schemafield.description
+                else
+                    var nice_description = "<i>No description.</i>"
+            self.sentence_codings_container.find("tbody").
+                append($("<tr>")
+                    .append($("<td>")
+                        .append($("<label>")
+                            .append(schemafield.label)
+                        )
+                    )
+                    .append(bar)
+                    .attr("data-keywords", nice_keywords)
+                    .attr("data-description", nice_description)
+                )
+        })
         self.set_sentence_codingvalues(coding_el, coding.values||[], coding.sentence);
         self.set_tab_order();
     };
@@ -913,7 +954,6 @@ annotator = (function(self){
 
     self.coded_article_fetched = function(coded_article, codings, sentences){
         console.log("Retrieved " + codings.length + " codings and " + sentences.length + " sentences");
-
         $("#lost-codes").hide();
         $("#lost-codes .triggered-by").empty();
 
@@ -990,7 +1030,7 @@ annotator = (function(self){
     }
 
     self.highlight_unit_schema_fields = function(highlighting) {
-        $("#unitcoding-table").find("th")
+        $("#unitcoding-table").find("tr")
             .unbind("click")
             .bind("click", function() {
                 var that = this;
@@ -1002,7 +1042,7 @@ annotator = (function(self){
                 var description = $(that).attr("data-description");
                 $('#coding-details .keywords > div').html(keywords);
                 $('#coding-details .description > div').html(description);
-                $(that).closest("table").find("th").css('background-color', '#60A3FF');
+                $(".coding-part tr").css('background-color', 'white');
                 $(that).css('background-color', '#9FAFD1');
                 $.each(highlighting, function(pIndex, sentences) {
                     $.each(sentences, function(sIndex, fields) {
@@ -1028,7 +1068,7 @@ annotator = (function(self){
                 var description = $(that).attr("data-description")
                 $('#coding-details .keywords > div').html(keywords);
                 $('#coding-details .description > div').html(description);
-                $(that).closest("table").find("tr").css('background-color', 'white');
+                $(".coding-part tr").css('background-color', 'white');
                 $(that).css('background-color', '#9FAFD1');
                 var sentence_id = 0;
                 $.each(highlighting, function(pIndex, sentences) {
@@ -1326,6 +1366,9 @@ annotator = (function(self){
     };
 
     self.datatables_row_clicked = function(row){
+        if(row["0"]["_DT_RowIndex"] === undefined)
+            return
+
         if(self.unsaved){
             return self.show_unsaved_changes((function(){
                 self.datatables_row_clicked.bind(this)(row);
@@ -1336,17 +1379,18 @@ annotator = (function(self){
         var coded_article_id = parseInt(row.children('td:first').text());
         self.datatable.find(".row_selected").removeClass("row_selected");
         self.datatable.parent().scrollTo(row, {offset: -50});
+
         self.get_article(coded_article_id);
         row.addClass("row_selected");
     };
 
     self.window_scrolled = function(){
-        if ($(window).scrollTop() < 85){
-            self.article_container.css("position", "absolute");
-        } else {
-            self.article_container.css("position", "fixed");
-            self.article_container.css("top", "5px");
-        }
+        // if ($(window).scrollTop() < 85){
+        //     self.article_container.css("position", "absolute");
+        // } else {
+        //     self.article_container.css("position", "fixed");
+        //     self.article_container.css("top", "5px");
+        // }
     };
 
     self.window_resized = function(){

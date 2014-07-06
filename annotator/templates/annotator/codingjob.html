@@ -17,26 +17,14 @@
 
   <div class="annotator-content">
     
-    <article>
-       <div class="sentence-options">
-            <button class="select-all-sentences-button" title="Select all sentences">Select</button>
-            <span>Selected words: <span id="wordcount">0</span></span>
-       </div>
-       <div class="sentences">
-           <h2>Article Text</h2>
-           <p>No article selected yet</p>
-       </div>
-    </article>
     
     <div class="articlelist-part">
-        <div class="links">
-            <a href="{% url "codingjobs" %}">&laquo; Back to Overview</a> | 
-            <a href="javascript:;" id="help-button">Help</a>
-        </div>
-        <h2>Articles in codingjob {{codingjob.id}} - {{codingjob.name}}</h2>
+        <h2><b>Articles in codingjob {{codingjob.id}} - {{codingjob.name}} <button id="hide-articles-button" ><i class="fa fa-chevron-up" title="hide"></i></button> </b></h2>
         <div class="article-list-toolbar">
-            <button id="next-article-button" title="Go to the next article in the list">Next</button>
-            <button id="previous-article-button" title="Go to the previous article in the list">Previous</button>
+            <button id="previous-article-button" title="Go to the previous article in the list"><i class="fa fa-angle-double-left"></i>
+            </button>
+            <button id="next-article-button" title="Go to the next article in the list"><i class="fa fa-angle-double-right"></i></button>
+            <button id="help-button"><i class="fa fa-question-circle" title="Help"></i> </button>
         </div>
         <div id="article-table-container">
         
@@ -56,7 +44,7 @@
 
             amcat.datatables.create_rest_table(jqueryElement, url, {
                 datatables_options: {
-                    aaSorting: [[0, "asc"]],
+                    aaSorting: [],
                     iDisplayLength: 100000,
                     aoColumns: columns,
                     sScrollY: "100px",
@@ -64,7 +52,7 @@
                     fnDrawCallback: function(){
                         $("tr", $("#article-table-container")).click(function(event){
                             annotator.datatables_row_clicked($(event.currentTarget));
-                        }).css("cursor", "pointer");
+                        }).css("cursor", "default");
                     }
                 },
                 setup_callback: function(tbl){
@@ -75,52 +63,71 @@
         });
         </script>
     </div>
+    <hr>
+    <div id="coding">
 
-    <div style="width:70%;" class="alert alert-warning" id="lost-codes">
-        <p><b>Warning</b></p>
-        <p>Some of the codes used in this coded article were not present in the used codebooks, which might
-            result in lost data. This warning typically is the result of moving a code in a codebook, deleting
-            a code from a codebook or changing the type of a codingschemafield. The warning was triggered by
-            the following codingschemafields:</p>
-        <p>
-            <ul class="triggered-by"></ul>
-        </p>
-    </div>
-    
-    <div class="coding-part" style="display:none">
-         <div class="unit-codings-toolbar">
-            <button id="irrelevant-button" title="Mark this article as irrelevant and continue to the next article">Irrelevant &amp; continue</button>
-            <button id="save-continue-button" title="Mark this article as finished and continue to the next article">Finish &amp; continue</button>
-            <button id="save-button" title="Save the codings for this article">Save</button>
-         </div>
-         
-        
-        <div id="article-comment-form">
-            <label for="article-comment">Comments:</label> <textarea cols="40" id="article-comment" name="comment" rows="4"></textarea>
-            <label for="article-status">Article Status:</label><select id="article-status" name="status" ></select>
-        </div>
-        <hr>
-        
-         <div id="article-coding">
-            <h3>Article Codings</h3>
-            <form id="article-coding-form">
-            
-            </form>
+      <div style="width:70%;" class="alert alert-warning" id="lost-codes">
+          <p><b>Warning</b></p>
+          <p>Some of the codes used in this coded article were not present in the used codebooks, which might
+              result in lost data. This warning typically is the result of moving a code in a codebook, deleting
+              a code from a codebook or changing the type of a codingschemafield. The warning was triggered by
+              the following codingschemafields:</p>
+          <p>
+              <ul class="triggered-by"></ul>
+          </p>
+      </div>
+      
+      <div class="coding-part" style="display:none">
+           
+           <div class="unit-codings-toolbar">
+              <button id="irrelevant-button" title="Mark this article as irrelevant and continue to the next article"><i class="fa fa-times"></i></button>
+              <button id="save-continue-button" title="Mark this article as finished and continue to the next article"><i class="fa fa-check"></i></button>
+              <button id="save-button" title="Save the codings for this article"><i class="fa fa-floppy-o"></i> </button>
+           </div>
+           
+          
+          <div id="article-comment-form">
+              <h1 for="article-status">Article Status </h1><select id="article-status" name="status" ></select>
+              <h1 for="article-comment">Comments</h1><textarea cols="40" id="article-comment" name="comment" rows="4"></textarea>
+              
+          </div>
+          <h1>Variables</h1>
+           <h3>Article Codings</h3>
+           <div id="article-coding">
+              
+              <form id="article-coding-form">
+              
+              </form>
 
+           </div>
+           <br>
+           <div id="unitcoding-table-part">
+              <h3>Sentence Codings</h3>
+              <div id="unitcoding-table-top">
+                  
+              </div>
+              <div>
+                  <table cellpadding="0" cellspacing="0" border="0" class="display" id="unitcoding-table"></table>
+              </div>
+           </div>
+      </div>
+
+      <div id="coding-details">
+        <h1>Variable Details</h1>
+        <div class="keywords"><strong>Keywords:</strong><div></div></div>
+        <div class="description"><strong>Description:</strong><div></div></div>
+      </div>
+
+      <article>
+         <div class="sentence-options">
+              <button class="select-all-sentences-button" title="Select all sentences">Select</button>
+              <span>Selected words: <span id="wordcount">0</span></span>
          </div>
-         <div id="coding-details">
-           <div class="keywords"><strong>Keywords:</strong><div></div></div>
-           <hr>
-           <div class="description"><strong>Description:</strong><div></div></div>
+         <div class="sentences">
+             <h2>Article Text</h2>
+             <p>No article selected yet</p>
          </div>
-         <div id="unitcoding-table-part">
-            <div id="unitcoding-table-top">
-                <h3>Sentence Codings</h3>
-            </div>
-            <div>
-                <table cellpadding="0" cellspacing="0" border="0" class="display" id="unitcoding-table"></table>
-            </div>
-         </div>
+      </article>
     </div>
     
   </div>

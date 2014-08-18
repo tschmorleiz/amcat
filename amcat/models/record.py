@@ -36,6 +36,7 @@ class Record(AmcatModel):
     category = models.CharField(max_length=200)
     event_type = models.CharField(max_length=200)
     target_id = models.IntegerField()
+    selected_schema_field_id = models.IntegerField()
     ts = models.DateTimeField()
     article = models.ForeignKey("amcat.Article", null=True)
     codingjob = models.ForeignKey("amcat.CodingJob", null=True)

@@ -5,6 +5,7 @@ from django.core.cache import cache
 import json
 import snowballstemmer
 import random
+import math
 
 def articleschema(request):
     return highlight(request, 'articleschema')
@@ -135,15 +136,17 @@ class HighlighterArticles:
 		for i in range(0, len(article)):
 			for j in range(0, len(article[i])):
 				for k in range(0, len(article[i][j])):
-					if (article[i][j][k] in words_used):
-						del article[i][j][k]
+					if (k in range(0, len(article[i][j]))):
+						if (article[i][j][k] in words_used):
+							del article[i][j][k]
 		
 		for i in range(0, len(variable_keywords)):
 			if ((variable_keywords[i] != None) and (variable_keywords[i]!="")):
 	 			for j in range(0, len(variable_keywords[i])):
-					if (variable_keywords[i][j] in words_used):
-						del variable_keywords[i][j]
-						j -= 1
+	 				if (j in range(0, len(variable_keywords[i]))):
+						if (variable_keywords[i][j] in words_used):
+							del variable_keywords[i][j]
+							j -= 1
 		# get p(w|z) only for used words in article & keywords
 		pwz = {}
 		f = open("/amcat/jgibblda/models/pol/model-final.phi", "r")
@@ -214,7 +217,12 @@ class HighlighterArticles:
 					zij.append(topic_chosen)
 					nmk[topic_chosen] += 1
 					nm += 1
-					article[i][j][k] = word_idx[article[i][j][k]]
+					if (k in range(0, len(article[i][j]))):
+						if (article[i][j][k] in word_idx):
+							article[i][j][k] = word_idx[article[i][j][k]]
+						else:
+							del article[i][j][k]
+							k-=1
 				zi.append(zij)
 			z.append(zi)
 				
@@ -254,6 +262,7 @@ class HighlighterArticles:
 			
 		highlight = [[]]*len(article)
 		sum_p_keywords = [0]*len(variable_keywords)
+		max_p_keywords = 0;
 		for i in range(0, len(article)):
 			highlight[i] = [[0]]*len(article[i])
 			for j in range(0, len(article[i])):
@@ -285,12 +294,14 @@ class HighlighterArticles:
 						p_keywords[p]+= (1-lambda_influence) * keyword_found[p] / len(article[i][j])
 						print keyword_found
 					sum_p_keywords[p] += p_keywords[p]
+					max_p_keywords = max(max_p_keywords,p_keywords[p])
 				highlight[i][j]=p_keywords
 				
 		for i in range(0, len(article)):
 			for j in range(0, len(article[i])):
 				for p in range(0, len(variable_keywords)):
-					highlight[i][j][p]/=sum_p_keywords[p]
+					#highlight[i][j][p]/=sum_p_keywords[p]
+					highlight[i][j][p]/=max_p_keywords
 		return highlight
 	pass	
 

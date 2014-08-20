@@ -222,7 +222,6 @@ class HighlighterArticles:
 							article[i][j][k] = word_idx[article[i][j][k]]
 						else:
 							del article[i][j][k]
-							k-=1
 				zi.append(zij)
 			z.append(zi)
 				

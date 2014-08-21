@@ -139,6 +139,7 @@ class HighlighterArticles:
 					if (k in range(0, len(article[i][j]))):
 						if (article[i][j][k] in words_used):
 							del article[i][j][k]
+							k-=1
 		
 		for i in range(0, len(variable_keywords)):
 			if ((variable_keywords[i] != None) and (variable_keywords[i]!="")):
@@ -222,6 +223,7 @@ class HighlighterArticles:
 							article[i][j][k] = word_idx[article[i][j][k]]
 						else:
 							del article[i][j][k]
+							k-=1
 				zi.append(zij)
 			z.append(zi)
 				

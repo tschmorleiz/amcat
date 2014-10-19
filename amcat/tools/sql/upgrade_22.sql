@@ -15,3 +15,6 @@ CREATE TABLE records (
     codingjob_id integer,
     user_id integer
 );
+
+
+ALTER TABLE records ADD selected_schema_field_id integer;

@@ -100,6 +100,7 @@ class HighlighterArticles:
 				article[i][j] = article[i][j].split(" ");
 				for k in range(0, len(article[i][j])):
 					# article[i][j][k]=chrtran(article[i][j][k], goodchars, "")
+					article[i][j][k]=article[i][j][k].replace(",","").lower();
 					article[i][j][k]=stemmer.stemWord(article[i][j][k])
 					words_used.append(article[i][j][k])
 					
@@ -108,7 +109,7 @@ class HighlighterArticles:
 				keywords_split = variable_keywords[i].split(",")
 				# variable_keywords[i]=chrtran(variable_keywords[i], goodchars, "")
 	 			for j in range(0, len(keywords_split)):
-						keywords_split[j]=stemmer.stemWord(keywords_split[j])
+						keywords_split[j]=stemmer.stemWord(keywords_split[j].lower())
 		 				words_used.append(keywords_split[j])
 		 		variable_keywords[i]=keywords_split
 		 		
@@ -128,6 +129,7 @@ class HighlighterArticles:
 				if (word in words_used):
 					index_used.append(int(count))
 					#word_count[line_counter-1]=count
+					#print word," ",int(count)
 					word_idx[word]=int(count)
 					words_used.remove(word)
 			line_counter+=1
@@ -137,17 +139,15 @@ class HighlighterArticles:
 			for j in range(0, len(article[i])):
 				for k in range(0, len(article[i][j])):
 					if (k in range(0, len(article[i][j]))):
-						if (article[i][j][k] in words_used):
-							del article[i][j][k]
-							k-=1
+						if (not article[i][j][k] in word_idx):
+							article[i][j][k]=-1
 		
 		for i in range(0, len(variable_keywords)):
 			if ((variable_keywords[i] != None) and (variable_keywords[i]!="")):
 	 			for j in range(0, len(variable_keywords[i])):
 	 				if (j in range(0, len(variable_keywords[i]))):
-						if (variable_keywords[i][j] in words_used):
-							del variable_keywords[i][j]
-							j -= 1
+						if (not variable_keywords[i][j] in word_idx):
+							variable_keywords[i][j]=-1
 		# get p(w|z) only for used words in article & keywords
 		pwz = {}
 		f = open("/amcat/jgibblda/models/pol/model-final.phi", "r")
@@ -218,20 +218,27 @@ class HighlighterArticles:
 					zij.append(topic_chosen)
 					nmk[topic_chosen] += 1
 					nm += 1
-					if (k in range(0, len(article[i][j]))):
-						if (article[i][j][k] in word_idx):
+					if (k in range(0, len(article[i][j])) and j in range(0, len(article[i])) and i in range(0, len(article))):
+						if (article[i][j][k]!=-1 and article[i][j][k] in word_idx):
+							#print i," ",j," ",k," ",article[i][j][k]
 							article[i][j][k] = word_idx[article[i][j][k]]
-						else:
-							del article[i][j][k]
-							k-=1
+							print "index: ",article[i][j][k]
 				zi.append(zij)
 			z.append(zi)
+
+		for i in range(0, len(article)):
+			zi = []
+			for j in range(0, len(article[i])):
+				zij = []
+				for k in range(0, len(article[i][j])):
+					print i," ",j," ",k," ",article[i][j][k]
 				
 		for i in range(0, len(variable_keywords)):
 			if ((variable_keywords[i]!=None) and (variable_keywords[i]!="")):
-					for j in range(0, len(variable_keywords[i])):			
-						variable_keywords[i][j] = word_idx[variable_keywords[i][j]]
-		
+					for j in range(0, len(variable_keywords[i])):	
+						if (variable_keywords[i][j]!=-1 and variable_keywords[i][j] in word_idx):		
+							variable_keywords[i][j] = word_idx[variable_keywords[i][j]]
+
 		for i in range(0, qiter):
 			#assign new topics
 			#z = [[]] * len(article)
@@ -239,28 +246,30 @@ class HighlighterArticles:
 				#z[i]=[[]]*len(article[i])
 				for j in range(0, len(article[i])):
 					for k in range(0, len(article[i][j])):
-						nmk[z[i][j][k]]-=1
-						nm-=1
-						psum=0
-						pword=[0]*K
-						for topic in range(0,K):
-							pword[topic] = pwz[article[i][j][k]][topic]
-							pword[topic]*= (nmk[topic]+alpha)/(nm+K*alpha)
-							psum+=pword[topic]
-						for topic in range(0,K):
-							pword[topic]/=psum
-							if(topic>0):
-								pword[topic]+=pword[topic-1]
-											
-						random_p=random.random()
-						z[i][j][k]=0
-						for topic in range(0,K):
-							if random_p < pword[topic]:
-								z[i][j][k]=topic
-								break
-						nmk[z[i][j][k]]+=1
-						nm+=1
-			
+						if (article[i][j][k] != -1):
+							nmk[z[i][j][k]]-=1
+							nm-=1
+							psum=0
+							pword=[0]*K
+							for topic in range(0,K):
+								#print "debug:",i," ",j," ",k," ",topic," ",article[i][j][k]
+								pword[topic] = pwz[article[i][j][k]][topic]
+								pword[topic]*= (nmk[topic]+alpha)/(nm+K*alpha)
+								psum+=pword[topic]
+							for topic in range(0,K):
+								pword[topic]/=psum
+								if(topic>0):
+									pword[topic]+=pword[topic-1]
+												
+							random_p=random.random()
+							z[i][j][k]=0
+							for topic in range(0,K):
+								if random_p < pword[topic]:
+									z[i][j][k]=topic
+									break
+							nmk[z[i][j][k]]+=1
+							nm+=1
+							
 		highlight = [[]]*len(article)
 		sum_p_keywords = [0]*len(variable_keywords)
 		max_p_keywords = 0;
@@ -270,30 +279,35 @@ class HighlighterArticles:
 				ptopic_sentence=[0]*K
 				keyword_found = [0]*len(variable_keywords)
 				for k in range(0, len(article[i][j])):
-					for p in range(0, len(variable_keywords)):
-						if (article[i][j][k] in variable_keywords[p]):
-							keyword_found[p]+=1
-					psum=0
-					ptopic=[0]*K
-					for topic in range(0,K):
-						ptopic[topic]=pwz[article[i][j][k]][topic]*(nmk[topic]+alpha)/(nm+K*alpha)
-						psum+=ptopic[topic]
-					for topic in range(0,K):
-						ptopic[topic]/=psum
-						ptopic_sentence[topic]+=ptopic[topic]
+					if(article[i][j][k]!=-1):
+						for p in range(0, len(variable_keywords)):
+							if(article[i][j][k] != -1):
+								if (article[i][j][k] in variable_keywords[p]):
+									keyword_found[p]+=1
+						psum=0
+						ptopic=[0]*K
+						for topic in range(0,K):
+							ptopic[topic]=pwz[article[i][j][k]][topic]*(nmk[topic]+alpha)/(nm+K*alpha)
+							psum+=ptopic[topic]
+						for topic in range(0,K):
+							ptopic[topic]/=psum
+							ptopic_sentence[topic]+=ptopic[topic]
 				for topic in range(0,K):
 					ptopic_sentence[topic]/=K
 				p_keywords = [0]*len(variable_keywords)
 				for p in range(0, len(variable_keywords)):
 					if ((variable_keywords[p]!=None) and (variable_keywords[p]!="")):
 						for q in range(0, len(variable_keywords[p])):
-							for topic in range(0,K):
-								p_keywords[p]+= lambda_influence * pwz[variable_keywords[p][q]][topic] * ptopic_sentence[topic]
-						p_keywords[p] *= (lambda_influence / len(variable_keywords[p]))
+							if (variable_keywords[p][q] != -1):
+								for topic in range(0,K):
+									p_keywords[p]+= lambda_influence * pwz[variable_keywords[p][q]][topic] * ptopic_sentence[topic]
+						if (len(variable_keywords[p])>0):
+							p_keywords[p] *= (lambda_influence / len(variable_keywords[p]))
 						#p_keywords[p]+= (1-lambda_influence) * (1-(len(article[i]) / (len(article[i]) + mu)) * (word_count[variable_keywords[p][q]]/total_words)
 						#(len(article[i]) / (len(article[i]) + mu)) 
-						p_keywords[p]+= (1-lambda_influence) * keyword_found[p] / len(article[i][j])
-						print keyword_found
+						if (len(article[i][j])>0):
+							p_keywords[p]+= (1-lambda_influence) * keyword_found[p] / len(article[i][j])
+							print keyword_found
 					sum_p_keywords[p] += p_keywords[p]
 					max_p_keywords = max(max_p_keywords,p_keywords[p])
 				highlight[i][j]=p_keywords
@@ -302,7 +316,8 @@ class HighlighterArticles:
 			for j in range(0, len(article[i])):
 				for p in range(0, len(variable_keywords)):
 					#highlight[i][j][p]/=sum_p_keywords[p]
-					highlight[i][j][p]/=max_p_keywords
+					if (max_p_keywords > 0):
+						highlight[i][j][p]/=max_p_keywords
 		return highlight
 	pass	
 

@@ -44,6 +44,8 @@ package = dict(
         'api.rest.viewsets.coding',
         'api.rest',
         'api.rest.resources',
+	'api.recorder',
+	'api.highlighter',
         'api.webscripts',
         'api',
         'annotator.views',

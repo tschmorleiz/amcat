@@ -60,6 +60,7 @@ def highlighting_hash(article_matrix, keywords):
 
 def from_cache(article_id, schema_id, hash_value):
     article_cache = cache.get("highlighting-{0}".format(article_id))
+    print(article_cache)
     if article_cache is None:
         return None
     codingjob_cache = None
@@ -79,6 +80,9 @@ def to_cache(article_id, schema_id, hash_value, result):
     article_cache[schema_id]['hash'] = hash_value
     article_cache[schema_id]['value'] = result
     cache.set("highlighting-{0}".format(article_id), article_cache)
+    print(article_cache)
+    article_cache = cache.get("highlighting-{0}".format(article_id))
+    print(article_cache)
     cache.close()
 
 

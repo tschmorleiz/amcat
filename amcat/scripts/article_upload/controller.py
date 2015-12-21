@@ -33,7 +33,8 @@ class Controller(object):
     def __init__(self):
         self.errors = []
         self.articles = []
-
+	self.saved_article_ids = [];
+	
     def run(self, scraper):
         try:
             units = list(scraper._get_units())
@@ -61,6 +62,7 @@ class Controller(object):
                 self.errors.append(ScrapeError(None,None,e))
         except Exception as e:
             self.errors.append(ScrapeError(None,None,e))
+	    print e
             log.exception("scraper._get_units failed")
 
         return self.saved_article_ids

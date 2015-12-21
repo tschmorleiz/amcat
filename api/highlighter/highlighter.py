@@ -1,10 +1,10 @@
-from django.http import HttpResponse, HttpResponseBadRequest 
-from amcat.models.coding.codingjob import CodingJob 
-from amcat.models.article import Article 
-from django.core.cache import cache 
-import json 
-import snowballstemmer 
-import random 
+from django.http import HttpResponse, HttpResponseBadRequest
+from amcat.models.coding.codingjob import CodingJob
+from amcat.models.article import Article
+from django.core.cache import cache
+import json
+import snowballstemmer
+import random
 import math
 
 def articleschema(request):
@@ -31,7 +31,7 @@ def highlight(request, schematype):
         schema = cj.articleschema
     else:
         schema = cj.unitschema
-    for csf in schema.fields.order_by('id').all():
+    for csf in schema.fields.all():
         keywords.append(csf.keywords)
 
     article_matrix = []
@@ -60,11 +60,6 @@ def highlighting_hash(article_matrix, keywords):
 
 def from_cache(article_id, schema_id, hash_value):
     article_cache = cache.get("highlighting-{0}".format(article_id))
-<<<<<<< HEAD
-    #print(article_cache)
-=======
-    print(article_cache)
->>>>>>> 43775c9add841c9243122f5590ad283ab9d39dea
     if article_cache is None:
         return None
     codingjob_cache = None
@@ -84,15 +79,6 @@ def to_cache(article_id, schema_id, hash_value, result):
     article_cache[schema_id]['hash'] = hash_value
     article_cache[schema_id]['value'] = result
     cache.set("highlighting-{0}".format(article_id), article_cache)
-<<<<<<< HEAD
-    # print(article_cache)
-    article_cache = cache.get("highlighting-{0}".format(article_id))
-    # print(article_cache)
-=======
-    print(article_cache)
-    article_cache = cache.get("highlighting-{0}".format(article_id))
-    print(article_cache)
->>>>>>> 43775c9add841c9243122f5590ad283ab9d39dea
     cache.close()
 
 
@@ -118,17 +104,14 @@ class HighlighterArticles:
 					article[i][j][k]=stemmer.stemWord(article[i][j][k])
 					words_used.append(article[i][j][k])
 					
-		print "Variables:"
 		for i in range(0, len(variable_keywords)):
 			if ((variable_keywords[i] != None) and (variable_keywords[i]!="")):
 				keywords_split = variable_keywords[i].split(",")
-				print "%d" % i
-				print "%s" % variable_keywords[i]
 				# variable_keywords[i]=chrtran(variable_keywords[i], goodchars, "")
 	 			for j in range(0, len(keywords_split)):
-						keywords_split[j]=stemmer.stemWord(keywords_split[j].strip().lower())
+						keywords_split[j]=stemmer.stemWord(keywords_split[j].lower())
 		 				words_used.append(keywords_split[j])
-						variable_keywords[i]=keywords_split
+		 		variable_keywords[i]=keywords_split
 		 		
 		words_used = set(words_used)		
 		
@@ -239,16 +222,16 @@ class HighlighterArticles:
 						if (article[i][j][k]!=-1 and article[i][j][k] in word_idx):
 							#print i," ",j," ",k," ",article[i][j][k]
 							article[i][j][k] = word_idx[article[i][j][k]]
-							#print "index: ",article[i][j][k]
+							print "index: ",article[i][j][k]
 				zi.append(zij)
 			z.append(zi)
 
-		#for i in range(0, len(article)):
-		#	zi = []
-		#	for j in range(0, len(article[i])):
-		#		zij = []
-		#		for k in range(0, len(article[i][j])):
-		#			print i," ",j," ",k," ",article[i][j][k]
+		for i in range(0, len(article)):
+			zi = []
+			for j in range(0, len(article[i])):
+				zij = []
+				for k in range(0, len(article[i][j])):
+					print i," ",j," ",k," ",article[i][j][k]
 				
 		for i in range(0, len(variable_keywords)):
 			if ((variable_keywords[i]!=None) and (variable_keywords[i]!="")):
@@ -299,7 +282,7 @@ class HighlighterArticles:
 					if(article[i][j][k]!=-1):
 						for p in range(0, len(variable_keywords)):
 							if(article[i][j][k] != -1):
-								if (isinstance(article[i][j][k], basestring) and article[i][j][k] in variable_keywords[p]):
+								if (article[i][j][k] in variable_keywords[p]):
 									keyword_found[p]+=1
 						psum=0
 						ptopic=[0]*K
@@ -324,7 +307,7 @@ class HighlighterArticles:
 						#(len(article[i]) / (len(article[i]) + mu)) 
 						if (len(article[i][j])>0):
 							p_keywords[p]+= (1-lambda_influence) * keyword_found[p] / len(article[i][j])
-							#print keyword_found
+							print keyword_found
 					sum_p_keywords[p] += p_keywords[p]
 					max_p_keywords = max(max_p_keywords,p_keywords[p])
 				highlight[i][j]=p_keywords
@@ -335,13 +318,6 @@ class HighlighterArticles:
 					#highlight[i][j][p]/=sum_p_keywords[p]
 					if (max_p_keywords > 0):
 						highlight[i][j][p]/=max_p_keywords
-		for i in range(0, len(article)):
-			for j in range(0, len(article[i])):
-				p_keywords_old = highlight[i][j];
-				p_keywords = [0]*(len(variable_keywords)+1)
-				for p in range(0, len(variable_keywords)):
-					p_keywords[p+1] = p_keywords_old[p]
-				highlight[i][j]=p_keywords
 		return highlight
 	pass	
 
@@ -352,4 +328,3 @@ class HighlighterArticles:
 #variable_pages = []
 #highlighting = highlighter.getHighlightingsArticle(article,variable_keywords,variable_pages)
 #print(highlighting)
-

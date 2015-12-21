@@ -1109,7 +1109,7 @@ annotator = (function(self){
                 $.each(highlighting, function(pIndex, sentences) {
                     $.each(sentences, function(sIndex, fields) {
                         sentence_id += 1;
-                        var yellow = 255 - Math.round(fields[field_index] * 255);
+                        var yellow = Math.round(fields[field_index] * 255);
                         $("#sentence-{0}".f(sentence_id)).css("background-color", "rgb(255,255,{0})".f(yellow));
                     })
                 })
@@ -1117,7 +1117,6 @@ annotator = (function(self){
     }
 
     self.highlight_schema_fields = function(highlighting) {
-	console.log("test1");
         self.article_coding_container.find("tr")
             .unbind("click")
             .bind("click", function() {
@@ -1138,9 +1137,8 @@ annotator = (function(self){
                 $.each(highlighting, function(pIndex, sentences) {
                     $.each(sentences, function(sIndex, fields) {
                         sentence_id += 1;
-			console.log(sentence_id);
-                        var yellow = 255 - Math.round(fields[field_index] * 255);
-                        $('[data-index="'+sentence_id+'"]').css("background-color", "rgb(255,255,{0})".f(yellow))
+                        var yellow = Math.round(fields[field_index] * 255);
+                        $("#sentence-{0}".f(sentence_id)).css("background-color", "rgb(255,255,{0})".f(yellow))
                     })
                 })
             })
@@ -1363,16 +1361,14 @@ annotator = (function(self){
         self.highlight_labels = labels;
     };
 
-    //This is not so nice, but ja
-    var j = 0;
+
     // TODO: Remove legacy code (get_unit() logic, etc.)
     self.sentences_fetched = function(sentences) {
-	var html = $('<div>');
+        var html = $('<div>');
         var prev_parnr = 1;
-	console.log(sentences);
+
         $.each(sentences, function (i, s) {
-	    j++;
-            var _html = $('<div />').attr('id', 'sentence-' + s.id).addClass('sentence').attr('data-index',j);
+            var _html = $('<div />').attr('id', 'sentence-' + s.id).addClass('sentence');
             if (s.parnr != prev_parnr) {
                 _html.addClass('new-paragraph');
             }

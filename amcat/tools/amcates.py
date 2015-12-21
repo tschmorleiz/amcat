@@ -141,8 +141,6 @@ class Result(object):
         if score: result.score = int(row['_score'])
         if 'highlight' in row: result.highlight = row['highlight']
         if hasattr(result, 'date'):
-            if isinstance(result.date, list):
-                result.date = result.date[0]
             if len(result.date) == 10:
                 result.date = datetime.strptime(result.date, '%Y-%m-%d')
             else:
